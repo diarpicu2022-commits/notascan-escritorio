@@ -1,0 +1,33 @@
+/*
+ * Enmiendas al design system notascan-ui aprobadas por Diego (contrato de diseño, anexo
+ * docs/ux/anexos/2026-10-01-app-escritorio.md · Excepciones fechadas). Solo maquetación y solo
+ * tokens: notascan.css no se edita. Cada regla dice qué falla del sistema corrige.
+ */
+
+/* 2026-10-01 · La columna principal era una pista implícita `auto` que crecía hasta el ancho mínimo
+   de su contenido: la Planilla la ensanchaba a 1195 px en una ventana de 1024. Con minmax(0, 1fr)
+   la tabla se desplaza dentro de .ns-gb-wrap, que ya tiene overflow: auto. */
+.ns-app-main { grid-template-columns: minmax(0, 1fr); }
+
+/* 2026-10-01 · Entre 761 y 1180 px las cifras del Inicio quedan en tres columnas de ~220 px con icono,
+   número y etiqueta en una sola línea, y «verificadas este mes» se salía 25–34 px de su bloque.
+   La etiqueta pasa a su propia línea, bajo el icono y la cifra. */
+@media (max-width: 1180px) {
+  .ns-home-stat { grid-template-columns: auto minmax(0, 1fr); }
+  .ns-home-stat .ns-bento-label { grid-column: 1 / -1; }
+}
+
+/* 2026-10-01 · (alcance de la enmienda 2a: desbordes a 1024 px) En Periodos, la lista de 260 px deja al
+   editor ~366 px útiles y cada fila de pesos necesita ~450 px: la página se salía 38 px. Se usa desde
+   1180 px el mismo apilado que el sistema ya aplica por debajo de 900 px (lista sobre el editor). */
+@media (max-width: 1180px) {
+  .ns-period { grid-template-columns: 1fr; }
+}
+
+/* 2026-10-01 · Enmienda 3a (contraste en Solicitudes). En el bloque «Nota actual → Cambio solicitado»
+   el rótulo gold-ink sobre gold daba 2.07:1 (no AA) y las dos cifras con las que Rectoría decide no
+   llegaban a AAA (navy/gold 4.92:1, muted/ivory 6.24:1). Solo tokens: el valor nuevo sigue destacado
+   por su borde y sombra gold, pero sobre paper. */
+.ns-change-big > div:first-child strong { color: var(--charcoal); }
+.ns-change-big .is-new { background: var(--paper); border-color: var(--gold); box-shadow: var(--shadow-gold); }
+.ns-change-big .is-new .ns-overline { color: var(--navy); }
