@@ -6,3 +6,4 @@ Thumbs.db
 *.log
 .secrets/
 .env.local
+.tmp-sql/

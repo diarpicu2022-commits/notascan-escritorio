@@ -112,6 +112,16 @@ try {
   const fake = await as(ana, () => errorOf("insert into public.grade_change_requests (teacher_email, student_id, subject_id, course_id, from_value, to_value, reason) values ('carlos.perez@losandes.edu.co', $1, 'mat', '7A', 3.0, 3.5, 'Suplantación')", [anaStudent]));
   check("No puede crearla a nombre de otro docente", fake?.includes("row-level security"), fake || "se creó");
   const pendingId = (await one("select id from public.grade_change_requests where status = 'pending' order by id limit 1")).id;
+  // Hallazgo del Security Advisor: sin sesión el rol es NULL y no debe poder decidir ni llamar funciones.
+  const anonDecides = await as(null, () => errorOf("select public.decide_grade_request($1, 'approved')", [pendingId]));
+  check("Sin sesión no se puede llamar a decide_grade_request", anonDecides?.includes("permission denied"), anonDecides || "decidió");
+  const anonHelper = await as(null, () => errorOf("select public.current_app_role()"));
+  check("Sin sesión no se pueden llamar las funciones auxiliares", anonHelper?.includes("permission denied"), anonHelper || "se llamó");
+  const ghost = "00000000-0000-0000-0000-000000000001"; // con sesión pero sin perfil (rol NULL)
+  const ghostDecides = await as(ghost, () => errorOf("select public.decide_grade_request($1, 'approved')", [pendingId]));
+  check("Un usuario sin perfil (rol NULL) no puede decidir", ghostDecides?.includes("Solo Rectoría"), ghostDecides || "decidió");
+  const triggerFn = await as(ana, () => errorOf("select public.audit_grade_change()"));
+  check("Nadie llama directamente a las funciones de disparador", triggerFn?.includes("permission denied") || triggerFn?.includes("trigger"), triggerFn || "se llamó");
   const teacherDecides = await as(ana, () => errorOf("select public.decide_grade_request($1, 'approved')", [pendingId]));
   check("Un docente no puede decidir solicitudes", teacherDecides?.includes("Solo Rectoría"), teacherDecides || "decidió");
   const rejectNoReason = await as(hernando, () => errorOf("select public.decide_grade_request($1, 'rejected', '')", [pendingId]));
