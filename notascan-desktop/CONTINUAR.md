@@ -15,6 +15,13 @@ Lo primero que se lee al retomar.
 - Siguiente: **paso 6 · estados** (cargando, vacío, error, sin permiso, dato viejo).
 - Vistas de prueba: `#/dev/tokens`, `#/dev/card`, `#/dev/card-static`, `#/dev/components`. Verificación (tras `npm run build`): `verify:tokens`, `verify:card`, `verify:shell`, `verify:components`, `verify:teacher`, `verify:admin`, `verify:principal`.
 
+## Repositorio
+
+- Privado: https://github.com/diarpicu2022-commits/notascan-escritorio (rama `main`), raíz en `App Escritorio/`.
+- Un commit por paso al cerrarlo, a nombre de Diego y sin firmas de herramientas.
+- Los pasos 1–5c se subieron el 2026-10-01 como un commit por paso, con cada archivo en su versión
+  de ese día: los commits intermedios agrupan lo creado en cada paso, pero no compilan por separado.
+
 ## Cómo correrlo
 
 ```bash
