@@ -1,0 +1,37 @@
+{
+  "name": "notascan-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "NotaScan. — app de escritorio (Tauri + React + TypeScript + Tailwind + Framer Motion) construida sobre el design system notascan-ui.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port 4173",
+    "tauri": "tauri",
+    "verify:tokens": "node scripts/verify-tokens.mjs",
+    "verify:card": "node scripts/verify-card.mjs",
+    "verify:shell": "node scripts/verify-shell.mjs",
+    "verify:components": "node scripts/verify-components.mjs",
+    "verify:teacher": "node scripts/verify-teacher.mjs",
+    "verify:admin": "node scripts/verify-admin.mjs",
+    "verify:principal": "node scripts/verify-principal.mjs"
+  },
+  "dependencies": {
+    "framer-motion": "^11.18.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.6.1",
+    "playwright": "^1.63.0",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.3"
+  }
+}

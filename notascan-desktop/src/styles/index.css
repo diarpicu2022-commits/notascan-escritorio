@@ -1,0 +1,6 @@
+/* Orden fijo: tokens → sistema de componentes → enmiendas aprobadas → utilidades de Tailwind (solo tokens). */
+@import "./tokens.css";
+@import "./notascan.css";
+@import "./amendments.css";
+@tailwind components;
+@tailwind utilities;
