@@ -12,12 +12,18 @@ Lo primero que se lee al retomar.
 - Paso 5a · pantallas del Docente: hecho y aprobado (2026-10-01) con enmiendas 1b (color a `--ivory-deep`) y 2a (`src/styles/amendments.css`).
 - Paso 5b · Secretaría: hecho y aprobado (2026-10-01), con la ampliación de 2a en Periodos confirmada.
 - Paso 5c · Rectoría: hecho y aprobado (2026-10-01), con la enmienda 3a (contraste del cambio de nota).
-- **Paso 6a · backend Supabase: en curso (2026-10-01).** Hecho: proyecto `notascan` (org NotaScan, Free, sa-east-1,
-  `https://urasrpjslggoknjcxdfp.supabase.co`, RLS automático, sin exponer tablas), `.env.local` con la clave publicable,
-  migraciones en `supabase/migrations/` (esquema + RLS por rol) y `supabase/seed.sql` (`npx tsx scripts/gen-seed.ts`).
-  **Pendiente:** verificar migraciones y RLS con PGlite (`@electric-sql/pglite` ya instalado), aplicarlas al proyecto
-  (falta credencial: Diego debe restablecer la contraseña de la base él mismo, ver abajo), crear las cuentas de prueba
-  desde el panel (Authentication → Add user, correos del `staff_directory`), conectar el login y la capa `services`.
+- **Paso 6a · backend Supabase: hecho (2026-10-02), esperando visto bueno.**
+  - Proyecto `notascan` (org NotaScan, Free, sa-east-1, `https://urasrpjslggoknjcxdfp.supabase.co`), RLS automático.
+  - 3 migraciones aplicadas desde el SQL Editor + semilla (72 estudiantes, 35 asignaciones…). `verify:db` 34/34 en PGlite.
+  - Security Advisor: 0 errores; 11 avisos intencionales (funciones que usan las políticas; `rls_auto_enable` de la plataforma).
+  - Login con Supabase Auth: rol del perfil, «Entrar como» valida, «Cuenta institucional» avisa que aún no está,
+    «¿Olvidaste tu contraseña?» envía el correo, vista «Sin permiso», nombre real en el marco. `verify:auth` 20/20.
+  - Dos modos: `npm run build` (Supabase real) y `npm run build:demo` (datos simulados, para `verify:*` y la sustentación).
+  - **Pendiente de Diego:** crear cuentas de prueba en Authentication → Add user (Auto Confirm) con correos del
+    `staff_directory`: `ana.lucia@losandes.edu.co` (Docente), `patricia@losandes.edu.co` (Secretaría),
+    `hernando@losandes.edu.co` (Rectoría). La contraseña la escribe él.
+  - **Pendiente técnico:** página de destino del enlace de restablecimiento (Supabase redirige a la Site URL; no trae
+    formulario propio). Opciones: deep link `notascan://` en Tauri o una página web pequeña.
 - Luego: **paso 6b · estados** con datos reales (decisiones: vista «Sin permiso» aprobada; esqueletos solo con piezas del sistema).
 - Credencial de la base: la lectura de la contraseña desde el navegador fue bloqueada por permisos (bien). Diego la
   restablece en Settings → Database y aplica con `npx supabase db push --db-url "<cadena de conexión>"` o pega las migraciones en el SQL Editor.

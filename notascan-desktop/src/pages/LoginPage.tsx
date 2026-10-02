@@ -4,6 +4,8 @@ import type { DesktopRole } from "../data/roles";
 import { Dots } from "../components/atoms/Button";
 import { Icon, type IconName } from "../components/atoms/Icon";
 import { Logo } from "../components/atoms/Logo";
+import { Toast } from "../components/organisms/Toast";
+import type { LoginError } from "../app/AuthContext";
 
 /** Ilustración propia del login: hoja de examen + teléfono escaneando, dentro de manchas orgánicas. */
 function LoginIllustration() {
@@ -93,31 +95,55 @@ const ROLE_OPTIONS: Array<[DesktopRole, string]> = [["teacher", "Docente"], ["ad
 
 interface LoginPageProps {
   defaultRole?: DesktopRole;
+  /** Modo demostración: entra al rol elegido sin cuenta, como el sistema. */
   onLogin?: (role: DesktopRole) => void;
+  /** Modo normal: inicia sesión de verdad; devuelve el error que hay que mostrar o null. */
+  onSubmit?: (data: { email: string; password: string; role: DesktopRole; remember: boolean }) => Promise<LoginError | null>;
+  /** «¿Olvidaste tu contraseña?»: envía el correo de restablecimiento de Supabase. */
+  onForgot?: (email: string) => Promise<LoginError | null>;
 }
 
 /** Acceso de escritorio: pantalla dividida con ilustración del flujo y formulario en píldoras. */
-export function LoginPage({ defaultRole = "teacher", onLogin }: LoginPageProps) {
+export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [show, setShow] = useState(false);
   const [role, setRole] = useState<DesktopRole>(defaultRole);
+  const [serverErr, setServerErr] = useState<LoginError | null>(null);
+  const [ssoMsg, setSsoMsg] = useState(false);
+  const [sent, setSent] = useState(false);
+  const remember = useRef<HTMLInputElement>(null);
   const timer = useRef<number>();
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const okEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), okPass = pass.length >= 6;
-  const emailErr = tried && !okEmail ? "Escribe tu correo institucional completo." : null;
-  const passErr = tried && !okPass ? "La contraseña tiene al menos 6 caracteres." : null;
+  const emailErr = tried && !okEmail ? "Escribe tu correo institucional completo." : serverErr?.field === "email" ? serverErr.message : null;
+  const passErr = tried && !okPass ? "La contraseña tiene al menos 6 caracteres." : serverErr?.field === "password" ? serverErr.message : null;
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     setTried(true);
+    setServerErr(null);
     if (!okEmail || !okPass) return;
     setBusy(true);
-    // Sin backend en esta fase: se simula la espera del servidor.
+    if (onSubmit) {
+      const err = await onSubmit({ email, password: pass, role, remember: remember.current?.checked ?? true });
+      setBusy(false);
+      setServerErr(err);
+      return;
+    }
+    // Modo demostración: se simula la espera del servidor.
     timer.current = window.setTimeout(() => { setBusy(false); onLogin?.(role); }, 900);
+  }
+
+  async function forgot() {
+    setTried(true);
+    setServerErr(null);
+    if (!okEmail) return;
+    const err = onForgot ? await onForgot(email) : null;
+    if (err) setServerErr(err); else setSent(true);
   }
 
   return (
@@ -145,9 +171,10 @@ export function LoginPage({ defaultRole = "teacher", onLogin }: LoginPageProps) 
             <legend>Entrar como</legend>
             {ROLE_OPTIONS.map(([value, label]) => (
               <label key={value} className={cx("ns-auth-role", role === value && "is-on")}>
-                <input type="radio" name="ns-role" value={value} checked={role === value} onChange={() => setRole(value)} />{label}
+                <input type="radio" name="ns-role" value={value} checked={role === value} onChange={() => { setRole(value); setServerErr(null); }} />{label}
               </label>
             ))}
+            {serverErr?.field === "role" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{serverErr.message}</span> : null}
           </fieldset>
           <AuthField id="auth-email" label="Correo institucional" icon="mail" type="email" placeholder="nombre@ucc.edu.co" auto="email"
             value={email} onChange={(e) => setEmail(e.target.value)} error={emailErr} />
@@ -155,18 +182,25 @@ export function LoginPage({ defaultRole = "teacher", onLogin }: LoginPageProps) 
             value={pass} onChange={(e) => setPass(e.target.value)} error={passErr}
             after={<button type="button" className="ns-auth-eye" aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"} aria-pressed={show} onClick={() => setShow(!show)}><Icon name="eye" size={18} /></button>} />
           <div className="ns-auth-row">
-            <label className="ns-auth-check"><input type="checkbox" defaultChecked />Recordarme</label>
-            <a href="#" onClick={(e) => e.preventDefault()}>¿Olvidaste tu contraseña?</a>
+            <label className="ns-auth-check"><input ref={remember} type="checkbox" defaultChecked />Recordarme</label>
+            <a href="#" onClick={(e) => { e.preventDefault(); forgot(); }}>¿Olvidaste tu contraseña?</a>
           </div>
+          {serverErr?.field === "form" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{serverErr.message}</span> : null}
           <button type="submit" className="ns-auth-submit" aria-busy={busy || undefined} disabled={busy}>
             {busy ? <><Dots /> Entrando…</> : <>Entrar <Icon name="arrow" size={18} /></>}
           </button>
           <div className="ns-auth-or"><span>o entra con</span></div>
-          <button type="button" className="ns-auth-sso" onClick={() => onLogin?.(role)}><Icon name="students" size={18} />Cuenta institucional</button>
+          <button type="button" className="ns-auth-sso" onClick={() => (onSubmit ? setSsoMsg(true) : onLogin?.(role))}><Icon name="students" size={18} />Cuenta institucional</button>
+          {ssoMsg ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />El acceso con cuenta institucional aún no está disponible. Entra con tu correo.</span> : null}
           <a className="ns-auth-mobile-link" href="#/movil"><Icon name="phone" size={16} />¿Eres estudiante o acudiente? Entra a la app móvil</a>
           <p className="ns-auth-foot">¿Primera vez? <a href="#" onClick={(e) => e.preventDefault()}>Solicita acceso a tu coordinación</a></p>
         </form>
       </main>
+      {sent ? (
+        <div className="ns-toast-region">
+          <Toast tone="info" title="Revisa tu correo" message={"Te enviamos un enlace a " + email.trim().toLowerCase() + " para elegir una contraseña nueva."} onClose={() => setSent(false)} />
+        </div>
+      ) : null}
     </div>
   );
 }

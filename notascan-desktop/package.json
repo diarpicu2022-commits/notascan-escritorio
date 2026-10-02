@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:demo": "tsc -b && vite build --mode demo",
     "preview": "vite preview --port 4173",
     "tauri": "tauri",
     "verify:tokens": "node scripts/verify-tokens.mjs",
@@ -17,6 +18,7 @@
     "verify:admin": "node scripts/verify-admin.mjs",
     "verify:principal": "node scripts/verify-principal.mjs",
     "verify:db": "node scripts/verify-db.mjs",
+    "verify:auth": "node scripts/verify-auth.mjs",
     "db:seed": "tsx scripts/gen-seed.ts"
   },
   "dependencies": {

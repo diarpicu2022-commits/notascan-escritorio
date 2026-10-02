@@ -18,6 +18,9 @@ import type { SyncStatus } from "../types/domain";
 import { hrefFor, parseHash, type Route } from "./router";
 import { ShellContext } from "./ShellContext";
 import { SyncContext } from "./SyncContext";
+import { useAuth } from "./AuthContext";
+import { DEMO } from "../lib/supabase";
+import { ForbiddenPage } from "../pages/ForbiddenPage";
 
 function hhmm(d: Date) {
   return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
@@ -42,8 +45,15 @@ const PAGES: Record<DesktopRole, Record<string, ComponentType<{ tab?: string }>>
   },
 };
 
+/** Cambia la ruta después de pintar (nunca durante el render). */
+function Redirect({ to }: { to: string }) {
+  useEffect(() => { window.location.replace(to); }, [to]);
+  return null;
+}
+
 /** Raíz de la app de escritorio (NotaScanApp del sistema, solo roles de escritorio). */
 export function App() {
+  const auth = useAuth();
   const [route, setRoute] = useState<Route>(() => parseHash());
   const [sync, setSync] = useState<SyncStatus>({ status: "online", last: "08:42", pending: 0 });
   const syncTimer = useRef<number>();
@@ -63,15 +73,38 @@ export function App() {
     },
   }), [sync]);
 
-  if (route.kind === "dev") return route.view === "tokens" ? <TokenCheck /> : route.view === "components" ? <ComponentsCheck /> : <CardCheck />;
-  if (route.kind === "login") return <LoginPage onLogin={(role) => { window.location.hash = hrefFor(role, "dashboard"); }} />;
+  // Vistas de verificación: solo en modo demostración (nunca en el build normal).
+  if (route.kind === "dev" && DEMO) return route.view === "tokens" ? <TokenCheck /> : route.view === "components" ? <ComponentsCheck /> : <CardCheck />;
 
-  const { role, page } = route;
+  // ---------- Sesión ----------
+  if (!DEMO && auth.status === "loading") return null;
+  const sessionRole = DEMO ? null : auth.profile?.role ?? null;
+  if (route.kind !== "app" || (!DEMO && !sessionRole)) {
+    if (!DEMO && sessionRole) return <Redirect to={hrefFor(sessionRole, "dashboard")} />;
+    if (route.kind === "app") return <Redirect to="#/login" />;
+    return DEMO
+      ? <LoginPage onLogin={(role) => { window.location.hash = hrefFor(role, "dashboard"); }} />
+      : <LoginPage
+          onSubmit={async ({ email, password, role, remember }) => {
+            const err = await auth.signIn(email, password, role, remember);
+            if (!err) window.location.hash = hrefFor(role, "dashboard");
+            return err;
+          }}
+          onForgot={auth.resetPassword}
+        />;
+  }
+
+  const { page } = route;
+  // Con sesión real el rol es el del perfil; una ruta de otro rol muestra «Sin permiso» en tu propio marco.
+  const role = sessionRole ?? route.role;
+  const forbidden = !!sessionRole && route.role !== sessionRole;
   const navigate = (p: string, params?: { id?: string; tab?: string }) => { window.location.hash = hrefFor(role, p, params); };
-  const shell = { role, navigate, logout: () => { window.location.hash = "#/login"; } };
+  const shell = { role, navigate, logout: () => { auth.signOut().finally(() => { window.location.hash = "#/login"; }); } };
 
   let content;
-  if (page === "profile") {
+  if (forbidden) {
+    content = <ForbiddenPage sectionRole={route.role} />;
+  } else if (page === "profile") {
     // Corrección de comportamiento (anexo): el sistema solo leía ?tab= al montar; aquí cambiar de
     // estudiante o de pestaña desde la ruta (p. ej. desde Ctrl+K) vuelve a abrir la pestaña pedida.
     content = <StudentProfilePage key={route.id + "?" + (route.params.tab || "")} studentId={route.id} tab={route.params.tab} />;

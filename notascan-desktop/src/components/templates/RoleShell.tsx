@@ -11,6 +11,8 @@ export interface RoleShellProps {
   active?: string;
   counts?: Record<string, number> | null;
   overlay?: ReactNode;
+  /** Persona con sesión (perfil real). Sin ella se muestra la persona de ejemplo del rol. */
+  user?: { name: string; role: string };
   onNavigate?: (page: string, params?: { id?: string; tab?: string }) => void;
   onLogout?: () => void;
   style?: CSSProperties;
@@ -18,7 +20,7 @@ export interface RoleShellProps {
 }
 
 /** AppShell + navegación del rol + herramientas: chip de rol, búsqueda global y, para el docente, conexión. */
-export function RoleShell({ role, active, counts, overlay, onNavigate, onLogout, style, children }: RoleShellProps) {
+export function RoleShell({ role, active, counts, overlay, user, onNavigate, onLogout, style, children }: RoleShellProps) {
   const r = ROLES[role];
   const { sync, setSync, onSync } = useSync();
   const tools = (
@@ -38,7 +40,7 @@ export function RoleShell({ role, active, counts, overlay, onNavigate, onLogout,
   return (
     <AppShell
       active={active} onNavigate={onNavigate} onLogout={onLogout} style={style} overlay={overlay}
-      items={roleNav(role, navCounts)} user={r.user} course={r.course} courseLabel={r.courseLabel} density={r.density} topbar={tools}
+      items={roleNav(role, navCounts)} user={user || r.user} course={r.course} courseLabel={r.courseLabel} density={r.density} topbar={tools}
     >
       {children}
     </AppShell>

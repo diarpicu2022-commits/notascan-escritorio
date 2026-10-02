@@ -317,3 +317,26 @@ Solicitudes (`.ns-change-big`), medido sobre el render:
 Medido sobre el render: rótulo «Cambio solicitado» 13.99:1 (antes 2.07:1), nota solicitada 13.99:1
 (antes 4.92:1), nota actual 12.80:1 (antes 6.24:1). `verify:principal` **76/76**; la referencia del
 sistema se compara con la enmienda aplicada. Regresión: esqueleto 62/62, Secretaría 102/102.
+
+### Paso 6a · Backend Supabase y acceso (2026-10-02)
+
+Decisiones de Diego: Supabase como backend (más robusto y escalable: Postgres estándar, RLS, un solo backend
+para escritorio y móvil); vista «Sin permiso»; selector «Entrar como» se mantiene y valida; «Cuenta
+institucional» avisa que aún no está; restablecimiento por correo de Supabase.
+
+Copia nueva (patrón `ns-auth-error` del sistema, voz C7): «Correo o contraseña incorrectos.», «Tu cuenta está
+registrada como {rol}.», «Tu cuenta no tiene acceso a la app de escritorio. Solicita acceso a tu coordinación.»,
+«El acceso con cuenta institucional aún no está disponible. Entra con tu correo.», aviso «Revisa tu correo».
+«Sin permiso»: `EmptyState` de error con candado (mismo patrón que «Boletines bloqueados») dentro del marco del
+propio rol, con «Ir a mi inicio».
+
+Verificación: `verify:db` 34/34 (PGlite + Supabase simulado: permisos por rol, historial de notas, cierre de
+evaluaciones, solicitudes, fotos); en el proyecto real, conteos de la semilla, 0 tablas sin RLS, anónimo sin
+lectura ni ejecución de funciones; Security Advisor de 26 a 11 avisos (los 11 intencionales). `verify:auth`
+20/20 (contra Supabase real sin cuenta y con sesión simulada). Regresión en modo demo: login idéntico al sistema.
+
+Fallos propios encontrados y corregidos: funciones `security definer` ejecutables por PUBLIC y comparación de
+rol con `<>` que dejaba pasar a anónimos en `decide_grade_request` (hallado por el Advisor); carrera entre el
+evento `SIGNED_IN` y la validación del rol que borraba el mensaje de error del login (hallado por `verify:auth`).
+Corrección de lo que le dije a Diego: el enlace de restablecimiento no trae formulario de Supabase; falta la
+página de destino.
