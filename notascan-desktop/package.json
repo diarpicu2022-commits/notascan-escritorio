@@ -15,7 +15,9 @@
     "verify:components": "node scripts/verify-components.mjs",
     "verify:teacher": "node scripts/verify-teacher.mjs",
     "verify:admin": "node scripts/verify-admin.mjs",
-    "verify:principal": "node scripts/verify-principal.mjs"
+    "verify:principal": "node scripts/verify-principal.mjs",
+    "verify:db": "node scripts/verify-db.mjs",
+    "db:seed": "tsx scripts/gen-seed.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
