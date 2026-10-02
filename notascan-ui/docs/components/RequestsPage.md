@@ -1,0 +1,3 @@
+# RequestsPage
+
+Solicitudes: `AuthorizationInbox`.

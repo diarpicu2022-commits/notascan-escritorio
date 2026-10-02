@@ -1,0 +1,3 @@
+# CurriculumPage
+
+Malla Curricular: `CurriculumManager`.

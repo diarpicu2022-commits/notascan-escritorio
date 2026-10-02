@@ -1,0 +1,3 @@
+# ReportCardsPage
+
+Boletines: `ReportCardManager`.

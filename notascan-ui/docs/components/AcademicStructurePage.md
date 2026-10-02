@@ -1,0 +1,3 @@
+# AcademicStructurePage
+
+Estructura Académica: `AcademicStructureManager`.

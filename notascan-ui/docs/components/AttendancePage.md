@@ -1,0 +1,3 @@
+# AttendancePage
+
+Asistencia: `AttendancePanel`.

@@ -1,0 +1,3 @@
+# PeriodsPage
+
+Periodos Académicos: `PeriodConfigurator`.

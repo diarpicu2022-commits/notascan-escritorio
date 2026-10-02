@@ -1,0 +1,6 @@
+# El zip es la entrega original del design system; su contenido está en notascan-ui/.
+notascan-ui.zip
+node_modules/
+.DS_Store
+Thumbs.db
+*.log

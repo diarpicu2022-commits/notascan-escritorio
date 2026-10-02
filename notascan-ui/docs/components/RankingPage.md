@@ -1,0 +1,3 @@
+# RankingPage
+
+Ranking Académico: `RankingTable`.

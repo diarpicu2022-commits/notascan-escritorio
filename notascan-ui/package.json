@@ -1,0 +1,9 @@
+{
+  "name": "notascan-ui",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Interfaz y Design System de NotaScan: revisión de calificaciones manuscritas con IA y verificación docente.",
+  "scripts": {
+    "start": "npx --yes serve . -l 5173"
+  }
+}

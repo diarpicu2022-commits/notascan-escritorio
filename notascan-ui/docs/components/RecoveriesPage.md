@@ -1,0 +1,3 @@
+# RecoveriesPage
+
+Recuperaciones: `RecoveryTable`.
