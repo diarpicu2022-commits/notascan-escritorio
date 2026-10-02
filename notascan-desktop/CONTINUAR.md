@@ -12,7 +12,15 @@ Lo primero que se lee al retomar.
 - Paso 5a · pantallas del Docente: hecho y aprobado (2026-10-01) con enmiendas 1b (color a `--ivory-deep`) y 2a (`src/styles/amendments.css`).
 - Paso 5b · Secretaría: hecho y aprobado (2026-10-01), con la ampliación de 2a en Periodos confirmada.
 - Paso 5c · Rectoría: hecho y aprobado (2026-10-01), con la enmienda 3a (contraste del cambio de nota).
-- Siguiente: **paso 6 · estados** (cargando, vacío, error, sin permiso, dato viejo).
+- **Paso 6a · backend Supabase: en curso (2026-10-01).** Hecho: proyecto `notascan` (org NotaScan, Free, sa-east-1,
+  `https://urasrpjslggoknjcxdfp.supabase.co`, RLS automático, sin exponer tablas), `.env.local` con la clave publicable,
+  migraciones en `supabase/migrations/` (esquema + RLS por rol) y `supabase/seed.sql` (`npx tsx scripts/gen-seed.ts`).
+  **Pendiente:** verificar migraciones y RLS con PGlite (`@electric-sql/pglite` ya instalado), aplicarlas al proyecto
+  (falta credencial: Diego debe restablecer la contraseña de la base él mismo, ver abajo), crear las cuentas de prueba
+  desde el panel (Authentication → Add user, correos del `staff_directory`), conectar el login y la capa `services`.
+- Luego: **paso 6b · estados** con datos reales (decisiones: vista «Sin permiso» aprobada; esqueletos solo con piezas del sistema).
+- Credencial de la base: la lectura de la contraseña desde el navegador fue bloqueada por permisos (bien). Diego la
+  restablece en Settings → Database y aplica con `npx supabase db push --db-url "<cadena de conexión>"` o pega las migraciones en el SQL Editor.
 - Vistas de prueba: `#/dev/tokens`, `#/dev/card`, `#/dev/card-static`, `#/dev/components`. Verificación (tras `npm run build`): `verify:tokens`, `verify:card`, `verify:shell`, `verify:components`, `verify:teacher`, `verify:admin`, `verify:principal`.
 
 ## Repositorio
