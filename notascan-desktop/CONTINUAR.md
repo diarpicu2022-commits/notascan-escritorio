@@ -12,7 +12,7 @@ Lo primero que se lee al retomar.
 - Paso 5a · pantallas del Docente: hecho y aprobado (2026-10-01) con enmiendas 1b (color a `--ivory-deep`) y 2a (`src/styles/amendments.css`).
 - Paso 5b · Secretaría: hecho y aprobado (2026-10-01), con la ampliación de 2a en Periodos confirmada.
 - Paso 5c · Rectoría: hecho y aprobado (2026-10-01), con la enmienda 3a (contraste del cambio de nota).
-- **Paso 6a · backend Supabase: hecho (2026-10-02), esperando visto bueno.**
+- Paso 6a · backend Supabase: hecho y aprobado (2026-10-02).
   - Proyecto `notascan` (org NotaScan, Free, sa-east-1, `https://urasrpjslggoknjcxdfp.supabase.co`), RLS automático.
   - 3 migraciones aplicadas desde el SQL Editor + semilla (72 estudiantes, 35 asignaciones…). `verify:db` 34/34 en PGlite.
   - Security Advisor: 0 errores; 11 avisos intencionales (funciones que usan las políticas; `rls_auto_enable` de la plataforma).
@@ -24,7 +24,16 @@ Lo primero que se lee al retomar.
     `hernando@losandes.edu.co` (Rectoría). La contraseña la escribe él.
   - **Pendiente técnico:** página de destino del enlace de restablecimiento (Supabase redirige a la Site URL; no trae
     formulario propio). Opciones: deep link `notascan://` en Tauri o una página web pequeña.
-- Luego: **paso 6b · estados** con datos reales (decisiones: vista «Sin permiso» aprobada; esqueletos solo con piezas del sistema).
+- **Paso 6b · datos reales y estados: en curso.** Se entrega por partes.
+  - **6b.1 (hecho 2026-10-02, esperando visto bueno):** capa `src/services/` (TanStack Query; demo con `?estado=cargando|error|vacio`),
+    vista `student_overview` aplicada en Supabase, Estudiantes y Matrículas (Secretaría y Rectoría) con datos reales,
+    estados, reintento, guardado optimista con reversión y aviso de dato viejo. `verify:db` 39/39, `verify:states` 9/9,
+    `verify:data` 8/8, fidelidad Secretaría 102/102 y Rectoría 76/76.
+  - Siguientes: 6b.2 Docente (revisión de notas → grades, planilla, asistencia, observador, conceptos);
+    6b.3 Secretaría (matrícula, usuarios, estructura, malla, periodos, boletines, paz y salvo, ranking);
+    6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
+  - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
+    `npm run build` antes de `verify:auth|data`.
 - Credencial de la base: la lectura de la contraseña desde el navegador fue bloqueada por permisos (bien). Diego la
   restablece en Settings → Database y aplica con `npx supabase db push --db-url "<cadena de conexión>"` o pega las migraciones en el SQL Editor.
 - Vistas de prueba: `#/dev/tokens`, `#/dev/card`, `#/dev/card-static`, `#/dev/components`. Verificación (tras `npm run build`): `verify:tokens`, `verify:card`, `verify:shell`, `verify:components`, `verify:teacher`, `verify:admin`, `verify:principal`.

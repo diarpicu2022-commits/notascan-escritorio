@@ -19,6 +19,8 @@
     "verify:principal": "node scripts/verify-principal.mjs",
     "verify:db": "node scripts/verify-db.mjs",
     "verify:auth": "node scripts/verify-auth.mjs",
+    "verify:states": "node scripts/verify-states.mjs",
+    "verify:data": "node scripts/verify-data.mjs",
     "db:seed": "tsx scripts/gen-seed.ts"
   },
   "dependencies": {

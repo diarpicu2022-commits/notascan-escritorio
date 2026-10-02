@@ -132,7 +132,17 @@ try {
   const directUpdate = await as(hernando, () => db.query("update public.grade_change_requests set status = 'approved' where status = 'pending'").then((r) => r.affectedRows));
   check("Ni Rectoría cambia el estado por fuera de la función (sin política de update)", directUpdate === 0, String(directUpdate));
 
-  // ---------- 6. Fotos de exámenes ----------
+  // ---------- 6. Vista de estudiantes (respeta el RLS de quien consulta) ----------
+  const ovAdmin = await as(patricia, () => one("select count(*)::int n, count(guardian_name)::int con_acudiente from public.student_overview"));
+  check("Vista student_overview: Secretaría ve los estudiantes con su acudiente", ovAdmin.n >= 72 && ovAdmin.con_acudiente === 72, JSON.stringify(ovAdmin));
+  const ovTeacher = await as(jorge, () => one("select count(*)::int n, count(guardian_name)::int con_acudiente, count(*) filter (where course_id = '8B')::int en8b from public.student_overview"));
+  check("Vista student_overview: el docente ve solo sus cursos y sin datos del acudiente", ovTeacher.en8b === 0 && ovTeacher.con_acudiente === 0 && ovTeacher.n > 0, JSON.stringify(ovTeacher));
+  const ovAvg = await as(patricia, () => one("select avg_grade::text a from public.student_overview where id = $1", [g.student_id]));
+  check("El promedio de la vista usa solo notas verificadas (4.3 recién verificada)", ovAvg.a === "4.3", JSON.stringify(ovAvg));
+  const ovAnon = await as(null, () => errorOf("select * from public.student_overview"));
+  check("Sin sesión la vista no se lee", ovAnon?.includes("permission denied"), ovAnon || "leyó");
+
+  // ---------- 7. Fotos de exámenes ----------
   const ownPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${ana}/parcial2/foto1.jpg')`));
   const otherPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${carlos}/parcial2/foto1.jpg')`));
   check("El docente sube fotos solo a su carpeta del bucket privado", !ownPhoto && otherPhoto?.includes("row-level security"), `propia: ${ownPhoto || "ok"} · ajena: ${otherPhoto || "se subió"}`);

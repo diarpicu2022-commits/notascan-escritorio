@@ -1,7 +1,9 @@
 import { Fragment, useEffect, useState } from "react";
 import { formatGrade } from "../../../lib/grade";
 import { GRADE_NAME } from "../../../data/academic";
-import { ALL_STUDENTS, COURSES, type StudentRecord } from "../../../data/students";
+import { COURSES, type StudentRecord } from "../../../data/students";
+import { clock } from "../../../services/client";
+import { useSetStudentStatus, useStudents, useUpdateStudent } from "../../../services/students";
 import type { EnrollmentStatus } from "../../../types/domain";
 import { Avatar } from "../../atoms/Avatar";
 import { Button } from "../../atoms/Button";
@@ -22,14 +24,22 @@ export function StudentTable({ readOnly: ro = false, onNavigate }: { readOnly?: 
   const [q, setQ] = useState("");
   const [course, setCourse] = useState("all");
   const [status, setStatus] = useState("all");
-  const [rows, setRows] = useState<StudentRecord[]>(ALL_STUDENTS);
+  const query = useStudents();
+  const rows = query.data ?? [];
+  const setStatusMut = useSetStudentStatus();
+  const updateMut = useUpdateStudent();
   const [drawer, setDrawer] = useState<DrawerStudent | null>(null);
   const [confirm, setConfirm] = useState<Ask | null>(null);
   const [showToast, toastNode] = useToast();
+  // Dato viejo: si la recarga falla pero hay datos de antes, se siguen mostrando y se avisa desde cuándo.
+  useEffect(() => {
+    if (query.isRefetchError) showToast({ tone: "error", title: "No pudimos actualizar los estudiantes", message: "Mostramos lo último que cargamos a las " + clock(query.dataUpdatedAt) + "." });
+  }, [query.isRefetchError, query.dataUpdatedAt, showToast]);
+  const saveError = () => showToast({ tone: "error", title: "No pudimos guardar los cambios", message: "Revisa tu conexión e inténtalo de nuevo. No se modificó ningún registro." });
   const t = q.trim().toLowerCase();
   const list = rows.filter((s) =>
     (!t || s.name.toLowerCase().indexOf(t) >= 0 || s.id.indexOf(t) >= 0 || s.document.toLowerCase().indexOf(t) >= 0) && (course === "all" || s.course === course) && (status === "all" || s.status === status));
-  const setRowStatus = (ids: string[], st: EnrollmentStatus) => setRows(rows.map((r) => (ids.indexOf(r.id) >= 0 ? { ...r, status: st } : r)));
+  const setRowStatus = (ids: string[], st: EnrollmentStatus) => setStatusMut.mutateAsync({ ids, status: st });
   function ask(kind: Ask["kind"], list2: StudentRecord[], clear?: () => void) {
     const many = list2.length > 1;
     setConfirm({
@@ -46,6 +56,7 @@ export function StudentTable({ readOnly: ro = false, onNavigate }: { readOnly?: 
       <DataGrid<StudentRecord>
         caption="Estudiantes y matrículas" rows={list} selectable={!ro} densityToggle density="compact" pageSize={12} resetKey={t + course + status}
         initialSort={{ key: "name", dir: "asc" }}
+        loading={query.isPending} error={query.isError && !query.data ? "No pudimos cargar los estudiantes." : undefined} onRetry={() => query.refetch()}
         emptyTitle={rows.length ? "No hay resultados para esta búsqueda." : "No hay estudiantes registrados."} emptyMessage="Prueba con otro nombre, documento o curso." emptyIcon="students"
         toolbar={<>
           <SearchField value={q} onChange={setQ} placeholder="Nombre, documento o ID" label="Buscar estudiante" />
@@ -79,17 +90,25 @@ export function StudentTable({ readOnly: ro = false, onNavigate }: { readOnly?: 
       <StudentDrawer
         student={drawer} readOnly={ro} onClose={() => setDrawer(null)}
         onOpenProfile={(s) => { setDrawer(null); onNavigate?.("profile", { id: s.id }); }}
-        onSave={(s) => { setRows(rows.map((r) => (r.id === s.id ? s : r))); setDrawer(null); showToast({ tone: "success", title: "Cambios guardados", message: s.name + " fue actualizado." }); }}
+        onSave={(s) => {
+          setDrawer(null);
+          updateMut.mutateAsync(s).then(
+            () => showToast({ tone: "success", title: "Cambios guardados", message: s.name + " fue actualizado." }),
+            saveError,
+          );
+        }}
       />
       <ConfirmAction
         open={!!confirm} onCancel={() => setConfirm(null)} title={confirm?.title} description={confirm?.description} danger={confirm?.kind === "retire"}
         icon={confirm?.kind === "retire" ? "userx" : "archive"} confirmLabel={confirm?.kind === "retire" ? "Retirar" : "Archivar"}
         onConfirm={() => {
           const c = confirm!;
-          setRowStatus(c.rows.map((r) => r.id), c.kind === "retire" ? "retired" : "archived");
           c.clear?.();
           setConfirm(null);
-          showToast({ tone: "success", title: c.kind === "retire" ? "Estudiante retirado" : "Registros archivados", message: c.rows.length + (c.rows.length === 1 ? " registro actualizado." : " registros actualizados.") });
+          setRowStatus(c.rows.map((r) => r.id), c.kind === "retire" ? "retired" : "archived").then(
+            () => showToast({ tone: "success", title: c.kind === "retire" ? "Estudiante retirado" : "Registros archivados", message: c.rows.length + (c.rows.length === 1 ? " registro actualizado." : " registros actualizados.") }),
+            saveError,
+          );
         }}
       />
       {toastNode}
@@ -136,7 +155,7 @@ export function StudentDrawer({ student: s, readOnly, onClose, onOpenProfile, on
             <div className="ns-col" style={{ gap: 4 }}><EnrollBadge status={s.status} /><span className="ns-caption">{"ID " + s.id + " · " + GRADE_NAME[s.grade] + " · " + s.course}</span></div>
           </div>
           <dl className="ns-dl">
-            {[["Documento", s.document], ["Acudiente", s.guardian + " (" + s.guardianRel + ")"], ["Teléfono", s.guardianPhone], ["Fecha de matrícula", s.enrolled], ["Promedio actual", formatGrade(s.avg)], ["Asistencia", s.attendance + "%"]].map((x) => (
+            {[["Documento", s.document], ["Acudiente", s.guardian + " (" + s.guardianRel + ")"], ["Teléfono", s.guardianPhone], ["Fecha de matrícula", s.enrolled], ["Promedio actual", formatGrade(s.avg)], ["Asistencia", isNaN(s.attendance) ? "Sin registros" : s.attendance + "%"]].map((x) => (
               <Fragment key={x[0]}><dt>{x[0]}</dt><dd>{x[1]}</dd></Fragment>
             ))}
           </dl>

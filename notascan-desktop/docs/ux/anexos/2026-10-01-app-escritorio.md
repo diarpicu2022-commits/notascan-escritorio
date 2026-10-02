@@ -340,3 +340,15 @@ rol con `<>` que dejaba pasar a anónimos en `decide_grade_request` (hallado por
 evento `SIGNED_IN` y la validación del rol que borraba el mensaje de error del login (hallado por `verify:auth`).
 Corrección de lo que le dije a Diego: el enlace de restablecimiento no trae formulario de Supabase; falta la
 página de destino.
+
+### Paso 6b.1 · Capa de datos y estados (2026-10-02)
+
+- Estados con piezas del sistema, tal como las define: carga = filas `.ns-skel` de la `DataGrid`; error =
+  `EmptyState` de error con «Reintentar»; vacío = `EmptyState` con su mensaje; dato viejo = `Toast` de error
+  «No pudimos actualizar los estudiantes · Mostramos lo último que cargamos a las hh:mm.» manteniendo la tabla.
+- Guardado optimista: la tabla cambia al instante y, si la base lo rechaza, vuelve atrás con el aviso
+  «No pudimos guardar los cambios · Revisa tu conexión e inténtalo de nuevo. No se modificó ningún registro.»
+- Sin dato real (sin notas verificadas o sin asistencia): «—» y «Sin registros», nunca un número inventado.
+- Verificación: estados forzados en demo 9/9 (contraste del error 11.21:1), capa de datos con API simulada 8/8,
+  base 39/39, vista aplicada en el proyecto (72 filas, `security_invoker`, anónimo sin acceso); fidelidad intacta.
+- Fallos propios corregidos: en demo el estado forzado no formaba parte de la clave de la consulta.
