@@ -15,6 +15,11 @@ const SCREENS = [
   { hash: "#/teacher/attendance", name: "Asistencia", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar la asistencia.", emptyTitle: "Este curso no tiene estudiantes activos." },
   { hash: "#/teacher/behavior", name: "Comportamiento", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las anotaciones.", emptyTitle: "Aún no hay anotaciones." },
   { hash: "#/teacher/concepts", name: "Conceptos", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar los conceptos.", emptyTitle: "Este curso no tiene estudiantes activos." },
+  // 6b.3a · Secretaría: configuración.
+  { hash: "#/admin/structure", name: "Estructura académica", errorTitle: "No pudimos cargar la estructura académica.", emptyTitle: "No hay elementos configurados." },
+  { hash: "#/admin/curriculum", name: "Malla curricular", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar la malla curricular.", emptyTitle: "Aún no hay cursos o materias activas." },
+  { hash: "#/admin/periods", name: "Periodos académicos", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar los periodos.", emptyTitle: "Aún no hay periodos en el año lectivo." },
+  { hash: "#/admin/users", name: "Usuarios", errorTitle: "No pudimos cargar el directorio de usuarios.", emptyTitle: "Aún no hay usuarios registrados." },
   // 6b.2b · Docente: inicio, estudiantes, evaluaciones y recuperaciones.
   { hash: "#/teacher/dashboard", name: "Inicio del docente", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar tu resumen.", emptyTitle: "No hay evaluaciones en curso." },
   { hash: "#/teacher/students", name: "Estudiantes (Docente)", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar tus estudiantes.", emptyTitle: "No tienes estudiantes en tus cursos." },

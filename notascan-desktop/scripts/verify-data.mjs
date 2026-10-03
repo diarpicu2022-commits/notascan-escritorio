@@ -30,6 +30,9 @@ try {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   const cons = watchConsole(page);
+  // Lo que la prueba no simula responde vacío (p. ej. el registro de último acceso, desde 6b.3a); las rutas
+  // registradas después tienen prioridad.
+  await page.route("**/rest/v1/**", (r) => r.fulfill({ json: [] }));
 
   // 1. Primera carga falla (500): estado de error; «Reintentar» recupera los datos.
   let overviewCalls = 0, failNext = true, patches = [];

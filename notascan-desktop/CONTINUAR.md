@@ -45,7 +45,15 @@ Lo primero que se lee al retomar.
     - La cola sin conexión de la planilla sigue simulada (SyncContext). La asistencia usa una clase por día (hora 1).
     - El encabezado del observador dice «El acudiente las ve en su aplicación.»: aún no es cierto (sin acceso del
       acudiente en la base); se cumple cuando exista la app móvil con su política.
-  - Siguientes: 6b.3 Secretaría (matrícula, usuarios, estructura, malla, periodos, boletines, paz y salvo, ranking);
+  - **6b.3a (hecho 2026-10-03, esperando visto bueno):** Secretaría · Estructura, Malla, Periodos y Usuarios con datos
+    reales. Migración `20261003170000_secretaria_configuracion.sql` (asignación con evaluaciones no se elimina, un
+    solo periodo abierto, `save_period`, `touch_last_seen`). `verify:admin-data` 18/18, `verify:states` 61/61,
+    `verify:db` 69/69; regresión en verde. Cuatro decisiones esperan a Diego (anexo, Paso 6b.3a).
+    - **Pendiente:** aplicar `20261003170000_secretaria_configuracion.sql` en Supabase. Sin ella, eliminar en la malla
+      una asignación con evaluaciones **borra sus notas en cascada**, «Guardar periodo» falla y no se registra el
+      último acceso.
+    - Sin forma de reactivar usuarios desactivados (tampoco en el sistema).
+  - Siguientes: 6b.3b (Matrícula, Boletines, Paz y salvo, Ranking, Inicio de Secretaría); antes 6b.3 Secretaría (matrícula, usuarios, estructura, malla, periodos, boletines, paz y salvo, ranking);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data`.

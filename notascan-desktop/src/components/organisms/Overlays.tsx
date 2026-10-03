@@ -161,17 +161,23 @@ interface PasswordResetDialogProps {
   onClose: () => void;
   user?: { name: string; email?: string };
   inline?: boolean;
+  /** Envía el enlace de restablecimiento. Sin él (demostración), se simula. */
+  onSend?: () => Promise<void>;
 }
 
 /** Restablecer acceso: nunca muestra ni recupera la contraseña, genera un acceso nuevo. */
-export function PasswordResetDialog({ open, onClose, user, inline }: PasswordResetDialogProps) {
-  const [st, setSt] = useState<"ask" | "busy" | "done">("ask");
+export function PasswordResetDialog({ open, onClose, user, inline, onSend }: PasswordResetDialogProps) {
+  const [st, setSt] = useState<"ask" | "busy" | "done" | "error">("ask");
   const timer = useRef<number>();
   useEffect(() => { if (open) setSt("ask"); }, [open]);
   useEffect(() => () => window.clearTimeout(timer.current), []);
   const u = user || { name: "" };
-  // Sin backend en esta fase: se simula la petición.
-  function go() { setSt("busy"); timer.current = window.setTimeout(() => setSt("done"), 900); }
+  function go() {
+    setSt("busy");
+    if (onSend) { onSend().then(() => setSt("done"), () => setSt("error")); return; }
+    // Demostración: se simula la petición.
+    timer.current = window.setTimeout(() => setSt("done"), 900);
+  }
   const done = st === "done";
   return (
     <Modal
@@ -188,7 +194,9 @@ export function PasswordResetDialog({ open, onClose, user, inline }: PasswordRes
       <div className="ns-mini-profile"><Avatar name={u.name} size="sm" /><div><strong>{u.name}</strong><span className="ns-caption">{u.email}</span></div></div>
       {done
         ? <p className="ns-caption">{"Se envió un enlace de un solo uso a " + (u.email || "su correo") + ". NotaScan nunca muestra contraseñas."}</p>
-        : <p className="ns-caption"><Icon name="lock" size={14} /> La contraseña actual no se muestra ni se recupera: se genera un acceso nuevo.</p>}
+        : st === "error"
+          ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />No pudimos enviar el enlace. Revisa tu conexión e inténtalo de nuevo.</span>
+          : <p className="ns-caption"><Icon name="lock" size={14} /> La contraseña actual no se muestra ni se recupera: se genera un acceso nuevo.</p>}
     </Modal>
   );
 }

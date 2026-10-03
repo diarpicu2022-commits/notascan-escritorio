@@ -8,11 +8,11 @@ import type { IconName } from "../components/atoms/Icon";
 export const PERIODS = ["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"];
 
 export type UserRole = "teacher" | "guardian" | "staff" | "director";
-export type UserStatus = "active" | "inactive" | "invited";
+export type UserStatus = "active" | "inactive" | "invited" | "none";
 export interface DirectoryUser { id: string; name: string; email: string; role: UserRole; status: UserStatus; last: string }
 
 export const USER_ROLES: Record<UserRole, string> = { teacher: "Docente", guardian: "Acudiente", staff: "Administrativo", director: "Directivo" };
-export const USER_STATUS: Record<UserStatus, [string, BadgeTone, IconName]> = { active: ["Activo", "verified", "check"], inactive: ["Desactivado", "neutral", "minus"], invited: ["Invitación enviada", "pending", "mail"] };
+export const USER_STATUS: Record<UserStatus, [string, BadgeTone, IconName]> = { active: ["Activo", "verified", "check"], inactive: ["Desactivado", "neutral", "minus"], invited: ["Invitación enviada", "pending", "mail"], none: ["Sin cuenta", "neutral", "user"] };
 
 export const USERS: DirectoryUser[] = (() => {
   const out: DirectoryUser[] = [];

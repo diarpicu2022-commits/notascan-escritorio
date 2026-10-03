@@ -35,6 +35,9 @@ async function mockApi(page) {
   const user = { id: UID, aud: "authenticated", role: "authenticated", email: "ana.lucia@losandes.edu.co", app_metadata: {}, user_metadata: {} };
   const now = Math.floor(Date.now() / 1000);
   const jwt = ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", Buffer.from(JSON.stringify({ sub: UID, exp: now + 3600, role: "authenticated" })).toString("base64url"), "firma"].join(".");
+  // Lo que la prueba no simula responde vacío (p. ej. el registro de último acceso, desde 6b.3a); las rutas
+  // registradas después tienen prioridad.
+  await page.route("**/rest/v1/**", (r) => r.fulfill({ json: [] }));
   await page.route("**/auth/v1/token**", (r) => r.fulfill({ json: { access_token: jwt, token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: "r", user } }));
   await page.route("**/auth/v1/user**", (r) => r.fulfill({ json: user }));
   await page.route("**/rest/v1/profiles**", (r) => r.fulfill({ json: { id: UID, email: user.email, full_name: "Ana Lucía Rosero", role: "teacher", status: "active" } }));

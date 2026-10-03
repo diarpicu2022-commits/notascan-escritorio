@@ -437,3 +437,47 @@ Migraciones de 6b.2 y 6b.2b aplicadas en el proyecto real el 2026-10-03 (SQL Edi
 cotejado con el repositorio). Comprobación en la base: disparadores `grades_stamp`, `attendance_stamp`,
 `concepts_stamp` y `recoveries_stamp` activos; `stamp_*` sin permiso de ejecución para anon ni authenticated;
 `observations.author_id` por defecto `auth.uid()`.
+
+### Paso 6b.3a · Secretaría: configuración con datos reales (2026-10-03)
+
+6b.3 se divide en dos entregas: **6b.3a** configuración (Estructura, Malla, Periodos, Usuarios) y **6b.3b**
+Matrícula, Boletines, Paz y salvo, Ranking e Inicio. En modo demostración todo sigue idéntico al sistema
+(fidelidad de Secretaría 102/102).
+
+- **Estructura académica**: grados, cursos y materias de la base. Crear un curso usa el id en mayúsculas
+  («6B»), enlaza el director por su correo del directorio, guarda el cupo y deja activo su grado si estaba «Sin
+  cursos». Archivar conserva el historial.
+- **Malla curricular**: matriz y lista de la base en el periodo abierto. Cambiar el docente conserva evaluaciones y
+  notas. **Una asignación con evaluaciones no se elimina** (la base lo impide: borraría notas en cascada) y se dice
+  qué hacer.
+- **Periodos**: guardar fechas, estado y componentes es una sola operación en la base (`save_period`, exige 100 %);
+  solo un periodo abierto a la vez. «Crear periodo» crea el siguiente en borrador con la distribución base.
+  «Guardar pesos» actualiza el peso final de cada periodo creado.
+- **Usuarios**: personal del directorio con el estado real de su cuenta y su último acceso (la base lo registra al
+  entrar); acudientes desde la matrícula. «Invitar usuario» registra a la persona en el directorio (es lo que la
+  deja crear su acceso). Desactivar marca el perfil como inactivo. Restablecer pide a Supabase el enlace al correo.
+  El correo de alguien que ya tiene cuenta no se cambia desde aquí.
+- Estados: tablas con los de la `DataGrid`; malla y periodos con bloques `.ns-skel`, error con «Reintentar» y vacíos
+  con salida.
+
+**Decisiones que esperan visto bueno de Diego**:
+1. Estado nuevo **«Sin cuenta»** (insignia neutra con icono de persona) para quien está registrado pero no ha creado su
+   acceso, y para los acudientes. Mostrar «Invitación enviada» habría sido falso: no se envía ningún correo.
+2. Formulario de **«Invitar usuario»**: el mismo `Drawer` de edición (nombre, correo y rol). Registra en el
+   directorio; **no envía correo** (invitar por correo necesita una función de servidor con la clave de servicio).
+3. Copia corregida en la malla: «Las calificaciones registradas se conservan.» era falsa (eliminar borraba notas en
+   cascada); ahora dice «Si ya tiene evaluaciones no se puede eliminar: cambia el docente.».
+4. «Crear periodo» en demostración avisa que los periodos son fijos (antes el botón no hacía nada).
+
+Pendiente: no hay forma de **reactivar** a un usuario desactivado (el sistema tampoco la tiene). El enlace de
+restablecimiento sigue sin página de destino (pendiente desde 6a).
+
+Verificación: `verify:admin` 102/102 (demo), `verify:states` 61/61 (4 pantallas más), `verify:admin-data` 18/18
+(API simulada: cuerpo de cada escritura, regla de la base mostrada al usuario, último acceso), `verify:db` 69/69.
+Regresión: tokens 26/26, card 51/51, shell 62/62, components 121/121, principal 76/76, teacher 123/123, auth 20/20,
+data 8/8, teacher-data 29/29.
+
+Fallos propios encontrados y corregidos: «Crear periodo» numeraba contando los periodos del año en vez de tomar la
+última posición (con huecos habría creado un periodo repetido); lo halló `verify:admin-data`. `verify:data` y
+`verify:teacher-data` dieron un 401 porque la llamada nueva de último acceso salía al proyecto real; ahora esas pruebas
+responden vacío a la API que no simulan.

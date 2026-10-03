@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cx } from "../../../lib/cx";
 import { PERIOD_SETUP } from "../../../data/academic";
+import { DEMO } from "../../../lib/supabase";
+import { adminMessage, usePeriods, useSavePeriod, useSavePeriodWeights, type Period, type PeriodStatus, type WeightItem } from "../../../services/admin";
 import { Badge, type BadgeTone } from "../../atoms/Badge";
 import { Button } from "../../atoms/Button";
 import { IconAction } from "../../atoms/Controls";
 import { Input, Select } from "../../atoms/Field";
 import { Icon, type IconName } from "../../atoms/Icon";
 import { Block, BlockTitle } from "../Layout";
+import { EmptyState } from "../EmptyState";
+import { ErrorState, LoadingBlocks } from "../QueryState";
 import { useToast } from "../Toast";
 
-export interface WeightItem { name: string; weight: number }
+export type { WeightItem };
 
 /** Componentes de la nota con su porcentaje; avisa si no suman 100 %. */
 export function PeriodWeightEditor({ items, onChange, addLabel, newName }: { items: WeightItem[]; onChange: (items: WeightItem[]) => void; addLabel?: string; newName?: string }) {
@@ -55,61 +59,76 @@ function PeriodWeightReadonly({ items }: { items: WeightItem[] }) {
   );
 }
 
-type PeriodStatus = "closed" | "open" | "draft";
-interface Period { id: string; name: string; open: string; close: string; status: PeriodStatus; items: WeightItem[] }
-const BASE_ITEMS = () => [{ name: "Actividades", weight: 40 }, { name: "Exámenes", weight: 30 }, { name: "Talleres", weight: 20 }, { name: "Actitudinal", weight: 10 }];
 const PST: Record<PeriodStatus, [string, BadgeTone, IconName]> = { closed: ["Cerrado", "neutral", "lock"], open: ["Abierto", "verified", "check"], draft: ["Borrador", "pending", "clock"] };
+
+/** Periodo que se abre al entrar: el primer borrador (el que se está preparando), si no el abierto. */
+const initialSel = (list: Period[]) => (list.find((x) => x.status === "draft") ?? list.find((x) => x.status === "open") ?? list[list.length - 1])?.id ?? "";
+const weightsOf = (list: Period[]) => (DEMO ? PERIOD_SETUP.names.map((n, i) => ({ name: n, weight: PERIOD_SETUP.weights[i] })) : list.map((x) => ({ name: x.name, weight: x.finalWeight })));
 
 /** Periodos del año, su peso en la nota final y cómo se compone la nota de cada uno. */
 export function PeriodConfigurator() {
-  const [periods, setPeriods] = useState<Period[]>([
-    { id: "p1", name: "Periodo 1", open: "2026-01-26", close: "2026-04-03", status: "closed", items: BASE_ITEMS() },
-    { id: "p2", name: "Periodo 2", open: "2026-04-13", close: "2026-06-19", status: "closed", items: BASE_ITEMS() },
-    { id: "p3", name: "Periodo 3", open: "2026-07-13", close: "2026-10-15", status: "open", items: BASE_ITEMS() },
-    { id: "p4", name: "Periodo 4", open: "2026-10-19", close: "2026-11-27", status: "draft", items: [{ name: "Actividades", weight: 35 }, { name: "Exámenes", weight: 30 }, { name: "Talleres", weight: 20 }, { name: "Actitudinal", weight: 10 }] },
-  ]);
-  const [sel, setSel] = useState("p4");
+  const q = usePeriods();
+  const saveMut = useSavePeriod();
+  const weightsMut = useSavePeriodWeights();
+  const [periods, setPeriods] = useState<Period[]>(() => q.data?.periods ?? []);
+  const [sel, setSel] = useState(() => initialSel(q.data?.periods ?? []));
+  const [pw, setPw] = useState<WeightItem[]>(() => weightsOf(q.data?.periods ?? []));
+  const lastData = useRef(q.data);
+  // Datos nuevos de la base (tras guardar o crear un periodo): se recarga la lista sin perder el periodo elegido.
+  useEffect(() => {
+    if (lastData.current === q.data || !q.data) return;
+    lastData.current = q.data;
+    const list = q.data.periods;
+    setPeriods(list); setPw(weightsOf(list));
+    setSel((cur) => (list.some((x) => x.id === cur) ? cur : initialSel(list)));
+  }, [q.data]);
   const [showToast, toastNode] = useToast();
-  const [pw, setPw] = useState<WeightItem[]>(() => PERIOD_SETUP.names.map((n, i) => ({ name: n, weight: PERIOD_SETUP.weights[i] })));
   const pwTotal = pw.reduce((a, x) => a + (Number(x.weight) || 0), 0);
-  const p = periods.find((x) => x.id === sel)!;
+  const p = periods.find((x) => x.id === sel);
+
+  if (q.isPending && !q.data) return <LoadingBlocks label="Cargando los periodos" />;
+  if (q.isError && !q.data) return <ErrorState title="No pudimos cargar los periodos." onRetry={() => q.refetch()} />;
+  if (!p) return <EmptyState icon="calendar" title="Aún no hay periodos en el año lectivo." message="Usa «Crear periodo» para preparar el primero." />;
+
   const total = p.items.reduce((a, x) => a + (Number(x.weight) || 0), 0);
   const badDates = !!p.open && !!p.close && p.close <= p.open;
   const upd = (patch: Partial<Period>) => setPeriods(periods.map((x) => (x.id === p.id ? { ...x, ...patch } : x)));
-  const locked = p.status === "closed";
+  // Lo cerrado en la base manda: un periodo cerrado no se edita aunque se cambie el selector de estado en pantalla.
+  const stored = q.data?.periods.find((x) => x.id === p.id);
+  const locked = (stored ?? p).status === "closed" && p.status === "closed";
 
   return (
     <>
       <Block tone="gold" label="Peso de cada periodo en la nota final">
         <BlockTitle action={
-          <Button size="sm" icon="check" disabled={pwTotal !== 100} onClick={() => {
-            // Como el sistema: los boletines leen estos pesos para el acumulado.
-            PERIOD_SETUP.names = pw.map((x) => x.name);
-            PERIOD_SETUP.weights = pw.map((x) => Number(x.weight) || 0);
-            showToast({ tone: "success", title: "Pesos de los periodos guardados", message: "Los boletines calcularán el acumulado con " + pw.map((x) => x.weight + "%").join(" · ") + "." });
+          <Button size="sm" icon="check" disabled={pwTotal !== 100} loading={weightsMut.isPending} onClick={() => {
+            weightsMut.mutateAsync({ periods, weights: pw }).then(
+              () => showToast({ tone: "success", title: "Pesos de los periodos guardados", message: "Los boletines calcularán el acumulado con " + pw.map((x) => x.weight + "%").join(" · ") + "." }),
+              (e) => showToast({ tone: "error", title: "No pudimos guardar los pesos", message: e instanceof Error && !("code" in e) ? e.message : adminMessage(e) }),
+            );
           }}>Guardar pesos</Button>
         }>Periodos del año y su peso en la nota final</BlockTitle>
         <p className="ns-caption" style={{ margin: 0 }}>Cada boletín muestra la nota del periodo, las notas de los periodos anteriores y el acumulado ponderado con estos pesos.</p>
         <PeriodWeightEditor items={pw} onChange={setPw} addLabel="Agregar periodo" newName={"Periodo " + (pw.length + 1)} />
       </Block>
       <div className="ns-period">
-        <div className="ns-period-list" role="tablist" aria-label="Periodos del año lectivo 2026" aria-orientation="vertical">
+        <div className="ns-period-list" role="tablist" aria-label={"Periodos del año lectivo " + p.year} aria-orientation="vertical">
           {periods.map((x) => {
-            const s = PST[x.status];
+            const st = PST[x.status];
             return (
               <button key={x.id} type="button" role="tab" aria-selected={x.id === sel} className="ns-period-item" onClick={() => setSel(x.id)}>
                 <strong>{x.name}</strong>
                 <span className="ns-caption">{x.open.split("-").reverse().slice(0, 2).join("/") + " – " + x.close.split("-").reverse().slice(0, 2).join("/")}</span>
-                <Badge tone={s[1]} icon={s[2]}>{s[0]}</Badge>
+                <Badge tone={st[1]} icon={st[2]}>{st[0]}</Badge>
               </button>
             );
           })}
         </div>
         <Block className="ns-period-editor">
-          <BlockTitle action={<Badge tone={PST[p.status][1]} icon={PST[p.status][2]}>{PST[p.status][0]}</Badge>}>{p.name + " · 2026"}</BlockTitle>
+          <BlockTitle action={<Badge tone={PST[p.status][1]} icon={PST[p.status][2]}>{PST[p.status][0]}</Badge>}>{p.name + " · " + p.year}</BlockTitle>
           {locked ? <p className="ns-sensitive"><Icon name="lock" size={16} />Este periodo está cerrado. Sus porcentajes se conservan como parte del historial.</p> : null}
           <div className="ns-form-grid">
-            <Select label="Año lectivo" value="2026" options={["2026"]} disabled={locked} />
+            <Select label="Año lectivo" value={String(p.year)} options={[String(p.year)]} disabled={locked} />
             <Select label="Estado" value={p.status} onChange={(v) => upd({ status: v as PeriodStatus })} options={[{ value: "draft", label: "Borrador" }, { value: "open", label: "Abierto" }, { value: "closed", label: "Cerrado" }]} />
             <Input label="Fecha de apertura" type="date" value={p.open} readOnly={locked} onChange={(e) => upd({ open: e.target.value })} />
             <Input label="Fecha de cierre" type="date" value={p.close} readOnly={locked} onChange={(e) => upd({ close: e.target.value })} error={badDates ? "La fecha de cierre debe ser posterior a la apertura." : null} />
@@ -119,7 +138,10 @@ export function PeriodConfigurator() {
           {locked ? null : (
             <div className="ns-reg-actions">
               <span />
-              <Button icon="check" disabled={total !== 100 || badDates} onClick={() => showToast({ tone: "success", title: "Periodo guardado", message: p.name + " · " + p.items.map((x) => x.weight + "% " + x.name).join(" · ") })}>Guardar periodo</Button>
+              <Button icon="check" disabled={total !== 100 || badDates} loading={saveMut.isPending} onClick={() => saveMut.mutateAsync(p).then(
+                () => showToast({ tone: "success", title: "Periodo guardado", message: p.name + " · " + p.items.map((x) => x.weight + "% " + x.name).join(" · ") }),
+                (e) => showToast({ tone: "error", title: "No pudimos guardar el periodo", message: adminMessage(e) }),
+              )}>Guardar periodo</Button>
             </div>
           )}
         </Block>

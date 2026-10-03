@@ -212,7 +212,37 @@ try {
   const recFn = await as(ana, () => errorOf("select public.stamp_recovery()"));
   check("La función de recuperaciones no se puede llamar directamente", recFn?.includes("permission denied") || recFn?.includes("trigger"), recFn || "se llamó");
 
-  // ---------- 9. Fotos de exámenes ----------
+  // ---------- 9. Configuración de Secretaría (6b.3a) ----------
+  const delWithEvals = await as(patricia, () => errorOf("delete from public.teaching_assignments where id = $1", [anaMat7A]));
+  check("Malla: una asignación con evaluaciones no se elimina (se cambia el docente)", delWithEvals?.includes("Cambia el docente en lugar de eliminarla"), delWithEvals || "se eliminó");
+  const tmp = await as(patricia, () => one("insert into public.teaching_assignments (teacher_email, subject_id, course_id, period_id) values ('ana.lucia@losandes.edu.co', 'mat', '7A', '2026-p4') returning id"));
+  const delEmpty = await as(patricia, () => errorOf("delete from public.teaching_assignments where id = $1", [tmp.id]));
+  check("Malla: una asignación sin evaluaciones sí se elimina", !delEmpty, delEmpty || "");
+  const clashAssign = await as(patricia, () => errorOf("insert into public.teaching_assignments (teacher_email, subject_id, course_id, period_id) values ('carlos.perez@losandes.edu.co', 'mat', '7A', '2026-p3')"));
+  check("Malla: no hay dos docentes para la misma materia, curso y periodo", clashAssign?.includes("duplicate") || clashAssign?.includes("unique"), clashAssign || "se duplicó");
+  const twoOpen = await as(patricia, () => errorOf("update public.academic_periods set status = 'open' where id = '2026-p4'"));
+  check("Periodos: no puede haber dos abiertos a la vez", twoOpen?.includes("academic_periods_one_open"), twoOpen || "se abrió");
+  const bad95 = await as(patricia, () => errorOf(`select public.save_period('2026-p4', '2026-10-19', '2026-11-27', 'draft', '[{"name":"Actividades","weight":35},{"name":"Exámenes","weight":60}]'::jsonb)`));
+  check("Periodos: guardar con componentes que no suman 100 % se rechaza", bad95?.includes("debe sumar 100%"), bad95 || "se guardó");
+  const ok100 = await as(patricia, () => errorOf(`select public.save_period('2026-p4', '2026-10-20', '2026-11-28', 'draft', '[{"name":"Actividades","weight":50},{"name":"Exámenes","weight":50}]'::jsonb)`));
+  const p4 = await one("select open_date::text o, (select string_agg(name || ' ' || weight::int, ', ' order by position) from public.period_components where period_id = '2026-p4') c from public.academic_periods where id = '2026-p4'");
+  check("Periodos: guardar reemplaza fechas y componentes en una sola operación", !ok100 && p4.o === "2026-10-20" && p4.c === "Actividades 50, Exámenes 50", ok100 || JSON.stringify(p4));
+  const teacherPeriod = await as(ana, () => errorOf(`select public.save_period('2026-p4', '2026-10-20', '2026-11-28', 'draft', '[{"name":"Todo","weight":100}]'::jsonb)`));
+  check("Periodos: un docente no configura periodos", teacherPeriod?.includes("Solo Secretaría"), teacherPeriod || "configuró");
+  const touch = await as(ana, () => errorOf("select public.touch_last_seen()"));
+  const seen = await one("select last_seen_at is not null s from public.profiles where id = $1", [ana]);
+  const selfRole = await as(ana, () => db.query("update public.profiles set role = 'admin' where id = $1", [ana]).then((r) => r.affectedRows));
+  check("Usuarios: cada quien marca su último acceso, pero no puede cambiarse el rol", !touch && seen.s && selfRole === 0, touch || `visto=${seen.s}, filas=${selfRole}`);
+  const teacherDir = await as(ana, () => one("select count(*)::int n from public.staff_directory"));
+  const adminInvite = await as(patricia, () => errorOf("insert into public.staff_directory (email, full_name, role, area) values ('nueva.docente@losandes.edu.co', 'Nueva Docente', 'teacher', 'Docencia')"));
+  check("Usuarios: solo Secretaría ve y registra el directorio de personal", teacherDir.n === 0 && !adminInvite, adminInvite || `docente ve ${teacherDir.n}`);
+  const deact = await as(patricia, () => errorOf("update public.profiles set status = 'inactive' where id = $1", [carlos]));
+  const carlosRole = await as(carlos, () => one("select public.current_app_role()::text r"));
+  check("Usuarios: desactivar quita el rol (la cuenta no ve nada)", !deact && carlosRole.r === null, deact || JSON.stringify(carlosRole));
+  const fnExec = await as(null, () => errorOf("select public.save_period('2026-p4', '2026-10-20', '2026-11-28', 'draft', '[]'::jsonb)"));
+  check("Sin sesión no se llama save_period", fnExec?.includes("permission denied"), fnExec || "se llamó");
+
+  // ---------- 10. Fotos de exámenes ----------
   const ownPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${ana}/parcial2/foto1.jpg')`));
   const otherPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${carlos}/parcial2/foto1.jpg')`));
   check("El docente sube fotos solo a su carpeta del bucket privado", !ownPhoto && otherPhoto?.includes("row-level security"), `propia: ${ownPhoto || "ok"} · ajena: ${otherPhoto || "se subió"}`);

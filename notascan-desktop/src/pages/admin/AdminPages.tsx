@@ -17,6 +17,9 @@ import { AcademicStructureManager } from "../../components/organisms/admin/Struc
 import { StudentTable } from "../../components/organisms/admin/StudentTable";
 import { UserDirectory } from "../../components/organisms/admin/UserDirectory";
 import { PageShell } from "../../components/templates/PageShell";
+import { useToast } from "../../components/organisms/Toast";
+import { DEMO } from "../../lib/supabase";
+import { adminMessage, useCreatePeriod, usePeriods } from "../../services/admin";
 import { ALL_STUDENTS, type StudentRecord } from "../../data/students";
 
 /* Secretaría: densidad alta, tablas, formularios por secciones, drawers y acciones en lote. */
@@ -101,10 +104,11 @@ export function EnrollmentPage({ tab: initialTab, importStep }: { tab?: string; 
 }
 
 export function UsersPage() {
+  const [invite, setInvite] = useState(false);
   return (
     <PageShell active="users">
-      <Header eyebrow="Accesos" title="Usuarios" highlight="Usuarios" description="Docentes, acudientes, administrativos y directivos con acceso a NotaScan." actions={<Button icon="plus">Invitar usuario</Button>} />
-      <UserDirectory />
+      <Header eyebrow="Accesos" title="Usuarios" highlight="Usuarios" description="Docentes, acudientes, administrativos y directivos con acceso a NotaScan." actions={<Button icon="plus" onClick={() => setInvite(true)}>Invitar usuario</Button>} />
+      <UserDirectory invite={invite} onInviteClose={() => setInvite(false)} />
     </PageShell>
   );
 }
@@ -128,10 +132,21 @@ export function CurriculumPage() {
 }
 
 export function PeriodsPage() {
+  const q = usePeriods();
+  const create = useCreatePeriod();
+  const [showToast, toastNode] = useToast();
+  const year = q.data?.periods[q.data.periods.length - 1]?.year ?? 2026;
   return (
     <PageShell active="periods">
-      <Header eyebrow="Año lectivo 2026" title="Periodos Académicos" highlight="Académicos" description="Fechas de apertura y cierre, estado y cómo se compone la nota de cada periodo." actions={<Button variant="secondary" icon="plus">Crear periodo</Button>} />
+      <Header eyebrow={"Año lectivo " + year} title="Periodos Académicos" highlight="Académicos" description="Fechas de apertura y cierre, estado y cómo se compone la nota de cada periodo."
+        actions={<Button variant="secondary" icon="plus" loading={create.isPending} disabled={!q.data} onClick={() => create.mutateAsync(q.data!.periods).then(
+          (name) => showToast(DEMO
+            ? { tone: "info", title: "Crear periodo", message: "En la demostración los periodos son fijos." }
+            : { tone: "success", title: "Periodo creado", message: (name ?? "El periodo") + " quedó en borrador. Revisa sus fechas y su peso en la nota final." }),
+          (e) => showToast({ tone: "error", title: "No pudimos crear el periodo", message: e instanceof Error && !("code" in e) ? e.message : adminMessage(e) }),
+        )}>Crear periodo</Button>} />
       <PeriodConfigurator />
+      {toastNode}
     </PageShell>
   );
 }

@@ -19,6 +19,11 @@ const ROLE_NAME: Record<DesktopRole, string> = { teacher: "Docente", admin: "Sec
 
 const AuthContext = createContext<AuthState | null>(null);
 
+/** Deja constancia del último acceso (lo ve Secretaría en Usuarios). Si falla, no interrumpe la sesión. */
+function touchLastSeen() {
+  supabase().rpc("touch_last_seen").then(() => undefined, () => undefined);
+}
+
 async function loadProfile(): Promise<Profile | null> {
   const sb = supabase();
   const { data: auth } = await sb.auth.getUser();
@@ -47,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!alive) return;
       setProfile(p);
       setStatus(p ? "signed-in" : "signed-out");
+      if (p) touchLastSeen();
     };
     refresh();
     const { data } = supabase().auth.onAuthStateChange((event) => {
@@ -85,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setProfile(p);
     setStatus("signed-in");
+    touchLastSeen();
     return null;
   };
 
