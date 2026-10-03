@@ -415,7 +415,7 @@ periodo abierto, sus notas y la lista de los cursos) alimenta Inicio, Estudiante
   recuperación ya guardada conserva su nota original aunque la nota cambie. La base deriva el resultado
   (≥ 3.0 aprueba) y firma quien registra (migración `20261003120000_recuperaciones.sql`).
 
-**Decisión que espera visto bueno**: el formulario de «Nueva evaluación» (el sistema tenía el botón sin acción).
+**Decisión aprobada por Diego el 2026-10-03**: el formulario de «Nueva evaluación» (el sistema tenía el botón sin acción).
 Sin él, la planilla de un curso sin evaluaciones no tiene salida.
 
 **Fuera de 6b.2b, con decisión pendiente**: Reportes (qué formatos: el sistema ofrece PDF, Excel y CSV; PDF y
@@ -432,3 +432,8 @@ Fallo propio corregido: el promedio del inicio ponderaba todas las notas juntas 
 media de los promedios de cada estudiante (3.0). `verify:auth` falló (19/20) porque su sesión simulada no
 respondía a las nuevas lecturas del inicio y salían 401 contra el proyecto real; la prueba ahora responde vacío
 a la API que no simula.
+
+Migraciones de 6b.2 y 6b.2b aplicadas en el proyecto real el 2026-10-03 (SQL Editor, una transacción, contenido
+cotejado con el repositorio). Comprobación en la base: disparadores `grades_stamp`, `attendance_stamp`,
+`concepts_stamp` y `recoveries_stamp` activos; `stamp_*` sin permiso de ejecución para anon ni authenticated;
+`observations.author_id` por defecto `auth.uid()`.

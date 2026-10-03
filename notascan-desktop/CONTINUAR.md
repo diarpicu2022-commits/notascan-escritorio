@@ -34,15 +34,13 @@ Lo primero que se lee al retomar.
     asistencia, observador y conceptos, con estados. Migración `20261003090000_registro_docente.sql` (la base firma
     quién verifica/registra/revisa). `verify:teacher` 123/123, `verify:states` 29/29, `verify:teacher-data` 19/19,
     `verify:db` 51/51; regresión completa en verde. Tres decisiones esperan a Diego (anexo, Paso 6b.2).
-    - Sin la migración `20261003090000` aplicada, guardar en la planilla y la revisión falla por
-      `verified_needs_teacher` (el cliente ya no manda la firma).
-  - **6b.2b (hecho 2026-10-03, esperando visto bueno):** Inicio, Estudiantes (con exportar CSV), Evaluaciones
+  - **6b.2b (hecho y aprobado 2026-10-03, con el formulario «Nueva evaluación»):** Inicio, Estudiantes (con exportar CSV), Evaluaciones
     (con «Nueva evaluación») y Recuperaciones del Docente con datos reales. Migración `20261003120000_recuperaciones.sql`.
     `verify:teacher-data` 29/29, `verify:states` 45/45, `verify:db` 57/57; regresión en verde.
-    - **Pendiente:** aplicar en Supabase las migraciones `20261003090000_registro_docente.sql` y
-      `20261003120000_recuperaciones.sql`, en ese orden. El 2026-10-03 no se pudo desde aquí: la extensión de Chrome no
-      estaba conectada y la CLI de Supabase no tiene sesión.
-    - Decisión pendiente: formulario «Nueva evaluación» (anexo, Paso 6b.2b).
+    - Migraciones `20261003090000_registro_docente.sql` y `20261003120000_recuperaciones.sql` **aplicadas en Supabase**
+      el 2026-10-03 desde el SQL Editor, en una transacción (contenido cotejado byte a byte con el repositorio por SHA-1).
+      Comprobado en la base: 4 disparadores activos, funciones de firma no ejecutables por anon ni authenticated,
+      `observations.author_id` con valor por defecto `auth.uid()`, orden en grades `closed > stamp > touch`.
     - Siguen con datos de demostración: Reportes y Subir fotografías (decisiones de formato y de servicio de visión).
     - La cola sin conexión de la planilla sigue simulada (SyncContext). La asistencia usa una clase por día (hora 1).
     - El encabezado del observador dice «El acudiente las ve en su aplicación.»: aún no es cierto (sin acceso del
