@@ -352,3 +352,44 @@ página de destino.
 - Verificación: estados forzados en demo 9/9 (contraste del error 11.21:1), capa de datos con API simulada 8/8,
   base 39/39, vista aplicada en el proyecto (72 filas, `security_invoker`, anónimo sin acceso); fidelidad intacta.
 - Fallos propios corregidos: en demo el estado forzado no formaba parte de la clave de la consulta.
+
+### Paso 6b.2 · Docente con datos reales (2026-10-03)
+
+Pantallas conectadas: Revisión de calificaciones, Planilla, Asistencia, Comportamiento (observador) y Conceptos.
+En modo demostración siguen idénticas al sistema (fidelidad del Docente 123/123).
+
+- **Firmas en la base, no en el cliente** (migración `20261003090000_registro_docente.sql`): quién verificó una nota,
+  quién tomó la asistencia, quién revisó un concepto y el autor de una observación los pone la base con la sesión.
+  Una petición que mande otra firma se ignora (nota, asistencia, concepto) o se rechaza (observación).
+- **Revisión**: abre `#/teacher/review/<id>` o la primera evaluación en revisión del docente; guarda solo las
+  tarjetas que cambiaron. Si la base rechaza, las verificaciones siguen en pantalla y se avisa.
+- **Planilla**: columnas = evaluaciones de la asignación con su peso; celdas = notas **verificadas** (una lectura de
+  la IA sin verificar no aparece hasta que el docente la verifica en la revisión). Escribir una nota la guarda como
+  verificada; si la base la rechaza, la celda vuelve a su valor y la barra de estado dice por qué
+  («La evaluación está cerrada. Solicita el cambio de nota a Rectoría.»).
+- **Asistencia**: por curso y fecha (hoy por defecto); una clase por día mientras no exista el horario (hora 1).
+  En modo normal el encabezado es la fecha elegida, sin «2.ª hora».
+- **Conceptos**: nota del periodo = promedio ponderado de las verificadas; faltas = inasistencias del periodo. Se
+  guardan al salir del texto, al aprobar un borrador y al enviar. Sin nota verificada no hay borrador.
+- Estados con piezas del sistema: carga = bloques `.ns-skel` (en revisión, las tarjetas esqueleto); error =
+  `EmptyState` de error con «Reintentar»; vacíos con salida («No tienes evaluaciones en revisión.», «Este curso aún
+  no tiene evaluaciones.» con «Ir a evaluaciones», «Este curso no tiene estudiantes activos.», «Aún no hay
+  anotaciones.», «No tienes cursos asignados en el periodo abierto.»).
+
+**Decisiones que esperan visto bueno de Diego** (no cambian el modo demostración):
+1. Selector de curso en el encabezado de Conceptos cuando el docente tiene más de un curso (`FilterGroup` del
+   sistema, igual que en Planilla). Sin él solo se podría ver el primer curso.
+2. Copia corregida: el aviso del observador decía «Se notificó al acudiente.», que no es cierto (no hay
+   notificaciones ni acceso del acudiente en la base); ahora dice «Quedó en el observador de {nombre}.».
+   En Conceptos, un estudiante sin notas verificadas muestra «Sin nota» en vez de un desempeño calculado sobre nada.
+3. `ConfirmAction` acepta `loading` (el botón muestra «Guardando…»), como ya lo hacía `ConfirmDialog`.
+
+Verificación: `verify:teacher` 123/123 (demo), `verify:states` 29/29 (5 pantallas nuevas, contraste del error
+11.26:1), `verify:teacher-data` 19/19 (API simulada: lectura, cuerpo de cada escritura sin firmas, rechazo de la
+base), `verify:db` 51/51 (firmas no falsificables, RLS por curso y asignación). Regresión: tokens 26/26, card 51/51,
+shell 62/62, components 121/121, admin 102/102, principal 76/76, auth 20/20, data 8/8.
+
+Fallos propios encontrados y corregidos: al refactorizar la planilla se perdió el efecto que enfoca la celda activa
+(6 fallos en `verify:teacher`); el comentario de `verify-db` decía que Ana dicta en 3 cursos y la semilla la tiene
+en los 6. Hallazgo sin corregir (paso 6b.4): `decide_grade_request` marca la solicitud como aprobada pero no aplica
+la nota nueva en `grades`.

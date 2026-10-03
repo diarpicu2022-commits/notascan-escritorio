@@ -58,7 +58,7 @@ try {
 
   // ---------- 2. Cuentas: solo personal registrado ----------
   const mk = async (email) => (await db.query("insert into auth.users (email) values ($1) returning id", [email])).rows[0].id;
-  const ana = await mk("ana.lucia@losandes.edu.co");          // docente de Matemáticas en 6A, 7A, 7B
+  const ana = await mk("ana.lucia@losandes.edu.co");          // docente de Matemáticas en los 6 cursos
   const carlos = await mk("carlos.perez@losandes.edu.co");    // docente de Física
   const patricia = await mk("patricia@losandes.edu.co");      // Secretaría
   const hernando = await mk("hernando@losandes.edu.co");      // Rectoría
@@ -87,7 +87,9 @@ try {
 
   // ---------- 4. Escritura de notas: la IA detecta, el docente verifica ----------
   const g = await one("select g.id, g.student_id, g.value from public.grades g where g.value is not null order by g.id limit 1");
-  const badVerify = await as(ana, () => errorOf("update public.grades set status = 'verified' where id = $1", [g.id]));
+  // Sin sesión (semilla, mantenimiento) nadie firma por la base: «verificada» sin firma se rechaza.
+  await runSql("select set_config('request.jwt.claim.sub', '', false);");
+  const badVerify = await errorOf("update public.grades set status = 'verified' where id = $1", [g.id]);
   check("No se puede marcar «verificada» sin quién verificó", badVerify?.includes("verified_needs_teacher"), badVerify || "se marcó");
   const okVerify = await as(ana, () => errorOf("update public.grades set value = 4.3, status = 'verified', verified_by = auth.uid(), verified_at = now() where id = $1", [g.id]));
   check("El docente verifica su nota corrigiéndola a 4.3", !okVerify, okVerify || "");
@@ -142,7 +144,57 @@ try {
   const ovAnon = await as(null, () => errorOf("select * from public.student_overview"));
   check("Sin sesión la vista no se lee", ovAnon?.includes("permission denied"), ovAnon || "leyó");
 
-  // ---------- 7. Fotos de exámenes ----------
+  // ---------- 7. Registro del docente (6b.2): la base firma con la sesión, nunca el cliente ----------
+  const quiz = (await one(`select e.id from public.evaluations e join public.teaching_assignments a on a.id = e.assignment_id
+    where a.teacher_email = 'ana.lucia@losandes.edu.co' and a.course_id = '7A' and e.name = 'Quiz 4'`)).id;
+  const upsertGrade = (v, by) => `insert into public.grades (evaluation_id, student_id, value, status, verified_by, verified_at)
+    values (${quiz}, '${anaStudent}', ${v}, 'verified', ${by ? `'${by}'` : "null"}, now())
+    on conflict (evaluation_id, student_id) do update set value = excluded.value, status = excluded.status, verified_by = excluded.verified_by`;
+  const forged = await as(ana, () => errorOf(upsertGrade("4.0", carlos)));
+  const signed = await one("select verified_by, value::text v from public.grades where evaluation_id = $1 and student_id = $2", [quiz, anaStudent]);
+  check("Planilla: la nota escrita queda verificada con la firma de quien la escribe (aunque mande otra)", !forged && signed.verified_by === ana && signed.v === "4.0", forged || JSON.stringify(signed));
+  const resend = await as(ana, () => errorOf(upsertGrade("4.5", null)));
+  const resent = await one("select verified_by, value::text v, (select count(*)::int from public.grade_audit a where a.grade_id = g.id) n from public.grades g where evaluation_id = $1 and student_id = $2", [quiz, anaStudent]);
+  check("Planilla: corregir la nota la vuelve a firmar y deja el cambio en el historial", !resend && resent.verified_by === ana && resent.v === "4.5" && resent.n === 1, resend || JSON.stringify(resent));
+  const quizGrade = (await one("select id from public.grades where evaluation_id = $1 and student_id = $2", [quiz, anaStudent])).id;
+  await as(ana, () => db.query("update public.grades set verified_by = $1 where id = $2", [carlos, quizGrade]));
+  check("Sin cambio de nota, la firma anterior no se puede reemplazar", (await one("select verified_by from public.grades where id = $1", [quizGrade])).verified_by === ana);
+  const carlosQuiz = await as(carlos, () => errorOf(upsertGrade("1.0", null)));
+  check("Otro docente no puede escribir en la planilla de Ana", carlosQuiz?.includes("row-level security"), carlosQuiz || "escribió");
+
+  const att = (course, student, state, by) => `insert into public.attendance (course_id, student_id, class_date, slot, state, recorded_by)
+    values ('${course}', '${student}', '2026-10-01', 1, '${state}', ${by ? `'${by}'` : "null"})
+    on conflict (student_id, course_id, class_date, slot) do update set state = excluded.state, recorded_by = excluded.recorded_by`;
+  const att1 = await as(ana, () => errorOf(att("7A", anaStudent, "absent", carlos)));
+  const att2 = await as(ana, () => errorOf(att("7A", anaStudent, "late", null)));
+  const attRow = await one("select state::text s, recorded_by, (select count(*)::int from public.attendance where student_id = $1) n from public.attendance where student_id = $1", [anaStudent]);
+  check("Asistencia: guardar dos veces actualiza la misma clase y la firma quien la toma", !att1 && !att2 && attRow.s === "late" && attRow.recorded_by === ana && attRow.n === 1, att1 || att2 || JSON.stringify(attRow));
+  const st8B = (await one("select id from public.students where course_id = '8B' limit 1")).id;
+  const att8B = await as(jorge, () => errorOf(att("8B", st8B, "present", null)));
+  check("Asistencia: el docente no la toma en un curso que no dicta (Jorge en 8B)", att8B?.includes("row-level security"), att8B || "la tomó");
+
+  const anaMat7A = (await one("select id from public.teaching_assignments where teacher_email = 'ana.lucia@losandes.edu.co' and course_id = '7A' and subject_id = 'mat'")).id;
+  const concept = (state) => `insert into public.period_concepts (student_id, assignment_id, text, state, reviewed_by) values ('${anaStudent}', ${anaMat7A}, 'Alcanza el logro.', '${state}', '${carlos}')
+    on conflict (student_id, assignment_id) do update set text = excluded.text, state = excluded.state, reviewed_by = excluded.reviewed_by`;
+  const c1 = await as(ana, () => errorOf(concept("teacher")));
+  const c1r = await one("select reviewed_by from public.period_concepts where student_id = $1 and assignment_id = $2", [anaStudent, anaMat7A]);
+  const c2 = await as(ana, () => errorOf(concept("ai")));
+  const c2r = await one("select reviewed_by, state::text s from public.period_concepts where student_id = $1 and assignment_id = $2", [anaStudent, anaMat7A]);
+  check("Conceptos: escrito por el docente lleva su firma; un borrador de IA no lleva ninguna", !c1 && !c2 && c1r.reviewed_by === ana && c2r.reviewed_by === null && c2r.s === "ai", c1 || c2 || JSON.stringify([c1r, c2r]));
+  const carlosConcept = await as(carlos, () => errorOf(concept("teacher")));
+  check("Conceptos: otro docente no escribe en la asignación de Ana", carlosConcept?.includes("row-level security"), carlosConcept || "escribió");
+
+  const obsOwn = await as(ana, () => errorOf("insert into public.observations (student_id, type, title) values ($1, 'positive', 'Participación destacada')", [anaStudent]));
+  const obsAuthor = await one("select author_id from public.observations where title = 'Participación destacada' and student_id = $1 order by id desc limit 1", [anaStudent]);
+  const obsForged = await as(ana, () => errorOf("insert into public.observations (student_id, type, title, author_id) values ($1, 'attention', 'Suplantación', $2)", [anaStudent, carlos]));
+  check("Observador: el autor lo pone la base y no se puede escribir a nombre de otro", !obsOwn && obsAuthor?.author_id === ana && obsForged?.includes("row-level security"), obsOwn || obsForged || JSON.stringify(obsAuthor));
+  const stampFn = await as(ana, () => errorOf("select public.stamp_attendance()"));
+  check("Las funciones de firma no se pueden llamar directamente", stampFn?.includes("permission denied") || stampFn?.includes("trigger"), stampFn || "se llamó");
+  const myAssign = await as(ana, () => one(`select count(*)::int n from public.teaching_assignments a join public.academic_periods p on p.id = a.period_id
+    where a.teacher_email = 'ana.lucia@losandes.edu.co' and p.status = 'open'`));
+  check("Ana ve sus asignaciones del periodo abierto (Matemáticas en los 6 cursos)", myAssign.n === 6, String(myAssign.n));
+
+  // ---------- 8. Fotos de exámenes ----------
   const ownPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${ana}/parcial2/foto1.jpg')`));
   const otherPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${carlos}/parcial2/foto1.jpg')`));
   check("El docente sube fotos solo a su carpeta del bucket privado", !ownPhoto && otherPhoto?.includes("row-level security"), `propia: ${ownPhoto || "ok"} · ajena: ${otherPhoto || "se subió"}`);

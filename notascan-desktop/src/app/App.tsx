@@ -26,11 +26,11 @@ function hhmm(d: Date) {
   return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
 }
 
-/** La revisión no lee pestañas de la ruta: se monta sin props. */
-const ReviewPage = () => <GradeReviewDashboard />;
+/** La revisión no lee pestañas: abre la evaluación de la ruta (#/teacher/review/<id>) o la primera en revisión. */
+const ReviewPage = ({ id }: { id?: string }) => <GradeReviewDashboard evaluationId={id} />;
 
 /** Pantallas de cada rol (NotaScanApp del sistema). */
-const PAGES: Record<DesktopRole, Record<string, ComponentType<{ tab?: string }>>> = {
+const PAGES: Record<DesktopRole, Record<string, ComponentType<{ tab?: string; id?: string }>>> = {
   teacher: {
     dashboard: DashboardPage, grades: UploadPage, review: ReviewPage, evaluations: EvaluationsPage, gradebook: GradebookPage,
     concepts: ConceptsPage, recoveries: RecoveriesPage, attendance: AttendancePage, behavior: BehaviorPage, students: StudentsPage, reports: ReportsPage,
@@ -113,7 +113,7 @@ export function App() {
     const Page = PAGES[role][page] || PAGES[role].dashboard;
     // Corrección de comportamiento (anexo): el sistema no pasaba ?tab= a las páginas; aquí sí,
     // para que «Importar estudiantes» abra la pestaña de importación.
-    content = <Page key={page + "?" + (route.params.tab || "")} tab={route.params.tab} />;
+    content = <Page key={page + "/" + (route.id || "") + "?" + (route.params.tab || "")} tab={route.params.tab} id={route.id} />;
   }
 
   return (

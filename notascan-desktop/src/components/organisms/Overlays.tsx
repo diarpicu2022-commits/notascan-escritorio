@@ -83,17 +83,19 @@ interface ConfirmActionProps {
   tone?: "sage" | "burgundy";
   danger?: boolean;
   inline?: boolean;
+  /** Mientras se guarda: el botón de confirmar muestra «Guardando…» y no se puede pulsar dos veces. */
+  loading?: boolean;
   children?: ReactNode;
 }
 
 /** Confirmación de una acción con Cancelar enfocado por defecto. */
-export function ConfirmAction({ open, onCancel, onConfirm, title, description, confirmLabel, confirmIcon, icon, tone, danger, inline, children }: ConfirmActionProps) {
+export function ConfirmAction({ open, onCancel, onConfirm, title, description, confirmLabel, confirmIcon, icon, tone, danger, inline, loading, children }: ConfirmActionProps) {
   return (
     <Modal
       open={open} onClose={onCancel} alert inline={inline} icon={icon || "warning"} tone={tone} title={title} description={description}
       actions={<>
         <Button variant="secondary" onClick={onCancel} data-autofocus>Cancelar</Button>
-        <Button variant={danger ? "danger" : "primary"} icon={confirmIcon} onClick={onConfirm}>{confirmLabel}</Button>
+        <Button variant={danger ? "danger" : "primary"} icon={confirmIcon} loading={loading} onClick={onConfirm}>{confirmLabel}</Button>
       </>}
     >
       {children}

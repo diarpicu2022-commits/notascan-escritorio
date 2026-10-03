@@ -1,31 +1,17 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useSync } from "../../app/SyncContext";
 import { cx } from "../../lib/cx";
 import { formatGrade, validateGrade } from "../../lib/grade";
-import { ALL_STUDENTS, seeded } from "../../data/students";
+import { saveMessage, type GbColumn, type GbRow, type GradebookData } from "../../services/teacher";
 import { Icon } from "../atoms/Icon";
 import { FilterGroup } from "../molecules/Filters";
 
 /* Planilla tipo hoja de cálculo: se maneja con el teclado y funciona sin conexión. */
 
-const GB_COLS: Array<[key: string, label: string, weight: number]> = [["a1", "Actividad 1", 15], ["a2", "Actividad 2", 15], ["ws", "Taller", 20], ["ex", "Examen", 35], ["at", "Actitudinal", 15]];
-type GbRow = { id: string; name: string } & Record<string, number | string>;
-
-function gbAvg(r: GbRow): number {
+function gbAvg(r: GbRow, cols: GbColumn[]): number {
   let sum = 0, w = 0;
-  GB_COLS.forEach((c) => { const v = r[c[0]]; if (typeof v === "number" && !isNaN(v)) { sum += v * c[2]; w += c[2]; } });
+  cols.forEach((c) => { const v = r[c.key]; if (typeof v === "number" && !isNaN(v)) { sum += v * c.weight; w += c.weight; } });
   return w ? Math.round((sum / w) * 10) / 10 : NaN;
-}
-
-function gbRows(course: string): GbRow[] {
-  return ALL_STUDENTS.filter((s) => s.course === course && s.status !== "retired").map((s, i) => {
-    const b = s.avg, r: GbRow = { id: s.id, name: s.name };
-    GB_COLS.forEach((c, j) => {
-      const v = Math.round(Math.max(1, Math.min(5, b + (seeded(Number(s.id) + j * 3) - 0.5) * 1.4)) * 10) / 10;
-      r[c[0]] = c[0] === "ex" && i % 5 === 3 ? NaN : v;
-    });
-    return r;
-  });
 }
 
 interface GradeCellProps {
@@ -64,22 +50,36 @@ export function GradeCell(p: GradeCellProps) {
 type Pos = { r: number; c: number };
 type Msg = { tone: "error" | "warn" | "ok"; text: string } | null;
 
-export function Gradebook() {
+interface GradebookProps {
+  courses: Array<{ value: string; label: string }>;
+  course: string;
+  onCourse: (v: string) => void;
+  period: string;
+  data?: GradebookData;
+  /** Carga, error o vacío: reemplaza la tabla y deja la barra para cambiar de curso. */
+  state?: ReactNode;
+  /** Guarda una celda; si falla, la celda vuelve a su valor y se avisa en la barra de estado. */
+  onSave?: (studentId: string, column: string, value: number) => Promise<void>;
+}
+
+export function Gradebook({ courses, course, onCourse, period, data, state, onSave }: GradebookProps) {
   const { sync, setSync } = useSync();
-  const [course, setCourse] = useState("7A");
-  const [rows, setRows] = useState<GbRow[]>(() => gbRows("7A"));
+  const cols = data?.columns ?? [];
+  const [rows, setRows] = useState<GbRow[]>(() => data?.rows ?? []);
   const [pos, setPos] = useState<Pos>({ r: 0, c: 0 });
   const [edit, setEdit] = useState<Pos | null>(null);
   const [draft, setDraft] = useState("");
   const [msg, setMsg] = useState<Msg>(null);
   const [pend, setPend] = useState<Record<string, true>>({});
   const refs = useRef<Record<string, HTMLTableCellElement | null>>({});
-  const firstRun = useRef(true);
+  const lastData = useRef(data);
 
+  // Otro curso u otros datos de la base: la planilla se recarga y vuelve a la primera celda.
   useEffect(() => {
-    if (firstRun.current) { firstRun.current = false; return; }
-    setRows(gbRows(course)); setPos({ r: 0, c: 0 }); setEdit(null);
-  }, [course]);
+    if (lastData.current === data) return;
+    lastData.current = data;
+    setRows(data?.rows ?? []); setPos({ r: 0, c: 0 }); setEdit(null);
+  }, [data]);
   useEffect(() => {
     const el = refs.current[pos.r + "-" + pos.c];
     if (!el || edit) return;
@@ -94,8 +94,7 @@ export function Gradebook() {
     if (c.right > w.right) wrap.scrollLeft += c.right - w.right;
     else if (c.left < left) wrap.scrollLeft -= left - c.left;
   }, [pos, edit]);
-
-  const R = rows.length, C = GB_COLS.length;
+  const R = rows.length, C = cols.length;
   const offline = sync.status === "offline";
   function move(dr: number, dc: number) {
     let r = pos.r + dr, c = pos.c + dc;
@@ -105,7 +104,7 @@ export function Gradebook() {
     setPos({ r, c });
   }
   function startEdit(initial?: string) {
-    const row = rows[pos.r], k = GB_COLS[pos.c][0];
+    const row = rows[pos.r], k = cols[pos.c].key;
     setDraft(initial !== undefined ? initial : isNaN(row[k] as number) ? "" : formatGrade(row[k] as number));
     setEdit(pos); setMsg(null);
   }
@@ -113,16 +112,22 @@ export function Gradebook() {
     const chk = validateGrade(draft);
     if (draft.trim() === "") { setEdit(null); return true; }
     if (!chk.valid) { setMsg({ tone: "error", text: chk.message }); return false; }
-    const k = GB_COLS[pos.c][0];
+    const k = cols[pos.c].key, row = rows[pos.r], before = row[k];
     setRows(rows.map((x, i) => (i !== pos.r ? x : { ...x, [k]: chk.value })));
     setEdit(null);
-    const key = rows[pos.r].id + k;
+    const key = row.id + k;
     if (offline) {
       const p = { ...pend, [key]: true as const };
       setPend(p);
       setSync({ ...sync, pending: Object.keys(p).length });
       setMsg({ tone: "warn", text: "Guardado en este equipo. Se sincronizará al reconectar." });
-    } else setMsg({ tone: "ok", text: "Guardado · " + rows[pos.r].name.split(" ")[0] + ", " + GB_COLS[pos.c][1] + ": " + formatGrade(chk.value) });
+    } else {
+      setMsg({ tone: "ok", text: "Guardado · " + row.name.split(" ")[0] + ", " + cols[pos.c].label + ": " + formatGrade(chk.value) });
+      onSave?.(row.id, k, chk.value).catch((e) => {
+        setRows((rs) => rs.map((x) => (x.id === row.id ? { ...x, [k]: before } : x)));
+        setMsg({ tone: "error", text: saveMessage(e) + " " + row.name.split(" ")[0] + ", " + cols[pos.c].label + " volvió a " + (isNaN(before as number) ? "—" : formatGrade(before as number)) + "." });
+      });
+    }
     return true;
   }
   useEffect(() => { if (sync.status === "online" && Object.keys(pend).length) setPend({}); }, [sync.status]);
@@ -146,26 +151,27 @@ export function Gradebook() {
     else if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (commit()) move(e.key === "ArrowDown" ? 1 : -1, 0); }
   }
 
-  const avgs = rows.map(gbAvg), valid = avgs.filter((x) => !isNaN(x));
+  const avgs = rows.map((r) => gbAvg(r, cols)), valid = avgs.filter((x) => !isNaN(x));
   const courseAvg = valid.length ? Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10 : NaN;
   const cur = rows[pos.r];
 
   return (
     <div className="ns-col" style={{ gap: 16 }}>
       <div className="ns-gb-bar">
-        <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={["6A", "7A", "7B"].map((c) => ({ value: c, label: c + " · Matemáticas" }))} />
-        <FilterGroup as="select" label="Periodo" value="3" options={[{ value: "3", label: "Periodo 3" }]} />
+        <FilterGroup as="select" label="Curso" value={course} onChange={onCourse} options={courses} />
+        <FilterGroup as="select" label="Periodo" value="3" options={[{ value: "3", label: period }]} />
         <div className="ns-gb-keys" aria-label="Atajos de teclado">
           <span><kbd>↑↓←→</kbd> mover</span><span><kbd>Enter</kbd> editar / bajar</span><span><kbd>Tab</kbd> derecha</span><span><kbd>Esc</kbd> cancelar</span><span><kbd>0–9</kbd> escribir</span>
         </div>
       </div>
+      {state ?? <>
       <div className="ns-gb-wrap" role="region" aria-label="Planilla de calificaciones">
         <table className="ns-gb" role="grid" aria-rowcount={R + 1} aria-colcount={C + 2} onKeyDown={onGridKey}>
-          <caption className="ns-sr">{"Planilla de calificaciones de " + course + ". Usa las flechas para moverte y Enter para editar."}</caption>
+          <caption className="ns-sr">{"Planilla de calificaciones de " + (courses.find((c) => c.value === course)?.label.split(" · ")[0] ?? course) + ". Usa las flechas para moverte y Enter para editar."}</caption>
           <thead>
             <tr>
               <th scope="col" className="ns-gb-sticky">Estudiante</th>
-              {GB_COLS.map((c) => <th key={c[0]} scope="col" className="is-num">{c[1]}<small>{c[2] + "%"}</small></th>)}
+              {cols.map((c) => <th key={c.key} scope="col" className="is-num">{c.label}<small>{c.weight + "%"}</small></th>)}
               <th scope="col" className="is-num ns-gb-avg">Promedio<small>automático</small></th>
             </tr>
           </thead>
@@ -175,12 +181,12 @@ export function Gradebook() {
               return (
                 <tr key={r.id} className={cx(i === pos.r && "is-row")}>
                   <th scope="row" className="ns-gb-sticky"><span className="ns-gb-n">{i + 1}</span>{r.name}</th>
-                  {GB_COLS.map((c, j) => {
+                  {cols.map((c, j) => {
                     const active = pos.r === i && pos.c === j, editing = !!edit && edit.r === i && edit.c === j;
                     return (
                       <GradeCell
-                        key={c[0]} value={r[c[0]] as number} label={r.name + ", " + c[1]} active={active} editing={editing} draft={draft} onDraft={setDraft}
-                        error={editing && !!msg && msg.tone === "error"} pending={pend[r.id + c[0]]}
+                        key={c.key} value={r[c.key] as number} label={r.name + ", " + c.label} active={active} editing={editing} draft={draft} onDraft={setDraft}
+                        error={editing && !!msg && msg.tone === "error"} pending={pend[r.id + c.key]}
                         cellRef={(el) => { refs.current[i + "-" + j] = el; }}
                         onSelect={() => { if (edit) commit(); setPos({ r: i, c: j }); }}
                         onEdit={() => { setPos({ r: i, c: j }); startEdit(); }}
@@ -196,9 +202,9 @@ export function Gradebook() {
           <tfoot>
             <tr>
               <th scope="row" className="ns-gb-sticky">Promedio del curso</th>
-              {GB_COLS.map((c) => {
-                const v = rows.map((r) => r[c[0]] as number).filter((x) => !isNaN(x));
-                return <td key={c[0]} className="is-num">{v.length ? formatGrade(v.reduce((a, b) => a + b, 0) / v.length) : "—"}</td>;
+              {cols.map((c) => {
+                const v = rows.map((r) => r[c.key] as number).filter((x) => !isNaN(x));
+                return <td key={c.key} className="is-num">{v.length ? formatGrade(v.reduce((a, b) => a + b, 0) / v.length) : "—"}</td>;
               })}
               <td className="is-num ns-gb-avg">{formatGrade(courseAvg)}</td>
             </tr>
@@ -206,9 +212,10 @@ export function Gradebook() {
         </table>
       </div>
       <div className={cx("ns-gb-status", msg && "is-" + msg.tone)} role="status" aria-live="polite">
-        <span>{cur ? <><strong>{GB_COLS[pos.c][1]}</strong>{" · " + cur.name}</> : null}</span>
+        <span>{cur && cols[pos.c] ? <><strong>{cols[pos.c].label}</strong>{" · " + cur.name}</> : null}</span>
         <span>{msg ? msg.text : offline ? "Modo offline: los cambios se guardan en este equipo." : "Todo sincronizado."}</span>
       </div>
+      </>}
     </div>
   );
 }

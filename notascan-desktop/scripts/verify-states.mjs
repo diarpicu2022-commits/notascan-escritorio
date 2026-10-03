@@ -9,6 +9,12 @@ const report = createReport();
 const SCREENS = [
   { hash: "#/admin/students", name: "Estudiantes y Matrículas (Secretaría)", errorTitle: "No pudimos cargar los estudiantes.", emptyTitle: "No hay estudiantes registrados." },
   { hash: "#/principal/students", name: "Estudiantes (Rectoría)", errorTitle: "No pudimos cargar los estudiantes.", emptyTitle: "No hay estudiantes registrados." },
+  // 6b.2 · Docente: pantallas sin tabla; la carga usa bloques .ns-skel (o las tarjetas esqueleto del sistema).
+  { hash: "#/teacher/review", name: "Revisión de calificaciones", loading: ".ns-card--skeleton", errorTitle: "No pudimos cargar la revisión.", emptyTitle: "No tienes evaluaciones en revisión." },
+  { hash: "#/teacher/gradebook", name: "Planilla", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar la planilla.", emptyTitle: "Este curso no tiene estudiantes activos." },
+  { hash: "#/teacher/attendance", name: "Asistencia", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar la asistencia.", emptyTitle: "Este curso no tiene estudiantes activos." },
+  { hash: "#/teacher/behavior", name: "Comportamiento", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las anotaciones.", emptyTitle: "Aún no hay anotaciones." },
+  { hash: "#/teacher/concepts", name: "Conceptos", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar los conceptos.", emptyTitle: "Este curso no tiene estudiantes activos." },
 ];
 
 const { browser, close } = await startPreview();
@@ -21,8 +27,13 @@ try {
     // Cargando: filas esqueleto del sistema, ocultas a lectores de pantalla, sin paginación.
     await page.goto(URL_BASE + s.hash + "?estado=cargando", { waitUntil: "networkidle" });
     await page.waitForTimeout(500);
-    const skel = await page.locator("tbody tr[aria-hidden=true] .ns-skel").count();
-    report.check(`${s.name} · cargando: filas esqueleto del sistema`, skel > 0 && (await page.locator(".ns-pager").count()) === 0, `${skel} bloques .ns-skel`);
+    if (s.loading) {
+      const skel = await page.locator(s.loading).count();
+      report.check(`${s.name} · cargando: bloques esqueleto del sistema`, skel > 0 && (await page.locator(".ns-empty").count()) === 0, `${skel} × ${s.loading}`);
+    } else {
+      const skel = await page.locator("tbody tr[aria-hidden=true] .ns-skel").count();
+      report.check(`${s.name} · cargando: filas esqueleto del sistema`, skel > 0 && (await page.locator(".ns-pager").count()) === 0, `${skel} bloques .ns-skel`);
+    }
     await page.screenshot({ path: join(OUT, `paso6b-${slug}-cargando.png`) });
 
     // Error: EmptyState de error con salida «Reintentar».

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cx } from "../../lib/cx";
 import { formatGrade, validateGrade } from "../../lib/grade";
 import { subjectGrades } from "../../data/academic";
@@ -9,6 +9,7 @@ import { Button } from "../atoms/Button";
 import { Input, Textarea } from "../atoms/Field";
 import { Icon, type IconName } from "../atoms/Icon";
 import { FilterGroup } from "../molecules/Filters";
+import { longDate, saveMessage, type AttRow, type AttState } from "../../services/teacher";
 import { DataGrid } from "./DataGrid";
 import { useToast } from "./Toast";
 
@@ -69,9 +70,7 @@ export function RecoveryTable() {
 
 /* ---------- Asistencia rápida con atajos P · A · T · E ---------- */
 
-type AttState = "present" | "absent" | "late" | "excused";
 const ATT: Array<[AttState, string, string, IconName]> = [["present", "Presente", "P", "check"], ["absent", "Inasistencia", "A", "close"], ["late", "Tarde", "T", "clock"], ["excused", "Excusa", "E", "file"]];
-interface AttRow { id: string; name: string; state: AttState | null; note: string }
 
 export function AttendanceRow({ row: r, index, onChange }: { row: AttRow; index: number; onChange: (p: Partial<AttRow>) => void }) {
   const [open, setOpen] = useState(!!r.note);
@@ -102,35 +101,62 @@ export function AttendanceRow({ row: r, index, onChange }: { row: AttRow; index:
   );
 }
 
-export function AttendancePanel() {
-  const [rows, setRows] = useState<AttRow[]>(() => ALL_STUDENTS.filter((s) => s.course === "7A" && s.status !== "retired")
-    .map((s, i) => ({ id: s.id, name: s.name, state: i === 3 ? "absent" : i === 6 ? "late" : null, note: i === 0 ? "Participó activamente durante la actividad." : "" })));
+interface AttendancePanelProps {
+  courses: Array<{ value: string; label: string }>;
+  course: string;
+  onCourse: (v: string) => void;
+  date: string;
+  onDate: (v: string) => void;
+  data?: AttRow[];
+  /** Carga, error o vacío: reemplaza la lista y deja la barra para cambiar de curso o fecha. */
+  state?: ReactNode;
+  onSave?: (rows: AttRow[]) => Promise<void>;
+}
+
+export function AttendancePanel({ courses, course, onCourse, date, onDate, data, state, onSave }: AttendancePanelProps) {
+  const [rows, setRows] = useState<AttRow[]>(() => data ?? []);
+  const [saving, setSaving] = useState(false);
+  const lastData = useRef(data);
+  // Otro curso u otra fecha: la lista se recarga con lo registrado en la base.
+  useEffect(() => { if (lastData.current !== data) { lastData.current = data; setRows(data ?? []); } }, [data]);
   const [showToast, toastNode] = useToast();
   const upd = (id: string, patch: Partial<AttRow>) => setRows(rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const c: Record<string, number> = {};
   rows.forEach((r) => { const k = r.state || "none"; c[k] = (c[k] || 0) + 1; });
+  const courseName = courses.find((x) => x.value === course)?.label.split(" · ")[0] ?? course;
+  function save() {
+    setSaving(true);
+    (onSave ? onSave(rows) : Promise.resolve()).then(
+      () => showToast({ tone: "success", title: "Asistencia guardada", message: courseName + " · " + longDate(date) + " · " + (c.absent || 0) + " inasistencias." }),
+      (e) => showToast({ tone: "error", title: "No pudimos guardar la asistencia", message: saveMessage(e) + " Las marcas siguen en pantalla." }),
+    ).finally(() => setSaving(false));
+  }
   return (
     <>
       <div className="ns-att-bar">
         <div className="ns-row">
-          <FilterGroup as="select" label="Curso" value="7A" options={[{ value: "7A", label: "7A · Matemáticas" }]} />
-          <Input label="Fecha" hideLabel type="date" defaultValue="2026-10-01" aria-label="Fecha de la clase" />
+          <FilterGroup as="select" label="Curso" value={course} onChange={onCourse} options={courses} />
+          <Input label="Fecha" hideLabel type="date" value={date} onChange={(e) => { if (e.target.value) onDate(e.target.value); }} aria-label="Fecha de la clase" />
         </div>
-        <div className="ns-att-counts" aria-live="polite">
-          {ATT.map((a) => <span key={a[0]} className={"ns-att-count ns-att-count--" + a[0]}><Icon name={a[3]} size={14} />{(c[a[0]] || 0) + " " + a[1].toLowerCase()}</span>)}
-          <span className="ns-att-count">{(c.none || 0) + " sin marcar"}</span>
+        {state ? null : (
+          <div className="ns-att-counts" aria-live="polite">
+            {ATT.map((a) => <span key={a[0]} className={"ns-att-count ns-att-count--" + a[0]}><Icon name={a[3]} size={14} />{(c[a[0]] || 0) + " " + a[1].toLowerCase()}</span>)}
+            <span className="ns-att-count">{(c.none || 0) + " sin marcar"}</span>
+          </div>
+        )}
+        {state ? null : <Button variant="secondary" icon="check" onClick={() => setRows(rows.map((r) => (r.state ? r : { ...r, state: "present" })))}>Marcar el resto como presentes</Button>}
+      </div>
+      {state ?? <>
+        <p className="ns-caption">Atajos: con una fila enfocada pulsa <kbd>P</kbd> presente, <kbd>A</kbd> inasistencia, <kbd>T</kbd> tarde, <kbd>E</kbd> excusa.</p>
+        <ul className="ns-att-list">
+          {rows.map((r, i) => <AttendanceRow key={r.id} row={r} index={i} onChange={(p) => upd(r.id, p)} />)}
+        </ul>
+        <div className="ns-sticky-cta">
+          <Button size="lg" icon="check" disabled={!!c.none} loading={saving} loadingText="Guardando…" onClick={save}>
+            {c.none ? "Faltan " + c.none + " por marcar" : "Guardar asistencia"}
+          </Button>
         </div>
-        <Button variant="secondary" icon="check" onClick={() => setRows(rows.map((r) => (r.state ? r : { ...r, state: "present" })))}>Marcar el resto como presentes</Button>
-      </div>
-      <p className="ns-caption">Atajos: con una fila enfocada pulsa <kbd>P</kbd> presente, <kbd>A</kbd> inasistencia, <kbd>T</kbd> tarde, <kbd>E</kbd> excusa.</p>
-      <ul className="ns-att-list">
-        {rows.map((r, i) => <AttendanceRow key={r.id} row={r} index={i} onChange={(p) => upd(r.id, p)} />)}
-      </ul>
-      <div className="ns-sticky-cta">
-        <Button size="lg" icon="check" disabled={!!c.none} onClick={() => showToast({ tone: "success", title: "Asistencia guardada", message: "7A · 1 de octubre · " + (c.absent || 0) + " inasistencias." })}>
-          {c.none ? "Faltan " + c.none + " por marcar" : "Guardar asistencia"}
-        </Button>
-      </div>
+      </>}
       {toastNode}
     </>
   );

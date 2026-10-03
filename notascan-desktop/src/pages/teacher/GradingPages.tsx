@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useShell } from "../../app/ShellContext";
 import { Button } from "../../components/atoms/Button";
 import { Icon } from "../../components/atoms/Icon";
@@ -14,9 +14,8 @@ import { StudentGradeCard, StudentGradeCardSkeleton } from "../../components/org
 import { Toast, type ToastData } from "../../components/organisms/Toast";
 import { PageShell } from "../../components/templates/PageShell";
 import { EVALUATIONS } from "../../data/academic";
-import { REVIEW_ROWS } from "../../data/reviewRows";
-import { confidenceLevel } from "../../lib/grade";
-import type { ReviewStatus } from "../../types/domain";
+import { ErrorState } from "../../components/organisms/QueryState";
+import { saveMessage, useReview, useSaveReview, type ReviewRow } from "../../services/teacher";
 
 /* 02 · Calificar: ¿qué detectó la IA y es correcto? Carga → procesamiento → revisión. */
 
@@ -68,26 +67,26 @@ export function UploadPage() {
   );
 }
 
-interface Row { key: string; index: number; student: { name: string; id: string; course: string }; detected: number; confidence: number; status: ReviewStatus; grade: number }
-
-const MOCK: Row[] = REVIEW_ROWS.map((r, i) => ({
-  ...r, key: r.student.id, index: i + 1, grade: r.detected,
-  status: r.status || (isNaN(r.detected) || confidenceLevel(r.confidence) === "low" ? "needs-review" : "pending"),
-}));
+type Row = ReviewRow;
 
 /** Plantilla de revisión: la IA detecta, el docente verifica cada tarjeta y solo entonces guarda. */
-export function GradeReviewDashboard({ loading = false }: { loading?: boolean }) {
+export function GradeReviewDashboard({ loading = false, evaluationId }: { loading?: boolean; evaluationId?: string }) {
   const { navigate: go } = useShell();
-  const [rows, setRows] = useState<Row[]>(() => MOCK.map((r) => ({ ...r })));
+  const query = useReview(evaluationId);
+  const saveMut = useSaveReview();
+  const ev = query.data?.evaluation ?? null;
+  const [rows, setRows] = useState<Row[]>(() => (query.data?.rows ?? []).map((r) => ({ ...r })));
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [dlg, setDlg] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
   const timers = useRef<number[]>([]);
+  const dirty = useRef(false);
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
+  // Al llegar datos nuevos de la base se recargan las tarjetas, salvo que haya cambios sin guardar.
+  useEffect(() => { if (query.data && !dirty.current) setRows(query.data.rows.map((r) => ({ ...r }))); }, [query.data]);
 
-  const update = (key: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  const update = (key: string, patch: Partial<Row>) => { dirty.current = true; setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r))); };
   const counts = rows.reduce<Record<string, number>>((a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
   const verified = counts.verified || 0, review = counts["needs-review"] || 0, pending = counts.pending || 0;
   const visible = rows.filter((r) => {
@@ -96,27 +95,46 @@ export function GradeReviewDashboard({ loading = false }: { loading?: boolean })
     const okS = !s || r.student.name.toLowerCase().indexOf(s) >= 0 || r.student.id.indexOf(s) >= 0;
     return okF && okS;
   });
+  const showToast = (t: ToastData) => {
+    setToast(t);
+    timers.current.push(window.setTimeout(() => setToast(null), 4200));
+  };
 
   function save() {
-    setSaving(true);
-    // Sin backend en esta fase: se simula el guardado.
-    timers.current.push(window.setTimeout(() => {
-      setSaving(false); setDlg(false);
-      setToast({ tone: "success", title: verified + " calificaciones guardadas", message: "Parcial 2 · Matemáticas quedó actualizado." });
-      timers.current.push(window.setTimeout(() => setToast(null), 4200));
-    }, 900));
+    // Solo viaja lo que cambió frente a la base (nota o estado).
+    const base = new Map((query.data?.rows ?? []).map((r) => [r.key, r]));
+    const same = (a: number, b: number) => (isNaN(a) && isNaN(b)) || a === b;
+    const changed = rows.filter((r) => { const b = base.get(r.key); return !b || b.status !== r.status || !same(b.grade, r.grade); });
+    saveMut.mutateAsync(changed).then(
+      () => {
+        dirty.current = false;
+        setDlg(false);
+        showToast({ tone: "success", title: verified + " calificaciones guardadas", message: (ev ? ev.name + " · " + ev.subject : "La evaluación") + " quedó actualizado." });
+      },
+      (e) => {
+        setDlg(false);
+        showToast({ tone: "error", title: "No pudimos guardar las calificaciones", message: saveMessage(e) + " Tus verificaciones siguen en pantalla." });
+      },
+    );
   }
+
+  const waiting = loading || (query.isPending && !query.data);
+  let body: ReactNode;
+  if (waiting) body = <div className="ns-grid">{[0, 1, 2].map((i) => <StudentGradeCardSkeleton key={i} />)}</div>;
+  else if (query.isError && !query.data) body = <ErrorState title="No pudimos cargar la revisión." onRetry={() => query.refetch()} />;
+  else if (!ev) body = <EmptyState title="No tienes evaluaciones en revisión." message="Cuando la IA termine de leer las fotografías de una evaluación, sus notas aparecerán aquí para que las verifiques." action={<Button variant="secondary" icon="upload" onClick={() => go("grade")}>Calificar una evaluación</Button>} />;
+  else if (!rows.length) body = <EmptyState title="Esta evaluación aún no tiene notas detectadas." message="Sube las fotografías para que la IA las lea." action={<Button variant="secondary" icon="upload" onClick={() => go("grade")}>Subir fotografías</Button>} />;
 
   return (
     <PageShell
       active="grade"
       overlay={<>
-        <ConfirmDialog open={dlg} count={verified} loading={saving} note={pending + review > 0 ? pending + review + " sin verificar quedarán pendientes" : null} onCancel={() => setDlg(false)} onConfirm={save} />
+        <ConfirmDialog open={dlg} count={verified} loading={saveMut.isPending} note={pending + review > 0 ? pending + review + " sin verificar quedarán pendientes" : null} onCancel={() => setDlg(false)} onConfirm={save} />
         {toast ? <div className="ns-toast-region"><Toast {...toast} onClose={() => setToast(null)} /></div> : null}
       </>}
     >
       <Header
-        eyebrow="Parcial 2 · Matemáticas · 7A" title="Revisión de calificaciones" highlight="calificaciones" sticker="IA + docente"
+        eyebrow={ev ? ev.name + " · " + ev.subject + " · " + ev.course : "Evaluación en revisión"} title="Revisión de calificaciones" highlight="calificaciones" sticker="IA + docente"
         description="La IA terminó el reconocimiento. Verifica las calificaciones antes de guardarlas."
         actions={<>
           <Button variant="secondary" icon="upload" onClick={() => go("grade")}>Subir más fotos</Button>
@@ -125,31 +143,35 @@ export function GradeReviewDashboard({ loading = false }: { loading?: boolean })
       />
       <Marquee />
       <ReviewStepper current={5} />
-      <ReviewSummary total={rows.length} verified={verified} pending={pending} review={review} evaluation="Parcial 2" />
-      <div>
-        <FiltersBar
-          search={search} onSearch={setSearch} count={visible.length + " de " + rows.length + " estudiantes"}
-          groups={[{
-            label: "Estado", value: filter, onChange: setFilter, options: [
-              { value: "all", label: "Todas", count: rows.length },
-              { value: "needs-review", label: "Requiere revisión", count: review },
-              { value: "pending", label: "Pendientes", count: pending },
-              { value: "verified", label: "Verificadas", count: verified }],
-          }]}
-        />
-      </div>
-      {loading
-        ? <div className="ns-grid">{[0, 1, 2].map((i) => <StudentGradeCardSkeleton key={i} />)}</div>
-        : visible.length
-          ? (
-            <div className="ns-grid">
-              {visible.map((r) => (
-                <StudentGradeCard key={r.key} index={r.index} student={r.student} detected={r.detected} confidence={r.confidence}
-                  status={r.status} onStatusChange={(s) => update(r.key, { status: s })} onGradeChange={(g) => update(r.key, { grade: g })} />
-              ))}
-            </div>
-          )
-          : <EmptyState title="No hay calificaciones con este filtro." message="Prueba con otro estado o limpia la búsqueda." action={<Button variant="secondary" onClick={() => { setFilter("all"); setSearch(""); }}>Ver todas</Button>} />}
+      {body && !loading ? body : (
+        <>
+          <ReviewSummary total={rows.length} verified={verified} pending={pending} review={review} evaluation={ev?.name} />
+          <div>
+            <FiltersBar
+              search={search} onSearch={setSearch} count={visible.length + " de " + rows.length + " estudiantes"}
+              groups={[{
+                label: "Estado", value: filter, onChange: setFilter, options: [
+                  { value: "all", label: "Todas", count: rows.length },
+                  { value: "needs-review", label: "Requiere revisión", count: review },
+                  { value: "pending", label: "Pendientes", count: pending },
+                  { value: "verified", label: "Verificadas", count: verified }],
+              }]}
+            />
+          </div>
+          {loading
+            ? body
+            : visible.length
+              ? (
+                <div className="ns-grid">
+                  {visible.map((r) => (
+                    <StudentGradeCard key={r.key} index={r.index} student={r.student} detected={r.detected} confidence={r.confidence}
+                      status={r.status} onStatusChange={(s) => update(r.key, { status: s })} onGradeChange={(g) => update(r.key, { grade: g })} />
+                  ))}
+                </div>
+              )
+              : <EmptyState title="No hay calificaciones con este filtro." message="Prueba con otro estado o limpia la búsqueda." action={<Button variant="secondary" onClick={() => { setFilter("all"); setSearch(""); }}>Ver todas</Button>} />}
+        </>
+      )}
     </PageShell>
   );
 }

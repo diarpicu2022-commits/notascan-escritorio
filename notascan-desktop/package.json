@@ -21,6 +21,7 @@
     "verify:auth": "node scripts/verify-auth.mjs",
     "verify:states": "node scripts/verify-states.mjs",
     "verify:data": "node scripts/verify-data.mjs",
+    "verify:teacher-data": "node scripts/verify-teacher-data.mjs",
     "db:seed": "tsx scripts/gen-seed.ts"
   },
   "dependencies": {

@@ -29,11 +29,23 @@ Lo primero que se lee al retomar.
     vista `student_overview` aplicada en Supabase, Estudiantes y Matrículas (Secretaría y Rectoría) con datos reales,
     estados, reintento, guardado optimista con reversión y aviso de dato viejo. `verify:db` 39/39, `verify:states` 9/9,
     `verify:data` 8/8, fidelidad Secretaría 102/102 y Rectoría 76/76.
-  - Siguientes: 6b.2 Docente (revisión de notas → grades, planilla, asistencia, observador, conceptos);
-    6b.3 Secretaría (matrícula, usuarios, estructura, malla, periodos, boletines, paz y salvo, ranking);
+  - **6b.1 aprobado (2026-10-03).**
+  - **6b.2 (hecho 2026-10-03, esperando visto bueno):** Docente con datos reales — revisión de notas, planilla,
+    asistencia, observador y conceptos, con estados. Migración `20261003090000_registro_docente.sql` (la base firma
+    quién verifica/registra/revisa). `verify:teacher` 123/123, `verify:states` 29/29, `verify:teacher-data` 19/19,
+    `verify:db` 51/51; regresión completa en verde. Tres decisiones esperan a Diego (anexo, Paso 6b.2).
+    - **Pendiente:** aplicar la migración `20261003090000` en Supabase (SQL Editor o `db push`). Sin ella, las
+      escrituras de la planilla y la revisión fallan por `verified_needs_teacher` (el cliente ya no manda la firma).
+    - Siguen con datos de demostración (no estaban en el plan de 6b): inicio, Estudiantes, Evaluaciones,
+      Recuperaciones, Reportes y Subir fotografías del Docente. Propuesta: 6b.2b.
+    - La cola sin conexión de la planilla sigue simulada (SyncContext). La asistencia usa una clase por día (hora 1).
+    - El encabezado del observador dice «El acudiente las ve en su aplicación.»: aún no es cierto (sin acceso del
+      acudiente en la base); se cumple cuando exista la app móvil con su política.
+  - Siguientes: 6b.3 Secretaría (matrícula, usuarios, estructura, malla, periodos, boletines, paz y salvo, ranking);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
-    `npm run build` antes de `verify:auth|data`.
+    `npm run build` antes de `verify:auth|data|teacher-data`.
+  - Hallazgo para 6b.4: `decide_grade_request` aprueba la solicitud pero no cambia la nota en `grades`.
 - Credencial de la base: la lectura de la contraseña desde el navegador fue bloqueada por permisos (bien). Diego la
   restablece en Settings → Database y aplica con `npx supabase db push --db-url "<cadena de conexión>"` o pega las migraciones en el SQL Editor.
 - Vistas de prueba: `#/dev/tokens`, `#/dev/card`, `#/dev/card-static`, `#/dev/components`. Verificación (tras `npm run build`): `verify:tokens`, `verify:card`, `verify:shell`, `verify:components`, `verify:teacher`, `verify:admin`, `verify:principal`.
