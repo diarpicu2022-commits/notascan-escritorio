@@ -242,7 +242,32 @@ try {
   const fnExec = await as(null, () => errorOf("select public.save_period('2026-p4', '2026-10-20', '2026-11-28', 'draft', '[]'::jsonb)"));
   check("Sin sesión no se llama save_period", fnExec?.includes("permission denied"), fnExec || "se llamó");
 
-  // ---------- 10. Fotos de exámenes ----------
+  // ---------- 10. Matrícula (6b.3b) ----------
+  const student = (doc, course = "7A", extra = {}) => JSON.stringify({ year: "2026", first_names: "Emilia", last_names: "Narváez Paz", doc_type: "Tarjeta de identidad", document: doc,
+    birth_date: "2014-03-12", course_id: course, status: "active", guardian_name: "Rosa Paz", guardian_rel: "Madre", guardian_phone: "3120000000", allergies: "Penicilina", ...extra });
+  const maxBefore = (await one("select max(id::bigint)::text m from public.students where id ~ '^2026[0-9]{4}$'")).m;
+  const enrolled = await as(patricia, () => one("select public.enroll_student($1::jsonb) id", [student("TI 1099000001")]));
+  const parts = await one(`select (select count(*)::int from public.guardians where student_id = $1) g, (select allergies from public.student_medical where student_id = $1) a,
+    (select status::text from public.students where id = $1) s`, [enrolled.id]);
+  check("Matrícula: registra estudiante, acudiente y datos médicos con el código siguiente del año",
+    enrolled.id === String(BigInt(maxBefore) + 1n) && parts.g === 1 && parts.a === "Penicilina" && parts.s === "active", JSON.stringify({ id: enrolled.id, maxBefore, ...parts }));
+  const dupDoc = await as(patricia, () => errorOf("select public.enroll_student($1::jsonb)", [student("TI 1099000001")]));
+  check("Matrícula: un documento repetido se rechaza con un mensaje claro", dupDoc?.includes("Ya existe un estudiante con el documento TI 1099000001"), dupDoc || "se registró");
+  const noCourse = await as(patricia, () => errorOf("select public.enroll_student($1::jsonb)", [student("TI 1099000002", "6C")]));
+  check("Matrícula: un curso que no existe se rechaza", noCourse?.includes("El curso 6C no existe"), noCourse || "se registró");
+  const teacherEnroll = await as(ana, () => errorOf("select public.enroll_student($1::jsonb)", [student("TI 1099000003")]));
+  check("Matrícula: un docente no matricula", teacherEnroll?.includes("Solo Secretaría"), teacherEnroll || "matriculó");
+  const countBefore = (await one("select count(*)::int n from public.students")).n;
+  const batchBad = await as(patricia, () => errorOf("select public.enroll_students($1::jsonb)", ["[" + student("TI 1099000010") + "," + student("TI 1099000001") + "]"]));
+  const countAfterBad = (await one("select count(*)::int n from public.students")).n;
+  check("Importación: si una fila falla no entra ninguna (todo o nada)", batchBad?.includes("Ya existe") && countAfterBad === countBefore, `${batchBad} · ${countBefore} → ${countAfterBad}`);
+  const batchOk = await as(patricia, () => one("select public.enroll_students($1::jsonb) n", ["[" + student("TI 1099000011") + "," + student("TI 1099000012", "7B", { allergies: "" }) + "]"]));
+  const noMed = await one("select count(*)::int n from public.student_medical m join public.students s on s.id = m.student_id where s.document = 'TI 1099000012'");
+  check("Importación: entran todas las filas válidas y sin datos médicos no se crea ficha médica", batchOk.n === 2 && noMed.n === 0, JSON.stringify({ ...batchOk, med: noMed.n }));
+  const anonEnroll = await as(null, () => errorOf("select public.enroll_student('{}'::jsonb)"));
+  check("Sin sesión no se llama enroll_student", anonEnroll?.includes("permission denied"), anonEnroll || "se llamó");
+
+  // ---------- 11. Fotos de exámenes ----------
   const ownPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${ana}/parcial2/foto1.jpg')`));
   const otherPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${carlos}/parcial2/foto1.jpg')`));
   check("El docente sube fotos solo a su carpeta del bucket privado", !ownPhoto && otherPhoto?.includes("row-level security"), `propia: ${ownPhoto || "ok"} · ajena: ${otherPhoto || "se subió"}`);

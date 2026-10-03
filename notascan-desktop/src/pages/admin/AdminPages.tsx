@@ -20,56 +20,83 @@ import { PageShell } from "../../components/templates/PageShell";
 import { useToast } from "../../components/organisms/Toast";
 import { DEMO } from "../../lib/supabase";
 import { adminMessage, useCreatePeriod, usePeriods } from "../../services/admin";
-import { ALL_STUDENTS, type StudentRecord } from "../../data/students";
+import type { StudentRecord } from "../../data/students";
+import { useAuth } from "../../app/AuthContext";
+import { ErrorState, LoadingBlocks } from "../../components/organisms/QueryState";
+import { useAdminHome } from "../../services/enrollment";
+import { useStudents } from "../../services/students";
 
 /* Secretaría: densidad alta, tablas, formularios por secciones, drawers y acciones en lote. */
 
+const LONG_MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
 export function AdminDashboardPage() {
   const { navigate: go } = useShell();
-  const active = ALL_STUDENTS.filter((s) => s.status === "active").length;
-  const pend = ALL_STUDENTS.filter((s) => s.status === "pending");
-  const blocked = ALL_STUDENTS.filter((s) => !(s.library && s.fees && s.documents)).length;
-  const tasks: Array<[string, string, IconName, string]> = [
+  const me = useAuth().profile;
+  const sq = useStudents();
+  const hq = useAdminHome(me?.fullName ?? "");
+  const all = sq.data ?? [];
+  const h = hq.data;
+  const active = all.filter((s) => s.status === "active").length;
+  const pend = all.filter((s) => s.status === "pending");
+  // Bloqueados: en modo normal solo cuenta a quien sigue matriculado (en demostración, la cifra del sistema).
+  const blocked = all.filter((s) => (DEMO || s.status === "active" || s.status === "pending") && !(s.library && s.fees && s.documents)).length;
+  // En demostración, las tareas del sistema; en modo normal, calculadas de la base.
+  const enabled = all.filter((s) => s.status === "active" && s.library && s.fees && s.documents).length;
+  const tasks: Array<[string, string, IconName, string]> = DEMO ? [
     ["Cerrar Periodo 3", "Cierre programado el 15 de octubre", "calendar", "periods"],
     ["Generar boletines", "432 boletines del Periodo 2 listos", "book", "reportcards"],
     [blocked + " paz y salvos bloqueados", "Revisar documentos y pensiones", "shield", "clearances"],
     ["Asignar docente a 8B · Inglés", "La malla curricular tiene un hueco", "link", "curriculum"],
-  ];
+  ] : ([
+    h?.openPeriod ? ["Cerrar " + h.openPeriod.name, "Cierre programado el " + Number(h.openPeriod.close.slice(8)) + " de " + LONG_MONTHS[Number(h.openPeriod.close.slice(5, 7)) - 1], "calendar", "periods"] : ["Abrir un periodo", "No hay periodo abierto: los docentes no ven sus cursos", "calendar", "periods"],
+    h?.lastClosed ? ["Generar boletines", Math.max(0, enabled - h.generatedLastClosed) + " boletines del " + h.lastClosed + " por generar", "book", "reportcards"] : null,
+    [blocked + " paz y salvos bloqueados", blocked ? "Revisar documentos y pensiones" : "Todos los estudiantes están al día", "shield", "clearances"],
+    h?.gaps.length ? ["Asignar docente a " + h.gaps[0].course + " · " + h.gaps[0].subject, h.gaps.length === 1 ? "La malla curricular tiene un hueco" : "La malla curricular tiene " + h.gaps.length + " huecos", "link", "curriculum"] : null,
+  ].filter(Boolean) as Array<[string, string, IconName, string]>);
+  const greet = new Date().getHours() < 12 ? "Buenos días" : new Date().getHours() < 19 ? "Buenas tardes" : "Buenas noches";
+  const name = DEMO ? "Patricia" : h?.name ?? "";
+  const loading = (sq.isPending && !sq.data) || (hq.isPending && !hq.data);
+  const failed = (sq.isError && !sq.data) || (hq.isError && !hq.data);
   return (
     <PageShell active="dashboard">
-      <Header eyebrow="Secretaría académica · Año lectivo 2026" title="Buenos días, Patricia" highlight="Patricia" description="Esto es lo que necesita gestión hoy."
+      <Header eyebrow={"Secretaría académica · Año lectivo " + (DEMO ? 2026 : new Date().getFullYear())} title={(DEMO ? "Buenos días" : greet) + ", " + name} highlight={name} description="Esto es lo que necesita gestión hoy."
         actions={<>
-          <Button variant="secondary" icon="upload" onClick={() => go("enrollment")}>Importar estudiantes</Button>
+          <Button variant="secondary" icon="upload" onClick={() => go("enrollment", { tab: "import" })}>Importar estudiantes</Button>
           <Button icon="plus" size="lg" onClick={() => go("enrollment")}>Registrar estudiante</Button>
         </>} />
-      <ReviewSummary total={ALL_STUDENTS.length} verified={active} pending={pend.length} review={blocked} evaluation="Matrícula 2026"
-        labels={["matrículas activas", "matrículas pendientes", "paz y salvos bloqueados"]} foot={ALL_STUDENTS.length - active + " registros requieren gestión"} />
-      <div className="ns-admin-cols">
-        <Block label="Matrículas pendientes">
-          <BlockTitle action={<Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go("students")}>Ver estudiantes</Button>}>Matrículas pendientes</BlockTitle>
-          <DataGrid<StudentRecord>
-            caption="Matrículas pendientes" rows={pend} paginate={false} density="compact"
-            columns={[
-              { key: "name", label: "Estudiante", header: true, render: (r) => <UserProfile name={r.name} role={r.document} /> },
-              { key: "course", label: "Curso" }, { key: "guardian", label: "Acudiente" },
-              { key: "status", label: "Estado", render: (r) => <EnrollBadge status={r.status} /> },
-            ]}
-            rowActions={() => <Button size="sm" variant="secondary" onClick={() => go("students")}>Completar</Button>}
-          />
-        </Block>
-        <Block tone="gold" label="Tareas del periodo">
-          <BlockTitle>Tareas del periodo</BlockTitle>
-          <ul className="ns-list">
-            {tasks.map((t) => (
-              <li key={t[0]} className="ns-list-item">
-                <span className="ns-file-icon" aria-hidden><Icon name={t[2]} size={18} /></span>
-                <div className="ns-list-main"><strong>{t[0]}</strong><span className="ns-caption">{t[1]}</span></div>
-                <IconAction icon="arrow" label={"Ir a " + t[0]} onClick={() => go(t[3])} />
-              </li>
-            ))}
-          </ul>
-        </Block>
-      </div>
+      {loading ? <LoadingBlocks label="Cargando el resumen de Secretaría" /> : failed ? <ErrorState title="No pudimos cargar el resumen." onRetry={() => { sq.refetch(); hq.refetch(); }} /> : (
+        <>
+          <ReviewSummary total={all.length} verified={active} pending={pend.length} review={blocked} evaluation={"Matrícula " + (DEMO ? 2026 : new Date().getFullYear())}
+            labels={["matrículas activas", "matrículas pendientes", "paz y salvos bloqueados"]} foot={all.length - active + " registros requieren gestión"} />
+          <div className="ns-admin-cols">
+            <Block label="Matrículas pendientes">
+              <BlockTitle action={<Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go("students")}>Ver estudiantes</Button>}>Matrículas pendientes</BlockTitle>
+              <DataGrid<StudentRecord>
+                caption="Matrículas pendientes" rows={pend} paginate={false} density="compact" emptyTitle="No hay matrículas pendientes." emptyIcon="check"
+                columns={[
+                  { key: "name", label: "Estudiante", header: true, render: (r) => <UserProfile name={r.name} role={r.document} /> },
+                  { key: "course", label: "Curso" }, { key: "guardian", label: "Acudiente" },
+                  { key: "status", label: "Estado", render: (r) => <EnrollBadge status={r.status} /> },
+                ]}
+                rowActions={() => <Button size="sm" variant="secondary" onClick={() => go("students")}>Completar</Button>}
+              />
+            </Block>
+            <Block tone="gold" label="Tareas del periodo">
+              <BlockTitle>Tareas del periodo</BlockTitle>
+              <ul className="ns-list">
+                {tasks.map((t) => (
+                  <li key={t[0]} className="ns-list-item">
+                    <span className="ns-file-icon" aria-hidden><Icon name={t[2]} size={18} /></span>
+                    <div className="ns-list-main"><strong>{t[0]}</strong><span className="ns-caption">{t[1]}</span></div>
+                    <IconAction icon="arrow" label={"Ir a " + t[0]} onClick={() => go(t[3])} />
+                  </li>
+                ))}
+              </ul>
+            </Block>
+          </div>
+        </>
+      )}
     </PageShell>
   );
 }

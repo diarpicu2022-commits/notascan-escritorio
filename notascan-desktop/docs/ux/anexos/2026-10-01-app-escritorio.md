@@ -485,3 +485,45 @@ responden vacío a la API que no simulan.
 Migración de 6b.3a aplicada en el proyecto real el 2026-10-03 (SQL Editor, una transacción, contenido cotejado con el
 repositorio). Comprobación: disparador `assignments_keep_grades` activo, índice `academic_periods_one_open`,
 `block_assignment_delete` sin permiso de ejecución, `save_period` y `touch_last_seen` solo para authenticated.
+
+### Paso 6b.3b · Secretaría: matrícula, paz y salvo, ranking e inicio (2026-10-03)
+
+Diego aprueba 6b.3a y pide 6b.3b. **Boletines queda fuera de esta entrega** a propósito: generar el PDF es la misma
+decisión pendiente que los formatos de Reportes, y el boletín del sistema muestra un mensaje del director y un
+puesto en el curso que hoy son texto generado, no datos (ver «Decisiones»).
+
+- **Registro de matrícula**: grado y curso salen de la estructura de la base. Guardar es una sola operación
+  (`enroll_student`): estudiante, acudiente principal y ficha médica (solo si se llenó algún dato médico); el código
+  estudiantil lo genera la base (año + consecutivo, con candado para que no se repita). El documento se valida (8 a
+  12 dígitos) y se guarda con su tipo («TI 1084512345»). La confirmación muestra el código asignado.
+- **Importación masiva**: lee CSV («;» o «,», comillas, BOM de Excel). Valida cada fila contra la base: nombres,
+  documento (vacío o corto), curso inexistente, fecha imposible, ya matriculado, repetida en el archivo y sin
+  teléfono (advertencia). Corregir y omitir como en el sistema. Confirmar importa **todo o nada**
+  (`enroll_students`). «Descargar plantilla» e «informe» bajan CSV reales. En modo normal se quita «Usar archivo de
+  ejemplo» (importaría estudiantes inventados) y la zona de carga deja de prometer Excel.
+- **Paz y salvo**: interruptores sobre la base con guardado optimista y reversión; acción en lote de documentos.
+- **Ranking**: solo notas verificadas; por periodo (el abierto por defecto) o acumulado anual con el peso de cada
+  periodo; materias aprobadas sobre las materias con nota («1 / 1»), no sobre 6 fijas. Sin notas, no se ubica a nadie.
+- **Inicio**: cifras de la matrícula, pendientes reales y tareas calculadas: cierre del periodo abierto (o «Abrir un
+  periodo» si no hay), boletines por generar del último periodo cerrado, paz y salvos bloqueados y el primer hueco
+  de la malla. «Importar estudiantes» abre la pestaña de importación (la misma corrección que en Estudiantes).
+
+**Decisiones que esperan visto bueno de Diego**:
+1. Importación solo CSV por ahora. Leer .xlsx necesita una librería (propuesta: `read-excel-file`, MIT); hasta
+   entonces el aviso explica cómo guardar como CSV desde Excel.
+2. Boletines (6b.3c): cómo se produce el PDF (impresión del sistema a PDF o librería) — misma decisión que Reportes —
+   y qué hacer con el **mensaje del director** y el **puesto en el curso**: el primero hoy lo redacta una regla, no una
+   persona (propuesta: campo que escribe el director de grupo, con la IA como borrador, como los conceptos); el
+   segundo se puede calcular de las notas.
+3. El ranking exporta CSV con el botón «Exportar a Excel» (el aviso ahora dice «archivo CSV»).
+
+Pendiente legal (Ley 1581): la matrícula guarda datos de menores y de salud **sin registrar la autorización del
+acudiente**. Va en el paso de privacidad, antes de usar la app con datos reales.
+
+Verificación: `verify:admin` 102/102 (demo), `verify:states` 73/73 (3 pantallas más), `verify:admin-data` 29/29 (11
+nuevas: registro con código de la base, CSV con siete casos de validación, importación todo o nada, paz y salvo,
+ranking, tareas del inicio), `verify:db` 77/77 (código consecutivo, documento repetido, curso inexistente, docente sin
+permiso, lote todo o nada, sin ficha médica vacía).
+Regresión: tokens 26/26, card 51/51, shell 62/62, components 121/121, principal 76/76, teacher 123/123, auth 20/20,
+data 8/8, teacher-data 29/29. En la primera corrida `verify:teacher` se cortó con `ERR_NETWORK_IO_SUSPENDED` (el equipo
+suspendió la red durante la prueba); repetida sola: 123/123.

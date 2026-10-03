@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatGrade } from "../../../lib/grade";
-import { GRADE_NAME, SUBJECTS, subjectGrades } from "../../../data/academic";
+import { GRADE_NAME } from "../../../data/academic";
 import { PERIODS, exportCSV } from "../../../data/admin";
 import { ALL_STUDENTS, COURSES, type StudentRecord } from "../../../data/students";
+import { DEMO } from "../../../lib/supabase";
+import { rankRows, saveClearance, useAcademic, type ClearKey, type RankRow } from "../../../services/enrollment";
+import { useStudents } from "../../../services/students";
 import { Avatar } from "../../atoms/Avatar";
 import { Badge, type BadgeTone } from "../../atoms/Badge";
 import { Button } from "../../atoms/Button";
@@ -84,30 +88,47 @@ export function ReportCardManager() {
 
 /* ---------- Paz y Salvos ---------- */
 
-type ClearKey = "library" | "fees" | "documents";
-
+/** Biblioteca, pensiones y documentos: si falta alguno, reportes y boletines quedan bloqueados para el acudiente. */
 export function PazYSalvosTable() {
-  const [rows, setRows] = useState<StudentRecord[]>(() => ALL_STUDENTS.filter((s) => s.status === "active" || s.status === "pending"));
+  const q = useStudents();
+  const qc = useQueryClient();
+  const [rows, setRows] = useState<StudentRecord[]>(() => (q.data ?? []).filter((s) => s.status === "active" || s.status === "pending"));
+  const lastData = useRef(q.data);
+  useEffect(() => { if (lastData.current !== q.data) { lastData.current = q.data; setRows((q.data ?? []).filter((s) => s.status === "active" || s.status === "pending")); } }, [q.data]);
   const [course, setCourse] = useState("7A");
   const [only, setOnly] = useState("all");
   const [showToast, toastNode] = useToast();
-  const upd = (id: string, k: ClearKey, v: boolean) => setRows(rows.map((r) => (r.id !== id ? r : { ...r, [k]: v })));
+  const courses = DEMO ? COURSES : [...new Set(rows.map((r) => r.course))].filter(Boolean).sort();
+  // Guardado optimista: el interruptor cambia al instante y vuelve atrás si la base lo rechaza.
+  function change(ids: string[], k: ClearKey, v: boolean, done?: () => void) {
+    const before = rows;
+    setRows(rows.map((r) => (ids.includes(r.id) ? { ...r, [k]: v } : r)));
+    saveClearance(ids, k, v).then(() => {
+      // Las demás pantallas de estudiantes releerán al abrirse (aquí ya se ve el cambio).
+      if (!DEMO) qc.invalidateQueries({ queryKey: ["students"], refetchType: "none" });
+      done?.();
+    }, () => {
+      setRows(before);
+      showToast({ tone: "error", title: "No pudimos guardar el paz y salvo", message: "Revisa tu conexión e inténtalo de nuevo. No se modificó ningún registro." });
+    });
+  }
   const list = rows.filter((r) => { const ok = r.library && r.fees && r.documents; return (course === "all" || r.course === course) && (only === "all" || (only === "blocked" ? !ok : ok)); });
-  const blocked = rows.filter((r) => r.course === course && !(r.library && r.fees && r.documents)).length;
-  const sw = (r: StudentRecord, k: ClearKey, label: string) => <Switch ariaLabel={label + " de " + r.name} checked={r[k]} onChange={(v) => upd(r.id, k, v)} onText="Al día" offText="Pendiente" />;
+  const blocked = rows.filter((r) => (course === "all" || r.course === course) && !(r.library && r.fees && r.documents)).length;
+  const sw = (r: StudentRecord, k: ClearKey, label: string) => <Switch ariaLabel={label + " de " + r.name} checked={r[k]} onChange={(v) => change([r.id], k, v)} onText="Al día" offText="Pendiente" />;
   return (
     <>
       <DataGrid<StudentRecord>
         caption="Paz y salvos por estudiante" rows={list} selectable pageSize={12} density="compact" resetKey={course + only}
+        loading={q.isPending && !q.data} error={q.isError && !q.data ? "No pudimos cargar los paz y salvos." : undefined} onRetry={() => q.refetch()}
+        emptyTitle={rows.length ? "No hay estudiantes con este filtro." : "No hay estudiantes activos."} emptyIcon="shield"
         toolbar={<>
-          <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={[{ value: "all", label: "Todos" }, ...COURSES.map((c) => ({ value: c, label: c }))]} />
+          <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={[{ value: "all", label: "Todos" }, ...courses.map((c) => ({ value: c, label: c }))]} />
           <FilterGroup label="Acceso" value={only} onChange={setOnly} options={[{ value: "all", label: "Todos" }, { value: "blocked", label: "Bloqueado", count: blocked }, { value: "ok", label: "Habilitado" }]} />
         </>}
         bulkActions={(sel, clear) => [
           <Button key="d" size="sm" variant="secondary" icon="check" onClick={() => {
-            setRows(rows.map((r) => (sel.some((x) => x.id === r.id) ? { ...r, documents: true } : r)));
+            change(sel.map((x) => x.id), "documents", true, () => showToast({ tone: "success", title: "Documentos al día", message: sel.length + " estudiantes actualizados." }));
             clear();
-            showToast({ tone: "success", title: "Documentos al día", message: sel.length + " estudiantes actualizados." });
           }}>Marcar documentos al día</Button>,
         ]}
         columns={[
@@ -126,32 +147,38 @@ export function PazYSalvosTable() {
 
 /* ---------- Ranking académico ---------- */
 
-type RankRow = StudentRecord & { score: number; pos: number };
-
+/** Ordena por promedio de notas verificadas; sin notas en el filtro, el estudiante no se ubica. */
 export function RankingTable() {
+  const q = useAcademic();
+  const d = q.data;
   const [grade, setGrade] = useState("all");
   const [course, setCourse] = useState("all");
   const [period, setPeriod] = useState("Periodo 3");
   const [subject, setSubject] = useState("all");
   const [showToast, toastNode] = useToast();
-  const list: RankRow[] = ALL_STUDENTS.filter((s) => s.status === "active" && (grade === "all" || s.grade === grade) && (course === "all" || s.course === course))
-    .map((s) => ({ ...s, score: subject === "all" ? s.avg : subjectGrades(s).filter((x) => x.subject === subject)[0].grade, pos: 0 }))
-    .sort((a, b) => b.score - a.score)
-    .map((s, i) => ({ ...s, pos: i + 1 }));
+  // En modo normal el periodo por defecto es el abierto.
+  useEffect(() => { if (!DEMO && d) { const open = d.periods.find((p) => p.status === "open") ?? d.periods[d.periods.length - 1]; if (open) setPeriod(open.name); } }, [d]);
+  const list: RankRow[] = d ? rankRows(d, { period, subject, grade, course }) : [];
+  const grades = DEMO ? [["6", "Sexto"], ["7", "Séptimo"], ["8", "Octavo"]] : (d?.courses ?? []).filter((c, i, all) => all.findIndex((x) => x.gradeId === c.gradeId) === i).map((c) => [c.gradeId, c.gradeName]);
+  const courseIds = DEMO ? COURSES : (d?.courses ?? []).map((c) => c.id);
+  const gradeOfCourse = (c: string) => (DEMO ? c.charAt(0) : d?.courses.find((x) => x.id === c)?.gradeId ?? "");
   const ST = (s: RankRow): [string, BadgeTone, IconName] => (s.score >= 4.6 ? ["Destacado", "high", "star"] : s.score >= 3 ? ["Aprobado", "verified", "check"] : ["En riesgo", "review", "warning"]);
+  const year = String(new Date().getFullYear());
   return (
     <>
       <DataGrid<RankRow>
         caption="Ranking académico" rows={list} pageSize={15} densityToggle density="compact" initialSort={{ key: "pos", dir: "asc" }} resetKey={grade + course + subject + period}
+        loading={q.isPending && !d} error={q.isError && !d ? "No pudimos cargar el ranking." : undefined} onRetry={() => q.refetch()}
+        emptyTitle="Aún no hay notas verificadas para este filtro." emptyMessage="El ranking usa solo notas que un docente verificó." emptyIcon="trophy"
         toolbar={<>
-          <FilterGroup as="select" label="Año" value="2026" options={[{ value: "2026", label: "2026" }, { value: "2025", label: "2025" }]} />
-          <FilterGroup as="select" label="Periodo" value={period} onChange={setPeriod} options={[...PERIODS.map((p) => ({ value: p, label: p })), { value: "Año", label: "Acumulado anual" }]} />
-          <FilterGroup as="select" label="Grado" value={grade} onChange={(v) => { setGrade(v); setCourse("all"); }} options={[{ value: "all", label: "Todos" }, { value: "6", label: "Sexto" }, { value: "7", label: "Séptimo" }, { value: "8", label: "Octavo" }]} />
-          <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={[{ value: "all", label: "Todos" }, ...COURSES.filter((c) => grade === "all" || c.charAt(0) === grade).map((c) => ({ value: c, label: c }))]} />
-          <FilterGroup as="select" label="Materia" value={subject} onChange={setSubject} options={[{ value: "all", label: "Todas" }, ...SUBJECTS.map((s) => ({ value: s.name, label: s.name }))]} />
-          <Button size="sm" variant="secondary" icon="download" onClick={() => {
-            exportCSV("ranking_" + period.replace(" ", "_") + ".csv", ["Posición", "Estudiante", "Curso", "Promedio", "Materias aprobadas", "Estado"], list.map((s) => [s.pos, s.name, s.course, formatGrade(s.score), s.subjectsPassed + "/6", ST(s)[0]]));
-            showToast({ tone: "success", title: "Ranking exportado a Excel", message: list.length + " estudiantes · " + period });
+          <FilterGroup as="select" label="Año" value={DEMO ? "2026" : year} options={DEMO ? [{ value: "2026", label: "2026" }, { value: "2025", label: "2025" }] : [{ value: year, label: year }]} />
+          <FilterGroup as="select" label="Periodo" value={period} onChange={setPeriod} options={[...(d?.periods ?? []).map((p) => ({ value: p.name, label: p.name })), { value: "Año", label: "Acumulado anual" }]} />
+          <FilterGroup as="select" label="Grado" value={grade} onChange={(v) => { setGrade(v); setCourse("all"); }} options={[{ value: "all", label: "Todos" }, ...grades.map(([value, label]) => ({ value, label }))]} />
+          <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={[{ value: "all", label: "Todos" }, ...courseIds.filter((c) => grade === "all" || gradeOfCourse(c) === grade).map((c) => ({ value: c, label: c }))]} />
+          <FilterGroup as="select" label="Materia" value={subject} onChange={setSubject} options={[{ value: "all", label: "Todas" }, ...(d?.subjects ?? []).map((s) => ({ value: s, label: s }))]} />
+          <Button size="sm" variant="secondary" icon="download" disabled={!list.length} onClick={() => {
+            exportCSV("ranking_" + period.replace(" ", "_") + ".csv", ["Posición", "Estudiante", "Curso", "Promedio", "Materias aprobadas", "Estado"], list.map((s) => [s.pos, s.name, s.course, formatGrade(s.score), s.subjectsPassed + "/" + s.subjectsTotal, ST(s)[0]]));
+            showToast({ tone: "success", title: "Ranking exportado a Excel", message: list.length + " estudiantes · " + (period === "Año" ? "Acumulado anual" : period) + " · archivo CSV" });
           }}>Exportar a Excel</Button>
         </>}
         columns={[
@@ -159,7 +186,7 @@ export function RankingTable() {
           { key: "name", label: "Estudiante", sortable: true, header: true, render: (s) => <div className="ns-cell-link ns-cell-link--static"><Avatar name={s.name} size="sm" />{s.name}</div> },
           { key: "course", label: "Curso", sortable: true, render: (s) => <span className="ns-course-tag">{s.course}</span> },
           { key: "score", label: subject === "all" ? "Promedio" : "Nota en " + subject, numeric: true, sortable: true, render: (s) => <span className="ns-table-grade">{formatGrade(s.score)}</span> },
-          { key: "subjectsPassed", label: "Materias aprobadas", numeric: true, sortable: true, render: (s) => s.subjectsPassed + " / 6" },
+          { key: "subjectsPassed", label: "Materias aprobadas", numeric: true, sortable: true, render: (s) => s.subjectsPassed + " / " + s.subjectsTotal },
           { key: "state", label: "Estado", sortValue: (s) => s.score, sortable: true, render: (s) => { const x = ST(s); return <Badge tone={x[1]} icon={x[2]}>{x[0]}</Badge>; } },
         ]}
       />

@@ -31,7 +31,13 @@ async function mockApi(page) {
   await page.route("**/auth/v1/token**", (r) => r.fulfill({ json: { access_token: jwt, token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: "r", user } }));
   await page.route("**/auth/v1/user**", (r) => r.fulfill({ json: user }));
   await page.route("**/auth/v1/recover**", (r) => { record(r); r.fulfill({ json: {} }); });
-  await page.route("**/rest/v1/rpc/**", (r) => { record(r); r.fulfill({ status: 204, body: "" }); });
+  await page.route("**/rest/v1/rpc/**", (r) => {
+    record(r);
+    const u = r.request().url();
+    if (u.includes("enroll_students")) return r.fulfill({ json: r.request().postDataJSON().p.length });
+    if (u.includes("enroll_student")) return r.fulfill({ json: "20261211" });
+    return r.fulfill({ status: 204, body: "" });
+  });
   await page.route("**/rest/v1/profiles**", (r) => {
     if (r.request().method() !== "GET") { record(r); return r.fulfill({ status: 204, body: "" }); }
     if (decodeURIComponent(r.request().url()).includes("last_seen_at")) return r.fulfill({ json: [
@@ -48,7 +54,18 @@ async function mockApi(page) {
   await table("grade_levels", [{ id: "6", name: "Sexto", level: "Básica secundaria", status: "active" }, { id: "9", name: "Noveno", level: "Básica secundaria", status: "draft" }]);
   await table("courses", [{ id: "6A", grade_level_id: "6", name: "6A", director_email: "ana.lucia@losandes.edu.co", capacity: 35, status: "active" }]);
   await table("subjects", [{ id: "fis", name: "Física", code: "FIS-02", category: "Ciencias exactas", status: "active" }, { id: "mat", name: "Matemáticas", code: "MAT-01", category: "Ciencias exactas", status: "active" }]);
-  await table("students", [{ course_id: "6A", status: "active" }, { course_id: "6A", status: "retired" }]);
+  await table("students", (u) => {
+    if (u.includes("document=in.")) return [{ document: "TI 1084000099" }]; // ya matriculado: duplicado en la importación
+    if (u.includes("full_name")) return [{ id: "20261001", full_name: "Ana Bravo Paz", course_id: "6A" }, { id: "20261002", full_name: "Luis Mora Ortiz", course_id: "6A" }];
+    return [{ course_id: "6A", status: "active" }, { course_id: "6A", status: "retired" }];
+  });
+  const OVERVIEW = [
+    { id: "20261001", first_names: "Ana", last_names: "Bravo Paz", full_name: "Ana Bravo Paz", doc_type: "Tarjeta de identidad", document: "TI 1084000001", course_id: "6A", grade_level_id: "6", status: "active", enrolled_on: "2026-01-12", library_ok: true, fees_ok: true, documents_ok: true, guardian_name: "Rosa Paz", guardian_rel: "Madre", guardian_phone: "3120000000", avg_grade: 4.5, attendance_pct: 98 },
+    { id: "20261002", first_names: "Luis", last_names: "Mora Ortiz", full_name: "Luis Mora Ortiz", doc_type: "Tarjeta de identidad", document: "TI 1084000002", course_id: "6A", grade_level_id: "6", status: "pending", enrolled_on: "2026-01-19", library_ok: true, fees_ok: false, documents_ok: true, guardian_name: "Jorge Mora", guardian_rel: "Padre", guardian_phone: "3157654321", avg_grade: 2.5, attendance_pct: 90 },
+  ];
+  await table("student_overview", OVERVIEW);
+  await table("evaluations", [{ id: 1, assignment_id: 5, weight: 50 }]);
+  await table("grades", [{ evaluation_id: 1, student_id: "20261001", value: 4.5 }, { evaluation_id: 1, student_id: "20261002", value: 2.5 }]);
   await table("staff_directory", (u) => (u.includes("role=eq.teacher") ? STAFF.filter((s) => s.role === "teacher") : STAFF));
   await table("guardians", [{ id: 1, full_name: "Gloria López", email: null }]);
   await table("academic_periods", PERIODS);
@@ -159,6 +176,91 @@ try {
   await page.locator("[role=alertdialog] .ns-dialog-title", { hasText: "Solicitud enviada" }).waitFor({ timeout: 8000 });
   report.check("Usuarios: restablecer pide a Supabase el enlace para ese correo", last("POST", "x") === undefined && writes.some((w) => w.url.includes("/auth/v1/recover") && w.body.email === "patricia@losandes.edu.co"));
   await page.screenshot({ path: join(OUT, "paso6b3a-usuarios.png") });
+
+  // ---------- 5. Inicio de Secretaría (6b.3b) ----------
+  await page.goto(URL_BASE + "#/admin/dashboard");
+  await page.locator(".ns-list-item").first().waitFor({ timeout: 10000 });
+  const tasks = await page.locator(".ns-block--gold .ns-list-item").allTextContents();
+  report.check("Inicio: tareas calculadas (cierre del periodo abierto, paz y salvos, hueco de la malla)",
+    tasks.some((t) => t.includes("Cerrar Periodo 3") && t.includes("Cierre programado el 15 de octubre")) && tasks.some((t) => t.includes("1 paz y salvos bloqueados")) && tasks.some((t) => t.includes("Asignar docente a 6A · Física")), tasks.join(" / "));
+  report.check("Inicio: matrículas pendientes de la base", (await page.locator(".ns-admin-cols tbody tr").first().textContent()).includes("Luis Mora Ortiz"));
+
+  // ---------- 6. Matrícula: registro (6b.3b) ----------
+  await page.goto(URL_BASE + "#/admin/enrollment");
+  await page.getByRole("textbox", { name: /^Nombres/ }).fill("Emilia");
+  await page.getByRole("textbox", { name: /^Apellidos/ }).fill("Narváez Paz");
+  await page.getByRole("textbox", { name: /^Número de documento/ }).fill("10845");
+  await page.getByLabel(/^Fecha de nacimiento/).fill("2014-03-12");
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  report.check("Registro: documento corto avisa «entre 8 y 12 dígitos»", (await page.locator(".ns-field-error").textContent()) === "Escribe solo números, entre 8 y 12 dígitos.");
+  await page.getByRole("textbox", { name: /^Número de documento/ }).fill("1084512345");
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  await page.getByRole("textbox", { name: /^Nombre completo/ }).fill("Rosa Paz");
+  await page.getByLabel(/^Parentesco/).selectOption("Madre");
+  await page.getByRole("textbox", { name: /^Teléfono/ }).fill("3120000000");
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  report.check("Registro: grado y curso salen de la estructura de la base", (await page.getByLabel(/^Curso/).inputValue()) === "6A" && (await page.getByLabel(/^Grado/).inputValue()) === "6");
+  await page.getByRole("button", { name: "Guardar matrícula" }).click();
+  await page.locator(".ns-reg-done h2").waitFor({ timeout: 8000 });
+  const en = writes.filter((w) => w.url.includes("/rpc/enroll_student")).pop();
+  report.check("Registro: una sola llamada con documento normalizado, curso y acudiente; muestra el código de la base",
+    en?.body.p.document === "TI 1084512345" && en.body.p.course_id === "6A" && en.body.p.guardian_name === "Rosa Paz" && en.body.p.status === "active" && (await page.locator(".ns-reg-done p").textContent()).includes("Código estudiantil: 20261211."),
+    JSON.stringify(en?.body.p));
+
+  // ---------- 7. Matrícula: importación CSV (6b.3b) ----------
+  await page.goto(URL_BASE + "#/admin/enrollment?tab=import");
+  report.check("Importación: sin archivo de ejemplo ni promesa de Excel en modo normal",
+    (await page.getByRole("button", { name: "Usar archivo de ejemplo" }).count()) === 0 && !(await page.locator(".ns-import-drop").textContent()).includes("Excel"));
+  const csv = [
+    "Nombres;Apellidos;Tipo de documento;Número de documento;Fecha de nacimiento;Curso;Acudiente;Parentesco;Teléfono",
+    "Samuel;Ortiz Bravo;Tarjeta de identidad;1084000010;12/03/2014;6A;Marta Bravo;Madre;3120000001",
+    "Luciana;Paz Mora;Tarjeta de identidad;10843;12/03/2014;6A;Ana Mora;Madre;3120000002",
+    "Tomás;Riascos;Tarjeta de identidad;1084000012;12/03/2014;6C;Pedro Riascos;Padre;3120000003",
+    "Gabriela;Zambrano;Tarjeta de identidad;1084000099;12/03/2014;6A;Luz Zambrano;Madre;3120000004",
+    "Nicolás;Cabrera;Tarjeta de identidad;1084000013;31/02/2014;6A;Eva Cabrera;Madre;3120000005",
+    "Antonella;Burbano;Tarjeta de identidad;1084000014;12/03/2014;6A;Raúl Burbano;Padre;",
+    "Samuel;Ortiz Bravo;Tarjeta de identidad;1084000010;12/03/2014;6A;Marta Bravo;Madre;3120000001",
+  ].join("\r\n");
+  await page.locator("input[type=file]").setInputFiles({ name: "matricula.csv", mimeType: "text/csv", buffer: Buffer.from("\ufeff" + csv, "utf8") });
+  await page.locator(".ns-block-title h2", { hasText: "registros encontrados" }).waitFor({ timeout: 8000 });
+  report.check("Importación: lee el CSV (7 filas) y muestra la vista previa", (await page.locator(".ns-block-title h2").first().textContent()) === "7 registros encontrados" && (await page.locator("tbody tr").first().textContent()).includes("Samuel"));
+  await page.getByRole("button", { name: "Validar archivo" }).click();
+  const issueRows = await page.locator("tbody tr").allTextContents();
+  report.check("Importación: valida cada fila (documento corto, curso inexistente, ya matriculado, fecha imposible, sin teléfono, repetida)",
+    issueRows.length === 6 && ["Documento incompleto (mínimo 8 dígitos)", "El curso 6C no existe", "Ya existe un estudiante con este documento", "Fecha de nacimiento inválida: 31/02/2014", "Falta el teléfono del acudiente", "Fila repetida (igual a la fila 2)"].every((m) => issueRows.some((t) => t.includes(m))),
+    issueRows.join(" / ").slice(0, 500));
+  await page.getByRole("button", { name: "Corregir errores" }).click();
+  await page.getByLabel("Corregir documento de Luciana Paz Mora").fill("1084000011");
+  await page.getByLabel("Corregir documento de Luciana Paz Mora").blur();
+  await page.getByLabel("Corregir curso de Tomás Riascos").selectOption("6A");
+  await page.locator("tbody tr", { hasText: "Nicolás Cabrera" }).getByRole("button", { name: "Omitir fila" }).click();
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Confirmar importación" }).click();
+  await page.locator("[role=alertdialog]").getByRole("button", { name: "Confirmar importación" }).click();
+  await page.locator(".ns-reg-done h2", { hasText: "Importación completada" }).waitFor({ timeout: 8000 });
+  const imp = writes.filter((w) => w.url.includes("/rpc/enroll_students")).pop();
+  const docs = imp?.body.p.map((x) => x.document + "@" + x.course_id).sort().join(", ");
+  report.check("Importación: una sola llamada con válidas, corregidas y con advertencia; sin duplicados ni omitidas",
+    docs === "TI 1084000010@6A, TI 1084000011@6A, TI 1084000012@6A, TI 1084000014@6A" && (await page.locator(".ns-reg-done p").textContent()) === "4 estudiantes fueron registrados correctamente.", docs);
+
+  // ---------- 8. Paz y salvo (6b.3b) ----------
+  await page.goto(URL_BASE + "#/admin/clearances");
+  await page.locator("#flt-Curso").selectOption("6A");
+  await page.locator("tbody tr", { hasText: "Luis Mora Ortiz" }).waitFor({ timeout: 10000 });
+  await page.getByRole("switch", { name: "Pensiones de Luis Mora Ortiz" }).click();
+  await page.waitForTimeout(400);
+  const cl = last("PATCH", "students");
+  report.check("Paz y salvo: el interruptor guarda solo esa obligación y habilita al estudiante",
+    JSON.stringify(cl?.body) === JSON.stringify({ fees_ok: true }) && cl.url.includes("id=in.(20261002)") && (await page.locator("tbody tr", { hasText: "Luis Mora Ortiz" }).locator(".ns-badge").textContent()) === "Habilitado", JSON.stringify(cl));
+
+  // ---------- 9. Ranking (6b.3b) ----------
+  await page.goto(URL_BASE + "#/admin/ranking");
+  await page.locator("tbody tr", { hasText: "Ana Bravo Paz" }).waitFor({ timeout: 10000 });
+  const rk = await page.locator("tbody tr").allTextContents();
+  report.check("Ranking: ordena por notas verificadas del periodo abierto, con materias aprobadas reales",
+    rk.length === 2 && rk[0].includes("Ana Bravo Paz") && rk[0].includes("4.5") && rk[0].includes("1 / 1") && rk[1].includes("Luis Mora Ortiz") && rk[1].includes("0 / 1") && rk[1].includes("En riesgo"), rk.join(" / "));
+  await page.screenshot({ path: join(OUT, "paso6b3b-ranking.png") });
 
   const real = cons.filter((m) => !/status of (400|403|500)/.test(m));
   report.check("Consola: solo los errores de red simulados", real.length === 0, real.join(" | "));

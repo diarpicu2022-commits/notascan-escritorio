@@ -3,6 +3,11 @@ import { cx } from "../../../lib/cx";
 import { GRADE_NAME } from "../../../data/academic";
 import { IMPORT_ISSUES, IMPORT_STEPS, ROW_STATE, type ImportIssue } from "../../../data/admin";
 import { ALL_STUDENTS, COURSES } from "../../../data/students";
+import { exportCSV } from "../../../data/admin";
+import { DEMO } from "../../../lib/supabase";
+import {
+  DEMO_IMPORT, IMPORT_HEADERS, enrollMessage, readImportFile, useCourseOptions, useEnrollStudent, useImportStudents, type ImportRow,
+} from "../../../services/enrollment";
 import { Badge } from "../../atoms/Badge";
 import { Button } from "../../atoms/Button";
 import { Input, Select, Textarea } from "../../atoms/Field";
@@ -25,14 +30,32 @@ export function StudentRegistrationForm({ onNavigate }: { onNavigate?: (page: st
   const [tried, setTried] = useState<Record<number, boolean>>({});
   const [done, setDone] = useState(false);
   const [v, setV] = useState<RegForm>(EMPTY_FORM);
+  const courseQ = useCourseOptions();
+  const enroll = useEnrollStudent();
+  const [code, setCode] = useState<string | null>(null);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
+  // Grados y cursos: en demostración los del sistema; en modo normal, los activos de la estructura académica.
+  const opts = courseQ.data ?? [];
+  const gradeOpts = DEMO ? ["6", "7", "8", "9", "10", "11"].map((g) => ({ value: g, label: GRADE_NAME[g] }))
+    : opts.filter((c, i) => opts.findIndex((x) => x.gradeId === c.gradeId) === i).map((c) => ({ value: c.gradeId, label: c.gradeName }));
+  const courseOpts = DEMO ? [v.grade + "A", v.grade + "B"] : opts.filter((c) => c.gradeId === v.grade).map((c) => c.id);
+  const gradeName = DEMO ? GRADE_NAME[v.grade] : gradeOpts.find((g) => g.value === v.grade)?.label ?? v.grade;
+  // Al cargar los cursos reales, el formulario toma el primer grado y curso que existen.
+  useEffect(() => {
+    if (DEMO || !opts.length || opts.some((c) => c.gradeId === v.grade && c.id === v.course)) return;
+    setV((cur) => ({ ...cur, grade: opts[0].gradeId, course: opts[0].id }));
+  }, [opts]);
   const set = (k: keyof RegForm) => (e: { target: { value: string } } | string) => setV({ ...v, [k]: typeof e === "string" ? e : e.target.value });
-  const err = (k: keyof RegForm) => (tried[step] && REQ[step] && REQ[step].indexOf(k) >= 0 && !String(v[k]).trim() ? "Este campo es obligatorio." : null);
+  const docErr = v.doc.trim() && !/^\d{8,12}$/.test(v.doc.trim()) ? "Escribe solo números, entre 8 y 12 dígitos." : null;
+  const err = (k: keyof RegForm) => (tried[step] && REQ[step] && REQ[step].indexOf(k) >= 0 && !String(v[k]).trim() ? "Este campo es obligatorio." : k === "doc" && tried[step] ? docErr : null);
   const emailErr = (k: keyof RegForm) => (v[k] && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v[k]) ? "Escribe un correo válido." : null);
-  const valid = (i: number) => (REQ[i] || []).every((k) => String(v[k as keyof RegForm]).trim());
+  const valid = (i: number) => (REQ[i] || []).every((k) => String(v[k as keyof RegForm]).trim()) && (i !== 0 || !docErr);
   function next() {
     setTried({ ...tried, [step]: true });
     if (!valid(step)) return;
-    if (step < 3) setStep(step + 1); else setDone(true);
+    if (step < 3) { setStep(step + 1); return; }
+    setSaveErr(null);
+    enroll.mutateAsync(v).then((id) => { setCode(id); setDone(true); }, (e) => setSaveErr(enrollMessage(e)));
   }
 
   if (done) {
@@ -40,9 +63,9 @@ export function StudentRegistrationForm({ onNavigate }: { onNavigate?: (page: st
       <Block tone="sage" className="ns-reg-done">
         <span className="ns-dialog-seal ns-dialog-seal--sage" aria-hidden><Icon name="check" size={22} /></span>
         <h2 className="ns-block-h">Matrícula registrada</h2>
-        <p>{v.first + " " + v.last + " quedó matriculado en " + GRADE_NAME[v.grade] + " · " + v.course + " para el año lectivo " + v.year + "."}</p>
+        <p>{v.first + " " + v.last + " quedó matriculado en " + gradeName + " · " + v.course + " para el año lectivo " + v.year + "." + (code ? " Código estudiantil: " + code + "." : "")}</p>
         <div className="ns-row">
-          <Button icon="plus" onClick={() => { setDone(false); setStep(0); setTried({}); setV({ ...v, first: "", last: "", doc: "", birth: "" }); }}>Registrar otro estudiante</Button>
+          <Button icon="plus" onClick={() => { setDone(false); setCode(null); setStep(0); setTried({}); setV({ ...v, first: "", last: "", doc: "", birth: "" }); }}>Registrar otro estudiante</Button>
           <Button variant="secondary" onClick={() => onNavigate?.("students")}>Ver estudiantes</Button>
         </div>
       </Block>
@@ -89,13 +112,13 @@ export function StudentRegistrationForm({ onNavigate }: { onNavigate?: (page: st
     body = (
       <div className="ns-form-grid">
         <Select label="Año lectivo" required value={v.year} onChange={set("year")} options={["2026", "2027"]} />
-        <Select label="Grado" required value={v.grade} onChange={(x) => setV({ ...v, grade: x, course: x + "A" })} options={["6", "7", "8", "9", "10", "11"].map((g) => ({ value: g, label: GRADE_NAME[g] }))} />
-        <Select label="Curso" required value={v.course} onChange={set("course")} options={[v.grade + "A", v.grade + "B"]} />
+        <Select label="Grado" required value={v.grade} onChange={(x) => setV({ ...v, grade: x, course: DEMO ? x + "A" : opts.find((c) => c.gradeId === x)?.id ?? "" })} options={gradeOpts} />
+        <Select label="Curso" required value={v.course} onChange={set("course")} options={courseOpts} />
         <Select label="Estado de matrícula" value={v.state} onChange={set("state")} options={["Activo", "Pendiente"]} />
         <div className="ns-span-2 ns-summary-card">
           <span className="ns-overline">Resumen</span>
           <strong>{(v.first || "—") + " " + v.last}</strong>
-          <span className="ns-caption">{v.docType + " " + (v.doc || "—") + " · Acudiente: " + (v.gName || "—") + " · " + GRADE_NAME[v.grade] + " " + v.course}</span>
+          <span className="ns-caption">{v.docType + " " + (v.doc || "—") + " · Acudiente: " + (v.gName || "—") + " · " + gradeName + " " + v.course}</span>
         </div>
       </div>
     );
@@ -122,9 +145,10 @@ export function StudentRegistrationForm({ onNavigate }: { onNavigate?: (page: st
           <span className="ns-caption">{"Sección " + (step + 1) + " de 4 · "}<span className="ns-req">*</span> obligatorio</span>
         </div>
         {body}
+        {saveErr ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />{saveErr}</span> : null}
         <div className="ns-reg-actions">
           {step > 0 ? <Button variant="ghost" icon="chevleft" onClick={() => setStep(step - 1)}>Anterior</Button> : <span />}
-          <Button icon={step === 3 ? "check" : undefined} iconRight={step < 3 ? "arrow" : undefined} onClick={next}>{step === 3 ? "Guardar matrícula" : "Siguiente"}</Button>
+          <Button icon={step === 3 ? "check" : undefined} iconRight={step < 3 ? "arrow" : undefined} loading={enroll.isPending} onClick={next}>{step === 3 ? "Guardar matrícula" : "Siguiente"}</Button>
         </div>
       </Block>
     </div>
@@ -140,16 +164,22 @@ export function BulkImportPanel({ onNavigate, initialStep = 0 }: { onNavigate?: 
   const [file, setFile] = useState<{ name: string; size: number } | null>(initialStep ? { name: "estudiantes_2026.xlsx", size: 48213 } : null);
   const [err, setErr] = useState<string | null>(null);
   const [issues, setIssues] = useState<ImportIssue[]>(() => IMPORT_ISSUES.map((x) => ({ ...x })));
+  // Modo normal: filas leídas del archivo. En demostración, el archivo de ejemplo del sistema.
+  const [rows, setRows] = useState<ImportRow[]>([]);
+  const [count, setCount] = useState(DEMO_IMPORT.total);
+  const [imported, setImported] = useState(0);
+  const importMut = useImportStudents();
   const [filter, setFilter] = useState("all");
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const timer = useRef<number>();
   useEffect(() => () => window.clearTimeout(timer.current), []);
-  const total = 245;
+  const total = DEMO ? DEMO_IMPORT.total : count;
   const pendingIssues = issues.filter((x) => x.state === "error" || x.state === "duplicate" || x.state === "warning");
   const blocking = issues.filter((x) => x.state === "error").length;
   const valid = total - issues.length + issues.filter((x) => x.state === "fixed" || x.state === "warning").length;
   const upd = (i: number, patch: Partial<ImportIssue>) => setIssues(issues.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const courseOptions = useCourseOptions();
 
   const stepper = (
     <ol className="ns-stepper ns-stepper--6" aria-label="Pasos de la importación">
@@ -166,16 +196,25 @@ export function BulkImportPanel({ onNavigate, initialStep = 0 }: { onNavigate?: 
   if (step === 0) {
     content = (
       <div className="ns-import-grid">
-        <ImportFileZone onFile={(f) => { setFile(f); setErr(null); setStep(1); }} onError={setErr} />
+        <ImportFileZone csvOnly={!DEMO} onError={setErr} onFile={(f) => {
+          if (DEMO) { setFile(f); setErr(null); setStep(1); return; }
+          setErr(null); setBusy(true);
+          readImportFile(f.file!).then(
+            (r) => { setFile(f); setRows(r.rows); setCount(r.total); setIssues(r.issues); setStep(1); },
+            (e) => setErr(e instanceof Error && !("code" in e) ? e.message : "No pudimos leer el archivo. Revisa tu conexión e inténtalo de nuevo."),
+          ).finally(() => setBusy(false));
+        }} />
         <Block tone="gold">
           <BlockTitle>Antes de importar</BlockTitle>
           <ul className="ns-checklist">
             {["Una fila por estudiante, con encabezados en la primera fila.", "Columnas: nombres, apellidos, tipo y número de documento, fecha de nacimiento, curso, acudiente, teléfono.", "Los cursos deben existir en Estructura Académica.", "Nada se guarda hasta que confirmes la importación."].map((t) => <li key={t}><Icon name="check" size={16} />{t}</li>)}
           </ul>
           <div className="ns-row">
-            <Button variant="secondary" icon="download">Descargar plantilla</Button>
-            <Button variant="ghost" onClick={() => { setFile({ name: "estudiantes_2026.xlsx", size: 48213 }); setStep(1); }}>Usar archivo de ejemplo</Button>
+            <Button variant="secondary" icon="download" onClick={() => exportCSV("plantilla_matricula.csv", IMPORT_HEADERS, [["María José", "Paz Rosero", "Tarjeta de identidad", "1084000000", "12/03/2014", "7A", "Gloria Rosero", "Madre", "3120000000"]])}>Descargar plantilla</Button>
+            {/* El ejemplo es de la demostración: en modo normal importaría estudiantes inventados. */}
+            {DEMO ? <Button variant="ghost" onClick={() => { setFile({ name: "estudiantes_2026.xlsx", size: 48213 }); setStep(1); }}>Usar archivo de ejemplo</Button> : null}
           </div>
+          {busy && !DEMO ? <span className="ns-caption" role="status">Leyendo y validando el archivo…</span> : null}
           {err ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />{err}</span> : null}
         </Block>
       </div>
@@ -188,13 +227,16 @@ export function BulkImportPanel({ onNavigate, initialStep = 0 }: { onNavigate?: 
         <DataTable
           caption="Vista previa del archivo"
           columns={["Nombres", "Apellidos", "Documento", "Nacimiento", "Curso", "Acudiente", "Teléfono"].map((c, i) => ({ key: "c" + i, label: c }))}
-          rows={ALL_STUDENTS.slice(0, 5).map((s, i) => ({ id: i, c0: s.first, c1: s.last, c2: s.document, c3: "1" + (i + 2) + "/0" + (i + 3) + "/2013", c4: s.course, c5: s.guardian, c6: s.guardianPhone }))}
+          rows={DEMO
+            ? ALL_STUDENTS.slice(0, 5).map((s, i) => ({ id: i, c0: s.first, c1: s.last, c2: s.document, c3: "1" + (i + 2) + "/0" + (i + 3) + "/2013", c4: s.course, c5: s.guardian, c6: s.guardianPhone }))
+            : rows.slice(0, 5).map((r) => ({ id: r.row, c0: r.first, c1: r.last, c2: r.doc, c3: r.birth, c4: r.course, c5: r.guardian, c6: r.phone }))}
         />
         <div className="ns-reg-actions">
           <Button variant="ghost" icon="chevleft" onClick={() => setStep(0)}>Cambiar archivo</Button>
           <Button iconRight="arrow" loading={busy} loadingText="Validando…" onClick={() => {
             setBusy(true);
-            // Sin backend en esta fase: se simula la validación del archivo.
+            // En modo normal la validación ya se hizo al leer el archivo; en demostración se simula.
+            if (!DEMO) { setBusy(false); setStep(2); return; }
             timer.current = window.setTimeout(() => { setBusy(false); setStep(2); }, 900);
           }}>Validar archivo</Button>
         </div>
@@ -228,7 +270,7 @@ export function BulkImportPanel({ onNavigate, initialStep = 0 }: { onNavigate?: 
                   ? (
                     <select className="ns-select" aria-label={"Corregir curso de " + r.name} defaultValue="" onChange={(e) => upd(r._i, { course: e.target.value, state: "fixed", msg: "Curso corregido" })}>
                       <option value="" disabled>{r.course + " → ?"}</option>
-                      {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      {(DEMO ? COURSES : (courseOptions.data ?? []).map((c) => c.id)).map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   )
                   : r.course),
@@ -265,11 +307,11 @@ export function BulkImportPanel({ onNavigate, initialStep = 0 }: { onNavigate?: 
       <Block tone="sage" className="ns-reg-done">
         <span className="ns-dialog-seal ns-dialog-seal--sage" aria-hidden><Icon name="check" size={22} /></span>
         <h2 className="ns-block-h">Importación completada</h2>
-        <p>{valid + " estudiantes fueron registrados correctamente."}</p>
+        <p>{(DEMO ? valid : imported) + " estudiantes fueron registrados correctamente."}</p>
         <div className="ns-row">
-          <Button variant="secondary" icon="download">Descargar informe</Button>
+          <Button variant="secondary" icon="download" onClick={() => exportCSV("informe_importacion.csv", ["Fila", "Estudiante", "Documento", "Curso", "Resultado", "Detalle"], issues.map((x) => [x.row, x.name, x.doc, x.course, ROW_STATE[x.state][0], x.msg]))}>Descargar informe</Button>
           <Button iconRight="arrow" onClick={() => onNavigate?.("students")}>Ver estudiantes</Button>
-          <Button variant="ghost" onClick={() => { setStep(0); setFile(null); setIssues(IMPORT_ISSUES.map((x) => ({ ...x }))); }}>Importar otro archivo</Button>
+          <Button variant="ghost" onClick={() => { setStep(0); setFile(null); setRows([]); setIssues(DEMO ? IMPORT_ISSUES.map((x) => ({ ...x })) : []); }}>Importar otro archivo</Button>
         </div>
       </Block>
     );
@@ -279,7 +321,13 @@ export function BulkImportPanel({ onNavigate, initialStep = 0 }: { onNavigate?: 
     <div className="ns-col" style={{ gap: 24 }}>
       {stepper}
       {content}
-      <ConfirmAction open={confirm} onCancel={() => setConfirm(false)} icon="upload" title={"¿Importar " + valid + " estudiantes?"} description="Los registros quedarán activos en la matrícula 2026." confirmLabel="Confirmar importación" onConfirm={() => { setConfirm(false); setStep(5); }} />
+      <ConfirmAction open={confirm} onCancel={() => setConfirm(false)} icon="upload" title={"¿Importar " + valid + " estudiantes?"} loading={importMut.isPending}
+        description={"Los registros quedarán activos en la matrícula " + new Date().getFullYear() + ". Se importan todos o ninguno."} confirmLabel="Confirmar importación"
+        onConfirm={() => importMut.mutateAsync({ rows, issues }).then(
+          (n) => { setImported(n); setConfirm(false); setStep(5); },
+          (e) => { setConfirm(false); setErr(enrollMessage(e)); },
+        )} />
+      {err && step === 4 ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />{"No se importó ningún estudiante. " + err}</span> : null}
     </div>
   );
 }
