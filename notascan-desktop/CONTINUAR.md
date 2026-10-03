@@ -45,13 +45,14 @@ Lo primero que se lee al retomar.
     - La cola sin conexión de la planilla sigue simulada (SyncContext). La asistencia usa una clase por día (hora 1).
     - El encabezado del observador dice «El acudiente las ve en su aplicación.»: aún no es cierto (sin acceso del
       acudiente en la base); se cumple cuando exista la app móvil con su política.
-  - **6b.3a (hecho 2026-10-03, esperando visto bueno):** Secretaría · Estructura, Malla, Periodos y Usuarios con datos
+  - **6b.3a (hecho y aprobado 2026-10-03, con sus cuatro decisiones):** Secretaría · Estructura, Malla, Periodos y Usuarios con datos
     reales. Migración `20261003170000_secretaria_configuracion.sql` (asignación con evaluaciones no se elimina, un
     solo periodo abierto, `save_period`, `touch_last_seen`). `verify:admin-data` 18/18, `verify:states` 61/61,
-    `verify:db` 69/69; regresión en verde. Cuatro decisiones esperan a Diego (anexo, Paso 6b.3a).
-    - **Pendiente:** aplicar `20261003170000_secretaria_configuracion.sql` en Supabase. Sin ella, eliminar en la malla
-      una asignación con evaluaciones **borra sus notas en cascada**, «Guardar periodo» falla y no se registra el
-      último acceso.
+    `verify:db` 69/69; regresión en verde.
+    - Migración `20261003170000_secretaria_configuracion.sql` **aplicada en Supabase** el 2026-10-03 (SQL Editor, una
+      transacción, cotejada por SHA-1). Supabase la marcó como «destructiva» por el `delete` dentro de `save_period`
+      (solo corre al guardar un periodo). Comprobado: disparador `assignments_keep_grades` activo, índice
+      `academic_periods_one_open`, `save_period` y `touch_last_seen` solo para authenticated.
     - Sin forma de reactivar usuarios desactivados (tampoco en el sistema).
   - Siguientes: 6b.3b (Matrícula, Boletines, Paz y salvo, Ranking, Inicio de Secretaría);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.

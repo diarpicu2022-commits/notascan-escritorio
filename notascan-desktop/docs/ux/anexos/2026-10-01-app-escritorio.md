@@ -460,7 +460,7 @@ Matrícula, Boletines, Paz y salvo, Ranking e Inicio. En modo demostración todo
 - Estados: tablas con los de la `DataGrid`; malla y periodos con bloques `.ns-skel`, error con «Reintentar» y vacíos
   con salida.
 
-**Decisiones que esperan visto bueno de Diego**:
+**Decisiones aprobadas por Diego el 2026-10-03**:
 1. Estado nuevo **«Sin cuenta»** (insignia neutra con icono de persona) para quien está registrado pero no ha creado su
    acceso, y para los acudientes. Mostrar «Invitación enviada» habría sido falso: no se envía ningún correo.
 2. Formulario de **«Invitar usuario»**: el mismo `Drawer` de edición (nombre, correo y rol). Registra en el
@@ -481,3 +481,7 @@ Fallos propios encontrados y corregidos: «Crear periodo» numeraba contando los
 última posición (con huecos habría creado un periodo repetido); lo halló `verify:admin-data`. `verify:data` y
 `verify:teacher-data` dieron un 401 porque la llamada nueva de último acceso salía al proyecto real; ahora esas pruebas
 responden vacío a la API que no simulan.
+
+Migración de 6b.3a aplicada en el proyecto real el 2026-10-03 (SQL Editor, una transacción, contenido cotejado con el
+repositorio). Comprobación: disparador `assignments_keep_grades` activo, índice `academic_periods_one_open`,
+`block_assignment_delete` sin permiso de ejecución, `save_period` y `touch_last_seen` solo para authenticated.
