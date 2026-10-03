@@ -376,7 +376,7 @@ En modo demostración siguen idénticas al sistema (fidelidad del Docente 123/12
   no tiene evaluaciones.» con «Ir a evaluaciones», «Este curso no tiene estudiantes activos.», «Aún no hay
   anotaciones.», «No tienes cursos asignados en el periodo abierto.»).
 
-**Decisiones que esperan visto bueno de Diego** (no cambian el modo demostración):
+**Decisiones aprobadas por Diego el 2026-10-03** (no cambian el modo demostración):
 1. Selector de curso en el encabezado de Conceptos cuando el docente tiene más de un curso (`FilterGroup` del
    sistema, igual que en Planilla). Sin él solo se podría ver el primer curso.
 2. Copia corregida: el aviso del observador decía «Se notificó al acudiente.», que no es cierto (no hay
@@ -393,3 +393,42 @@ Fallos propios encontrados y corregidos: al refactorizar la planilla se perdió 
 (6 fallos en `verify:teacher`); el comentario de `verify-db` decía que Ana dicta en 3 cursos y la semilla la tiene
 en los 6. Hallazgo sin corregir (paso 6b.4): `decide_grade_request` marca la solicitud como aprobada pero no aplica
 la nota nueva en `grades`.
+
+### Paso 6b.2b · Docente: inicio, estudiantes, evaluaciones y recuperaciones (2026-10-03)
+
+Diego aprueba 6b.2 y sus tres decisiones, y pide 6b.2b. Una sola lectura (evaluaciones de las asignaciones del
+periodo abierto, sus notas y la lista de los cursos) alimenta Inicio, Estudiantes y Evaluaciones.
+
+- **Inicio**: saludo según la hora con el nombre real; «Continúa donde quedaste» = primera evaluación en revisión
+  con su avance (verificadas / estudiantes del curso) y abre esa evaluación; cifras: notas por verificar, verificadas
+  este mes, promedio del curso (media de los promedios ponderados de cada estudiante). Sin evaluación en revisión, el
+  bloque navy dice «No tienes revisiones pendientes» y ofrece «Calificar una evaluación». «Subido hace 2 horas»
+  no se muestra en modo normal (la base no guarda la hora de subida todavía).
+- **Estudiantes**: los de los cursos del docente, con promedio de notas verificadas y estado de la última nota;
+  «Sin calificaciones» si no tiene ninguna. «Exportar lista» descarga un CSV (UTF-8 con BOM y punto y coma, para
+  Excel en español) con lo que está filtrado.
+- **Evaluaciones**: tarjetas de la base por asignación (selector de curso en el encabezado, decisión 1 de 6b.2).
+  **Nueva evaluación** abre un `Drawer` del sistema con `Input`, `SegmentedTabs` e `Input` de fecha (mismo patrón
+  que la edición de estudiante): nombre, tipo, porcentaje y fecha. No deja pasar del 100 % del periodo
+  («Con esta evaluación el periodo sumaría 110 %. El máximo es 100 %.»). Se crea en borrador.
+- **Recuperaciones**: estudiantes con promedio de la materia por debajo de 3.0 en el periodo abierto; una
+  recuperación ya guardada conserva su nota original aunque la nota cambie. La base deriva el resultado
+  (≥ 3.0 aprueba) y firma quien registra (migración `20261003120000_recuperaciones.sql`).
+
+**Decisión que espera visto bueno**: el formulario de «Nueva evaluación» (el sistema tenía el botón sin acción).
+Sin él, la planilla de un curso sin evaluaciones no tiene salida.
+
+**Fuera de 6b.2b, con decisión pendiente**: Reportes (qué formatos: el sistema ofrece PDF, Excel y CSV; PDF y
+Excel reales necesitan una librería o la impresión del sistema) y Subir fotografías (subir al bucket privado es
+posible ya; leer la nota necesita el servicio de visión, que es transferencia a un tercero y debe ir en la política
+de datos, con plazo de retención de las fotos).
+
+Verificación: `verify:teacher` 123/123, `verify:states` 45/45 (4 pantallas más), `verify:teacher-data` 29/29
+(10 nuevas: cifras del inicio, CSV descargado, tope del 100 %, cuerpo de cada escritura), `verify:db` 57/57.
+Regresión: tokens 26/26, card 51/51, shell 62/62, components 121/121, admin 102/102, principal 76/76,
+auth 20/20, data 8/8.
+
+Fallo propio corregido: el promedio del inicio ponderaba todas las notas juntas (3.3 con 4.0 y 2.0); ahora es la
+media de los promedios de cada estudiante (3.0). `verify:auth` falló (19/20) porque su sesión simulada no
+respondía a las nuevas lecturas del inicio y salían 401 contra el proyecto real; la prueba ahora responde vacío
+a la API que no simula.

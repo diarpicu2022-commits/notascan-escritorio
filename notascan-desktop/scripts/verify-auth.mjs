@@ -13,6 +13,9 @@ async function fakeAccount(page, profile) {
   const user = { id: UID, aud: "authenticated", role: "authenticated", email: profile.email, app_metadata: {}, user_metadata: {}, created_at: "2026-10-01T00:00:00Z" };
   const now = Math.floor(Date.now() / 1000);
   const jwt = ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", Buffer.from(JSON.stringify({ sub: UID, exp: now + 3600, role: "authenticated" })).toString("base64url"), "firma"].join(".");
+  // Desde 6b.2b el inicio del Docente lee la base: con la sesión simulada, el resto de la API responde vacío
+  // (las rutas registradas después, como profiles, tienen prioridad).
+  await page.route("**/rest/v1/**", (r) => r.fulfill({ json: [] }));
   await page.route("**/auth/v1/token**", (r) => r.fulfill({ json: { access_token: jwt, token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: "r", user } }));
   await page.route("**/auth/v1/user**", (r) => r.fulfill({ json: user }));
   await page.route("**/auth/v1/logout**", (r) => r.fulfill({ status: 204, body: "" }));

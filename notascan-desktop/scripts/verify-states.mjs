@@ -15,6 +15,11 @@ const SCREENS = [
   { hash: "#/teacher/attendance", name: "Asistencia", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar la asistencia.", emptyTitle: "Este curso no tiene estudiantes activos." },
   { hash: "#/teacher/behavior", name: "Comportamiento", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las anotaciones.", emptyTitle: "Aún no hay anotaciones." },
   { hash: "#/teacher/concepts", name: "Conceptos", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar los conceptos.", emptyTitle: "Este curso no tiene estudiantes activos." },
+  // 6b.2b · Docente: inicio, estudiantes, evaluaciones y recuperaciones.
+  { hash: "#/teacher/dashboard", name: "Inicio del docente", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar tu resumen.", emptyTitle: "No hay evaluaciones en curso." },
+  { hash: "#/teacher/students", name: "Estudiantes (Docente)", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar tus estudiantes.", emptyTitle: "No tienes estudiantes en tus cursos." },
+  { hash: "#/teacher/evaluations", name: "Evaluaciones", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las evaluaciones.", emptyTitle: "Este curso aún no tiene evaluaciones." },
+  { hash: "#/teacher/recoveries", name: "Recuperaciones", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las recuperaciones.", emptyTitle: "No hay estudiantes en recuperación." },
 ];
 
 const { browser, close } = await startPreview();
@@ -47,7 +52,7 @@ try {
     // Vacío: EmptyState con su mensaje.
     await page.goto(URL_BASE + s.hash + "?estado=vacio", { waitUntil: "networkidle" });
     await page.waitForTimeout(500);
-    report.check(`${s.name} · vacío: «${s.emptyTitle}»`, (await page.locator(".ns-empty-title").textContent()) === s.emptyTitle);
+    report.check(`${s.name} · vacío: «${s.emptyTitle}»`, (await page.locator(".ns-empty-title").first().textContent()) === s.emptyTitle);
     await page.screenshot({ path: join(OUT, `paso6b-${slug}-vacio.png`) });
   }
   report.check("Consola sin errores en los estados forzados", cons.length === 0, cons.join(" | "));

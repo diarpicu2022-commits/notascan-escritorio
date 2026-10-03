@@ -30,14 +30,20 @@ Lo primero que se lee al retomar.
     estados, reintento, guardado optimista con reversión y aviso de dato viejo. `verify:db` 39/39, `verify:states` 9/9,
     `verify:data` 8/8, fidelidad Secretaría 102/102 y Rectoría 76/76.
   - **6b.1 aprobado (2026-10-03).**
-  - **6b.2 (hecho 2026-10-03, esperando visto bueno):** Docente con datos reales — revisión de notas, planilla,
+  - **6b.2 (hecho y aprobado 2026-10-03, con sus tres decisiones):** Docente con datos reales — revisión de notas, planilla,
     asistencia, observador y conceptos, con estados. Migración `20261003090000_registro_docente.sql` (la base firma
     quién verifica/registra/revisa). `verify:teacher` 123/123, `verify:states` 29/29, `verify:teacher-data` 19/19,
     `verify:db` 51/51; regresión completa en verde. Tres decisiones esperan a Diego (anexo, Paso 6b.2).
-    - **Pendiente:** aplicar la migración `20261003090000` en Supabase (SQL Editor o `db push`). Sin ella, las
-      escrituras de la planilla y la revisión fallan por `verified_needs_teacher` (el cliente ya no manda la firma).
-    - Siguen con datos de demostración (no estaban en el plan de 6b): inicio, Estudiantes, Evaluaciones,
-      Recuperaciones, Reportes y Subir fotografías del Docente. Propuesta: 6b.2b.
+    - Sin la migración `20261003090000` aplicada, guardar en la planilla y la revisión falla por
+      `verified_needs_teacher` (el cliente ya no manda la firma).
+  - **6b.2b (hecho 2026-10-03, esperando visto bueno):** Inicio, Estudiantes (con exportar CSV), Evaluaciones
+    (con «Nueva evaluación») y Recuperaciones del Docente con datos reales. Migración `20261003120000_recuperaciones.sql`.
+    `verify:teacher-data` 29/29, `verify:states` 45/45, `verify:db` 57/57; regresión en verde.
+    - **Pendiente:** aplicar en Supabase las migraciones `20261003090000_registro_docente.sql` y
+      `20261003120000_recuperaciones.sql`, en ese orden. El 2026-10-03 no se pudo desde aquí: la extensión de Chrome no
+      estaba conectada y la CLI de Supabase no tiene sesión.
+    - Decisión pendiente: formulario «Nueva evaluación» (anexo, Paso 6b.2b).
+    - Siguen con datos de demostración: Reportes y Subir fotografías (decisiones de formato y de servicio de visión).
     - La cola sin conexión de la planilla sigue simulada (SyncContext). La asistencia usa una clase por día (hora 1).
     - El encabezado del observador dice «El acudiente las ve en su aplicación.»: aún no es cierto (sin acceso del
       acudiente en la base); se cumple cuando exista la app móvil con su política.

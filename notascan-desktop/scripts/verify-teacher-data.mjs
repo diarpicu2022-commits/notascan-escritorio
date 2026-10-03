@@ -19,8 +19,8 @@ const STUDENTS = [
   { id: "20261201", full_name: "Mateo Burbano Paz", course_id: "7B" },
 ];
 const EVALS = [
-  { id: 101, name: "Parcial 2", weight: 25, assignment: { course_id: "7A", subject: { name: "Matemáticas" } } },
-  { id: 102, name: "Taller 3", weight: 15, assignment: { course_id: "7A", subject: { name: "Matemáticas" } } },
+  { id: 101, assignment_id: 11, name: "Parcial 2", kind: "examen", weight: 25, status: "en-revision", due_date: "2026-09-28", assignment: { course_id: "7A", subject: { name: "Matemáticas" } } },
+  { id: 102, assignment_id: 11, name: "Taller 3", kind: "taller", weight: 15, status: "borrador", due_date: "2026-10-05", assignment: { course_id: "7A", subject: { name: "Matemáticas" } } },
 ];
 const REVIEW = [
   { id: 501, evaluation_id: 101, student_id: "20261175", detected: 4.5, confidence: 98, value: 4.5, status: "pending", student: { full_name: STUDENTS[0].full_name, course_id: "7A" } },
@@ -28,7 +28,7 @@ const REVIEW = [
 ];
 
 /** Registro de escrituras por tabla y respuesta configurable (ok o rechazo). */
-const writes = { grades: [], attendance: [], observations: [], period_concepts: [] };
+const writes = { grades: [], attendance: [], observations: [], period_concepts: [], evaluations: [], recoveries: [] };
 const reject = { grades: null };
 
 async function mockApi(page) {
@@ -44,6 +44,7 @@ async function mockApi(page) {
     return r.fulfill({ json: STUDENTS.filter((s) => u.includes(s.course_id)) });
   });
   await page.route("**/rest/v1/evaluations**", (r) => {
+    if (r.request().method() === "POST") { writes.evaluations.push(r.request().postDataJSON()); return r.fulfill({ status: 201, body: "" }); }
     const u = decodeURIComponent(r.request().url());
     // 7B (asignación 12) aún no tiene evaluaciones.
     return r.fulfill({ json: u.includes("assignment_id=eq.12") ? [] : EVALS });
@@ -56,6 +57,12 @@ async function mockApi(page) {
     }
     const u = decodeURIComponent(req.url());
     if (u.includes("evaluation_id=eq.101")) return r.fulfill({ json: REVIEW });
+    // Resumen del docente (inicio, estudiantes, evaluaciones, recuperaciones).
+    if (u.includes("verified_at")) return r.fulfill({ json: [
+      { evaluation_id: 101, student_id: "20261175", status: "verified", value: 4.0, verified_at: today + "T10:00:00Z", verified_by: UID },
+      { evaluation_id: 101, student_id: "20261182", status: "needs-review", value: null, verified_at: null, verified_by: null },
+      { evaluation_id: 102, student_id: "20261189", status: "verified", value: 2.0, verified_at: today + "T11:00:00Z", verified_by: UID },
+    ] });
     // Planilla y conceptos: solo verificadas. María tiene 4.0 en el Parcial 2.
     return r.fulfill({ json: [{ evaluation_id: 101, student_id: "20261175", value: 4.0 }] });
   });
@@ -71,6 +78,10 @@ async function mockApi(page) {
     if (req.method() === "POST") { writes.observations.push(req.postDataJSON()); return r.fulfill({ status: 201, body: "" }); }
     return r.fulfill({ json: [{ id: 1, type: "attention", title: "Tarea sin entregar", context: "Matemáticas · taller 3", created_at: "2026-09-11T15:00:00Z", student: { full_name: STUDENTS[1].full_name, course_id: "7A" }, author: { full_name: "Ana Lucía Rosero" } }] });
   });
+  await page.route("**/rest/v1/recoveries**", (r) => {
+    if (r.request().method() === "POST") { writes.recoveries.push({ url: decodeURIComponent(r.request().url()), body: r.request().postDataJSON() }); return r.fulfill({ status: 201, body: "" }); }
+    return r.fulfill({ json: [] });
+  });
   await page.route("**/rest/v1/period_concepts**", (r) => {
     const req = r.request();
     if (req.method() === "POST") { writes.period_concepts.push({ url: decodeURIComponent(req.url()), body: req.postDataJSON() }); return r.fulfill({ status: 201, body: "" }); }
@@ -85,7 +96,7 @@ async function mockApi(page) {
   await page.waitForURL(/#\/teacher\/dashboard$/, { timeout: 8000 });
 }
 
-const signed = (o) => ["verified_by", "verified_at", "recorded_by", "reviewed_by", "author_id"].some((k) => k in o);
+const signed = (o) => ["verified_by", "verified_at", "recorded_by", "reviewed_by", "author_id", "result"].some((k) => k in o);
 
 const { browser, close } = await startPreview();
 try {
@@ -189,6 +200,60 @@ try {
   await page.locator(".ns-toast-title", { hasText: "sin notas verificadas" }).waitFor({ timeout: 4000 }).catch(() => {});
   report.check("Conceptos: sin nota del periodo no se inventa un borrador; se avisa", (await page.locator(".ns-toast-title").textContent()) === "1 estudiante sin notas verificadas");
   await page.screenshot({ path: join(OUT, "paso6b2-conceptos.png") });
+
+  // ---------- 6. Inicio (6b.2b) ----------
+  await page.goto(URL_BASE + "#/teacher/dashboard");
+  await page.locator(".ns-home-hero-title").waitFor({ timeout: 10000 });
+  const title = await page.locator(".ns-header-title").textContent();
+  const hero = await page.locator(".ns-home-hero").textContent();
+  report.check("Inicio: saludo con el nombre real y la evaluación en revisión con su avance (1 de 3)",
+    /Buen[oa]s (días|tardes|noches), Ana Lucía/.test(title) && hero.includes("Parcial 2 · Matemáticas") && hero.includes("1 de 3 verificadas") && hero.includes("2 pendientes"), title + " | " + hero);
+  const stats = await page.locator(".ns-home-stat .ns-bento-value").allTextContents();
+  report.check("Inicio: 1 nota por verificar, 2 verificadas este mes, promedio 3.0 de Matemáticas 7A",
+    stats.join("|") === "1|2|3.0" && (await page.locator(".ns-home-stat").nth(2).textContent()).includes("promedio de Matemáticas 7A"), stats.join("|"));
+  report.check("Inicio: «Requieren tu atención» lista la lectura sin detección", (await page.locator(".ns-block--paper").textContent()).includes("Juan Sebastián Martínez PazSin detección · Parcial 2"));
+  await page.screenshot({ path: join(OUT, "paso6b2b-inicio.png") });
+
+  // ---------- 7. Estudiantes (6b.2b) ----------
+  await page.goto(URL_BASE + "#/teacher/students");
+  await page.locator(".ns-table tbody tr").first().waitFor({ timeout: 10000 });
+  const srows = await page.locator(".ns-table tbody tr").allTextContents();
+  report.check("Estudiantes: los 4 de sus cursos, con promedio de notas verificadas y última evaluación",
+    srows.length === 4 && srows.some((t) => t.includes("María Fernanda López Rosero") && t.includes("4.0") && t.includes("Parcial 2")) && srows.some((t) => t.includes("Mateo Burbano Paz") && t.includes("Sin calificaciones")), srows.join(" / ").slice(0, 300));
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Exportar lista" }).click()]);
+  const csv = (await (await import("node:fs/promises")).readFile(await download.path(), "utf8"));
+  report.check("Estudiantes: «Exportar lista» descarga un CSV con encabezados y las 4 filas",
+    download.suggestedFilename() === "estudiantes-todos.csv" && csv.startsWith("\ufeffID;Estudiante;Curso;Promedio;Última evaluación;Estado") && csv.trim().split("\r\n").length === 5, download.suggestedFilename());
+
+  // ---------- 8. Evaluaciones (6b.2b) ----------
+  await page.goto(URL_BASE + "#/teacher/evaluations");
+  await page.locator(".ns-eval").first().waitFor({ timeout: 10000 });
+  report.check("Evaluaciones: tarjetas de la base con avance real y porcentaje asignado (40 %)",
+    (await page.locator(".ns-eval").count()) === 2 && (await page.locator(".ns-weight-value").textContent()).startsWith("40") && (await page.locator(".ns-eval").first().textContent()).includes("1 de 3 verificadas"));
+  await page.getByRole("button", { name: "Nueva evaluación" }).first().click();
+  await page.locator(".ns-drawer").getByLabel("Nombre").fill("Parcial 3");
+  await page.locator(".ns-drawer").getByLabel("Porcentaje").fill("70");
+  await page.getByRole("button", { name: "Crear evaluación" }).click();
+  report.check("Evaluaciones: no deja pasar del 100 % del periodo y dice cuánto sumaría",
+    (await page.locator(".ns-drawer").textContent()).includes("Con esta evaluación el periodo sumaría 110 %. El máximo es 100 %.") && writes.evaluations.length === 0);
+  await page.locator(".ns-drawer").getByLabel("Porcentaje").fill("20");
+  await page.getByRole("button", { name: "Crear evaluación" }).click();
+  await page.locator(".ns-toast-title", { hasText: "Evaluación creada" }).waitFor({ timeout: 8000 });
+  const ew = writes.evaluations[0];
+  report.check("Evaluaciones: crea la evaluación en borrador en la asignación elegida",
+    ew && ew.assignment_id === 11 && ew.name === "Parcial 3" && ew.kind === "examen" && ew.weight === 20 && ew.status === "borrador", JSON.stringify(ew));
+
+  // ---------- 9. Recuperaciones (6b.2b) ----------
+  await page.goto(URL_BASE + "#/teacher/recoveries");
+  await page.locator("tbody tr").first().waitFor({ timeout: 10000 });
+  const recRows = await page.locator("tbody tr").allTextContents();
+  report.check("Recuperaciones: solo quien está por debajo de 3.0 (Valentina, 2.0)", recRows.length === 1 && recRows[0].includes("Valentina Guerrero Ortiz") && recRows[0].includes("2.0"), recRows.join(" / "));
+  await page.getByLabel("Nota de recuperación de Valentina Guerrero Ortiz").fill("3.5");
+  await page.locator("tbody tr").first().getByRole("button", { name: "Guardar" }).click();
+  await page.locator(".ns-toast-title", { hasText: "Recuperación registrada" }).waitFor({ timeout: 8000 });
+  const rw = writes.recoveries[0];
+  report.check("Recuperaciones: guarda original y recuperación; el resultado y la firma los pone la base",
+    rw && rw.url.includes("on_conflict=student_id,assignment_id") && rw.body.student_id === "20261189" && rw.body.assignment_id === 11 && rw.body.original === 2 && rw.body.recovery === 3.5 && !signed(rw.body), JSON.stringify(rw));
 
   const real = cons.filter((m) => !/status of (400|403|500)/.test(m));
   report.check("Consola: solo los errores de red simulados", real.length === 0, real.join(" | "));

@@ -194,7 +194,25 @@ try {
     where a.teacher_email = 'ana.lucia@losandes.edu.co' and p.status = 'open'`));
   check("Ana ve sus asignaciones del periodo abierto (Matemáticas en los 6 cursos)", myAssign.n === 6, String(myAssign.n));
 
-  // ---------- 8. Fotos de exámenes ----------
+  // ---------- 8. Recuperaciones y evaluaciones (6b.2b) ----------
+  const rec = (value, by) => `insert into public.recoveries (student_id, assignment_id, original, recovery, result, recorded_by) values ('${anaStudent}', ${anaMat7A}, 2.4, ${value}, 'passed', ${by ? `'${by}'` : "null"})
+    on conflict (student_id, assignment_id) do update set recovery = excluded.recovery, result = excluded.result, recorded_by = excluded.recorded_by`;
+  const r1 = await as(ana, () => errorOf(rec("2.6", carlos)));
+  const r1r = await one("select result, recorded_by, original::text o from public.recoveries where student_id = $1 and assignment_id = $2", [anaStudent, anaMat7A]);
+  check("Recuperación: el resultado lo deriva la base (2.6 no aprueba aunque el cliente diga «passed») y firma quien registra",
+    !r1 && r1r.result === "failed" && r1r.recorded_by === ana && r1r.o === "2.4", r1 || JSON.stringify(r1r));
+  const r2 = await as(ana, () => errorOf(rec("3.5", null)));
+  const r2r = await one("select result from public.recoveries where student_id = $1 and assignment_id = $2", [anaStudent, anaMat7A]);
+  check("Recuperación: 3.5 aprueba y la nota original (2.4) se conserva", !r2 && r2r.result === "passed", r2 || JSON.stringify(r2r));
+  const r3 = await as(carlos, () => errorOf(rec("5.0", null)));
+  check("Recuperación: otro docente no la registra en la asignación de Ana", r3?.includes("row-level security"), r3 || "la registró");
+  const newEval = await as(ana, () => errorOf("insert into public.evaluations (assignment_id, name, kind, weight, status) values ($1, 'Parcial 3', 'examen', 20, 'borrador')", [anaMat7A]));
+  const carlosEval = await as(carlos, () => errorOf("insert into public.evaluations (assignment_id, name, kind, weight, status) values ($1, 'Intruso', 'examen', 20, 'borrador')", [anaMat7A]));
+  check("Evaluaciones: el docente crea las de su asignación y no las de otro", !newEval && carlosEval?.includes("row-level security"), newEval || carlosEval || "");
+  const recFn = await as(ana, () => errorOf("select public.stamp_recovery()"));
+  check("La función de recuperaciones no se puede llamar directamente", recFn?.includes("permission denied") || recFn?.includes("trigger"), recFn || "se llamó");
+
+  // ---------- 9. Fotos de exámenes ----------
   const ownPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${ana}/parcial2/foto1.jpg')`));
   const otherPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${carlos}/parcial2/foto1.jpg')`));
   check("El docente sube fotos solo a su carpeta del bucket privado", !ownPhoto && otherPhoto?.includes("row-level security"), `propia: ${ownPhoto || "ok"} · ajena: ${otherPhoto || "se subió"}`);

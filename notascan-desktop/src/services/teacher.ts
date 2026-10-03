@@ -77,9 +77,9 @@ export function pickAssignment(list: Assignment[] | undefined, key: string | nul
   return list.find((a) => a.key === key) ?? list.find((a) => a.courseId === fallbackCourse) ?? list[0];
 }
 
-interface RosterRow { id: string; full_name: string; course_id: string }
+export interface RosterRow { id: string; full_name: string; course_id: string }
 
-async function roster(courseIds: string[]): Promise<RosterRow[]> {
+export async function roster(courseIds: string[]): Promise<RosterRow[]> {
   if (!courseIds.length) return [];
   const r = await supabase().from("students").select("id, full_name, course_id").in("course_id", courseIds).in("status", ["active", "pending"]).order("full_name");
   throwIf(r);

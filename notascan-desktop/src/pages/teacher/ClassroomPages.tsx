@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../app/AuthContext";
 import { useShell } from "../../app/ShellContext";
 import { Button } from "../../components/atoms/Button";
@@ -12,45 +12,21 @@ import { Gradebook } from "../../components/organisms/Gradebook";
 import { Header } from "../../components/organisms/Header";
 import { Block, BlockTitle } from "../../components/organisms/Layout";
 import { ObserverTimeline } from "../../components/organisms/Observer";
-import { ErrorState, LoadingBlocks } from "../../components/organisms/QueryState";
 import { AttendancePanel, RecoveryTable } from "../../components/organisms/TeacherPanels";
 import { useToast } from "../../components/organisms/Toast";
 import { PageShell } from "../../components/templates/PageShell";
 import type { ObsType, ObservationItem } from "../../data/academic";
 import { DEMO } from "../../lib/supabase";
 import {
-  longDate, pickAssignment, saveMessage, todayIso, useAddObservation, useAttendance, useConcepts, useGradebook, useMyAssignments,
-  useMyStudents, useObservations, useSaveAttendance, useSaveConcepts, useSaveGradeCell, weekdayDate, type Assignment,
+  longDate, saveMessage, todayIso, useAddObservation, useAttendance, useConcepts, useGradebook,
+  useMyStudents, useObservations, useSaveAttendance, useSaveConcepts, useSaveGradeCell, weekdayDate,
 } from "../../services/teacher";
+import { useRecoveries, useSaveRecovery } from "../../services/teacherOverview";
+import { NO_STUDENTS, assignmentsState, courseOption, queryState, useAssignmentPick } from "./states";
 
 /* Productividad docente: planilla, conceptos, recuperaciones, asistencia y comportamiento.
    Los datos vienen de la base según el RLS del docente; en modo demostración, los del sistema. */
 
-/** Asignación elegida (curso + materia del periodo abierto). */
-function useAssignmentPick() {
-  const aq = useMyAssignments();
-  const [key, setKey] = useState<string | null>(null);
-  const current = pickAssignment(aq.data, key);
-  return { aq, list: aq.data ?? [], current, setKey };
-}
-
-/** Antes de los datos propios: cursos del docente cargando, con error o sin ninguno. */
-function assignmentsState(aq: UseQueryResult<Assignment[]>, loadingLabel: string): ReactNode | undefined {
-  if (aq.isPending && !aq.data) return <LoadingBlocks label={loadingLabel} />;
-  if (aq.isError && !aq.data) return <ErrorState title="No pudimos cargar tus cursos." onRetry={() => aq.refetch()} />;
-  if (!aq.data?.length) return <EmptyState icon="students" title="No tienes cursos asignados en el periodo abierto." message="Secretaría arma la malla curricular; cuando te asigne un curso aparecerá aquí." />;
-  return undefined;
-}
-
-/** Datos de la pantalla: carga o error (el vacío lo decide cada pantalla). */
-function queryState(q: UseQueryResult<unknown>, loadingLabel: string, errorTitle: string): ReactNode | undefined {
-  if (q.isPending && !q.data) return <LoadingBlocks label={loadingLabel} />;
-  if (q.isError && !q.data) return <ErrorState title={errorTitle} onRetry={() => q.refetch()} />;
-  return undefined;
-}
-
-const NO_STUDENTS = <EmptyState icon="students" title="Este curso no tiene estudiantes activos." message="Cuando Secretaría matricule estudiantes en el curso, aparecerán aquí." />;
-const courseOption = (a: Assignment) => ({ value: a.key, label: a.courseId + " · " + a.subject });
 /** «Periodo 3» → «Periodo 2» para la nota anterior del concepto. */
 const prevPeriod = (name: string) => { const n = parseInt(name.replace(/\D/g, ""), 10); return n > 1 ? "Periodo " + (n - 1) : "Periodo anterior"; };
 
@@ -101,10 +77,15 @@ export function ConceptsPage() {
 }
 
 export function RecoveriesPage() {
+  const { aq, q, rq } = useRecoveries();
+  const save = useSaveRecovery();
+  const period = aq.data?.[0]?.periodName;
+  const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando tus cursos", "No pudimos cargar las recuperaciones.")
+    ?? queryState(rq, "Cargando las recuperaciones", "No pudimos cargar las recuperaciones.");
   return (
     <PageShell active="recoveries" counts={{ grades: 8 }}>
-      <Header eyebrow="Periodo 2 · actividades de recuperación" title="Recuperaciones" highlight="Recuperaciones" description="Solo aparecen los estudiantes con una materia por debajo de 3.0." />
-      <RecoveryTable />
+      <Header eyebrow={(DEMO ? "Periodo 2" : period ?? "Periodo") + " · actividades de recuperación"} title="Recuperaciones" highlight="Recuperaciones" description="Solo aparecen los estudiantes con una materia por debajo de 3.0." />
+      {state ?? <RecoveryTable data={rq.data ?? []} onSave={(r, value) => save.mutateAsync({ ...r, value })} />}
     </PageShell>
   );
 }

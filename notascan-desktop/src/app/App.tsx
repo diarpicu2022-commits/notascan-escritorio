@@ -13,7 +13,8 @@ import {
 import { AttendancePage, BehaviorPage, ConceptsPage, GradebookPage, RecoveriesPage } from "../pages/teacher/ClassroomPages";
 import { DashboardPage } from "../pages/teacher/DashboardPage";
 import { GradeReviewDashboard, UploadPage } from "../pages/teacher/GradingPages";
-import { EvaluationsPage, ReportsPage, StudentsPage } from "../pages/teacher/ListPages";
+import { ReportsPage } from "../pages/teacher/ListPages";
+import { EvaluationsPage, StudentsPage } from "../pages/teacher/RosterPages";
 import type { SyncStatus } from "../types/domain";
 import { hrefFor, parseHash, type Route } from "./router";
 import { ShellContext } from "./ShellContext";

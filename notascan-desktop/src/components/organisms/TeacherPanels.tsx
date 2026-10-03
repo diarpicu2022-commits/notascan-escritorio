@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cx } from "../../lib/cx";
 import { formatGrade, validateGrade } from "../../lib/grade";
-import { subjectGrades } from "../../data/academic";
-import { ALL_STUDENTS } from "../../data/students";
 import { Avatar } from "../atoms/Avatar";
 import { Badge, type BadgeTone } from "../atoms/Badge";
 import { Button } from "../atoms/Button";
@@ -10,20 +8,24 @@ import { Input, Textarea } from "../atoms/Field";
 import { Icon, type IconName } from "../atoms/Icon";
 import { FilterGroup } from "../molecules/Filters";
 import { longDate, saveMessage, type AttRow, type AttState } from "../../services/teacher";
+import type { RecoveryRow } from "../../services/teacherOverview";
 import { DataGrid } from "./DataGrid";
 import { useToast } from "./Toast";
 
 /* ---------- Recuperaciones: la nota original nunca se reemplaza ---------- */
 
-interface RecoveryRow { id: string; name: string; course: string; subject: string; original: number; recovery: string; saved: boolean }
+interface RecoveryTableProps {
+  data: RecoveryRow[];
+  /** Guarda la nota de recuperación; si la base la rechaza, la fila sigue sin guardar y se avisa. */
+  onSave?: (r: RecoveryRow, value: number) => Promise<void>;
+}
 
-export function RecoveryTable() {
-  const [rows, setRows] = useState<RecoveryRow[]>(() => ALL_STUDENTS.filter((s) => s.status === "active")
-    .map((s) => ({ s, g: subjectGrades(s).filter((x) => x.grade < 3)[0] }))
-    .filter((x) => x.g).slice(0, 9)
-    .map((x, i) => ({ id: x.s.id, name: x.s.name, course: x.s.course, subject: x.g.subject, original: x.g.grade, recovery: i === 0 ? "4.0" : i === 1 ? "2.6" : "", saved: i < 2 })));
+export function RecoveryTable({ data, onSave }: RecoveryTableProps) {
+  const [rows, setRows] = useState<RecoveryRow[]>(() => data);
+  const lastData = useRef(data);
+  useEffect(() => { if (lastData.current !== data) { lastData.current = data; setRows(data); } }, [data]);
   const [showToast, toastNode] = useToast();
-  const upd = (id: string, patch: Partial<RecoveryRow>) => setRows(rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const upd = (id: string, patch: Partial<RecoveryRow>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   function result(r: RecoveryRow): [string, BadgeTone, IconName, string] {
     if (!r.recovery) return ["Pendiente", "pending", "clock", "Sin nota de recuperación"];
     const c = validateGrade(r.recovery);
@@ -58,7 +60,10 @@ export function RecoveryTable() {
           return r.saved ? <Badge tone="neutral" icon="check">Guardada</Badge> : (
             <Button size="sm" disabled={!r.recovery || x[0] === "Revisar"} onClick={() => {
               upd(r.id, { saved: true });
-              showToast({ tone: "success", title: "Recuperación registrada", message: r.name.split(" ")[0] + " · " + r.subject + ": original " + formatGrade(r.original) + ", recuperación " + r.recovery });
+              (onSave ? onSave(r, validateGrade(r.recovery).value) : Promise.resolve()).then(
+                () => showToast({ tone: "success", title: "Recuperación registrada", message: r.name.split(" ")[0] + " · " + r.subject + ": original " + formatGrade(r.original) + ", recuperación " + r.recovery }),
+                (e) => { upd(r.id, { saved: false }); showToast({ tone: "error", title: "No pudimos guardar la recuperación", message: saveMessage(e) }); },
+              );
             }}>Guardar</Button>
           );
         }}
