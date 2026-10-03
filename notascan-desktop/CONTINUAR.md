@@ -53,10 +53,10 @@ Lo primero que se lee al retomar.
       una asignación con evaluaciones **borra sus notas en cascada**, «Guardar periodo» falla y no se registra el
       último acceso.
     - Sin forma de reactivar usuarios desactivados (tampoco en el sistema).
-  - Siguientes: 6b.3b (Matrícula, Boletines, Paz y salvo, Ranking, Inicio de Secretaría); antes 6b.3 Secretaría (matrícula, usuarios, estructura, malla, periodos, boletines, paz y salvo, ranking);
+  - Siguientes: 6b.3b (Matrícula, Boletines, Paz y salvo, Ranking, Inicio de Secretaría);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
-    `npm run build` antes de `verify:auth|data|teacher-data`.
+    `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.
   - Hallazgo para 6b.4: `decide_grade_request` aprueba la solicitud pero no cambia la nota en `grades`.
 - Credencial de la base: la lectura de la contraseña desde el navegador fue bloqueada por permisos (bien). Diego la
   restablece en Settings → Database y aplica con `npx supabase db push --db-url "<cadena de conexión>"` o pega las migraciones en el SQL Editor.
