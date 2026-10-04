@@ -527,3 +527,7 @@ permiso, lote todo o nada, sin ficha médica vacía).
 Regresión: tokens 26/26, card 51/51, shell 62/62, components 121/121, principal 76/76, teacher 123/123, auth 20/20,
 data 8/8, teacher-data 29/29. En la primera corrida `verify:teacher` se cortó con `ERR_NETWORK_IO_SUSPENDED` (el equipo
 suspendió la red durante la prueba); repetida sola: 123/123.
+
+6b.3b aprobado por Diego el 2026-10-03. Migración de matrícula aplicada en el proyecto real ese día (SQL Editor, una
+transacción, contenido cotejado): `enroll_student` y `enroll_students` con security invoker, sin ejecución para anon.
+Las tres decisiones de 6b.3b (xlsx, PDF y mensaje del director, CSV del ranking) siguen abiertas para 6b.3c.

@@ -54,11 +54,13 @@ Lo primero que se lee al retomar.
       (solo corre al guardar un periodo). Comprobado: disparador `assignments_keep_grades` activo, índice
       `academic_periods_one_open`, `save_period` y `touch_last_seen` solo para authenticated.
     - Sin forma de reactivar usuarios desactivados (tampoco en el sistema).
-  - **6b.3b (hecho 2026-10-03, esperando visto bueno):** Secretaría · registro de matrícula, importación CSV (todo o
+  - **6b.3b (hecho y aprobado 2026-10-03):** Secretaría · registro de matrícula, importación CSV (todo o
     nada), Paz y salvo, Ranking e Inicio con datos reales. Migración `20261003200000_matricula.sql` (`enroll_student`,
     `enroll_students`). `verify:admin-data` 29/29, `verify:states` 73/73, `verify:db` 77/77. Tres decisiones esperan a
     Diego (anexo, Paso 6b.3b).
-    - **Pendiente:** aplicar `20261003200000_matricula.sql` en Supabase. Sin ella, registrar e importar fallan.
+    - Migración `20261003200000_matricula.sql` **aplicada en Supabase** el 2026-10-03 (una transacción, cotejada por
+      SHA-1). Comprobado: `enroll_student` y `enroll_students` con security invoker, solo para authenticated. El próximo
+      código estudiantil será 20261505.
     - **Pendiente legal:** autorización del acudiente (Ley 1581) antes de matricular con datos reales.
   - Siguientes: 6b.3c Boletines (con la decisión del PDF, el mensaje del director y el puesto en el curso);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
