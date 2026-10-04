@@ -62,12 +62,14 @@ Lo primero que se lee al retomar.
       SHA-1). Comprobado: `enroll_student` y `enroll_students` con security invoker, solo para authenticated. El próximo
       código estudiantil será 20261505.
     - **Pendiente legal:** autorización del acudiente (Ley 1581) antes de matricular con datos reales.
-  - **6b.3c (hecho 2026-10-03, esperando visto bueno):** Boletines con datos reales e impresión a PDF, mensaje del
+  - **6b.3c (hecho y aprobado 2026-10-03):** Boletines con datos reales e impresión a PDF, mensaje del
     director (Docente → Conceptos → «Mensajes de director»), importación .xlsx con `read-excel-file`.
     Migración `20261003230000_boletines.sql`. `verify:admin-data` 36/36, `verify:teacher-data` 33/33, `verify:db` 86/86.
-    - **Pendiente:** aplicar `20261003230000_boletines.sql` en Supabase. Sin ella, la pestaña del director no aparece y
-      «Generar» no marca los boletines.
-    - **Pendiente de Diego:** datos reales de la institución para el encabezado del boletín (hoy los de demostración).
+    - Migración `20261003230000_boletines.sql` **aplicada en Supabase** el 2026-10-03 (una transacción, cotejada por
+      SHA-1). Comprobado: RLS en `director_messages` con 3 políticas, disparadores de firma, funciones solo para authenticated.
+    - Datos de la institución: Diego decide (2026-10-03) un **modo administrador de la plataforma** (multicolegio):
+      él da de alta los colegios que compran el servicio, les pone logo, resolución, DANE y demás, y ve uso y
+      estadísticas por colegio. Paso 7 (en diseño).
   - Siguientes: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;

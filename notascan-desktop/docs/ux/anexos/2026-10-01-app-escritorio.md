@@ -570,3 +570,8 @@ admin 102/102, principal 76/76, teacher 123/123, states 77/77, db 86/86.
 Fallos propios corregidos: la prueba de Excel navegaba a la misma URL en la que estaba (la pantalla no se volvía a
 montar); el efecto de impresión dependía de la función de cierre y habría abierto el diálogo en cada render (se fijó
 con una referencia antes de probarlo).
+
+6b.3c aprobado por Diego el 2026-10-03. Migración de boletines aplicada en el proyecto real ese día (una transacción,
+contenido cotejado). Sobre los datos de la institución, Diego pide un **modo administrador de la plataforma**: él da de
+alta los colegios clientes, carga su logo, resolución y DANE (que aparecen en el colegio, en boletines y en
+estudiantes) y ve uso y estadísticas por colegio. Se diseña como Paso 7.
