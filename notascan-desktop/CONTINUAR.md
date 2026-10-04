@@ -70,7 +70,13 @@ Lo primero que se lee al retomar.
     - Datos de la institución: Diego decide (2026-10-03) un **modo administrador de la plataforma** (multicolegio):
       él da de alta los colegios que compran el servicio, les pone logo, resolución, DANE y demás, y ve uso y
       estadísticas por colegio. Paso 7 (en diseño).
-  - Siguientes: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
+- **Paso 7 · Consola de la plataforma (multicolegio).** Anexo `docs/ux/anexos/2026-10-03-consola-plataforma.md` con
+  investigación, contrato (dirección A · Registro de colegios; una base separada por colegio; Diego ve solo cifras y uso).
+  - **7a (hecho 2026-10-04, esperando visto bueno):** base multicolegio. Migraciones `20261004090000_rol_plataforma.sql`
+    y `20261004100000_multicolegio.sql`. `verify:db` 108/108. **Sin aplicar en Supabase.**
+  - Siguientes: 7b identidad del colegio (logo y encabezado del boletín con vista previa en vivo), 7c marco del rol
+    Plataforma, 7d pantallas.
+  - Después: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.

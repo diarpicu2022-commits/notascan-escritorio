@@ -43,13 +43,22 @@ const one = async (sql, params) => (await db.query(sql, params)).rows[0];
 try {
   // ---------- 1. Migraciones y semilla ----------
   await runSql(SUPABASE_STUBS);
+  // Mismo orden que en el proyecto real: la semilla se cargó en el paso 6a, antes de multicolegio (7a), que la
+  // asigna al primer colegio. Así se prueba también ese relleno de datos existentes.
   const migrations = readdirSync(join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql")).sort();
+  const SEED_BEFORE = "20261004";
+  let seeded = false;
+  const loadSeed = async () => {
+    const seedErr = await runSql(readFileSync(join(ROOT, "supabase/seed.sql"), "utf8")).then(() => null, (e) => e.message);
+    check("La semilla se carga sin errores", !seedErr, seedErr || "");
+    seeded = true;
+  };
   for (const f of migrations) {
+    if (!seeded && f >= SEED_BEFORE) await loadSeed();
     const err = await runSql(readFileSync(join(ROOT, "supabase/migrations", f), "utf8")).then(() => null, (e) => e.message);
     check(`Migración ${f} se aplica sin errores`, !err, err || "");
   }
-  const seedErr = await runSql(readFileSync(join(ROOT, "supabase/seed.sql"), "utf8")).then(() => null, (e) => e.message);
-  check("La semilla se carga sin errores", !seedErr, seedErr || "");
+  if (!seeded) await loadSeed();
   const counts = await one(`select (select count(*) from public.students)::int s, (select count(*) from public.teaching_assignments)::int a,
     (select count(*) from public.grades)::int g, (select count(*) from public.grade_change_requests)::int r, (select count(*) from public.staff_directory)::int p`);
   check("Semilla: 72 estudiantes, 35 asignaciones, 9 notas, 5 solicitudes, 11 personas", counts.s === 72 && counts.a === 35 && counts.g === 9 && counts.r === 5 && counts.p === 11, JSON.stringify(counts));
@@ -297,7 +306,81 @@ try {
   const anonOverview = await as(null, () => errorOf("select * from public.director_overview('2026-p3')"));
   check("Sin sesión no se llama director_overview", anonOverview?.includes("permission denied"), anonOverview || "se llamó");
 
-  // ---------- 12. Fotos de exámenes ----------
+  // ---------- 12. Multicolegio y plataforma (7a) ----------
+  const A = "00000000-0000-4000-8000-000000000001";
+  const studentsA = (await one("select count(*)::int n from public.students")).n;
+  const backfilled = await one(`select (select count(*)::int from public.students where institution_id <> $1) s, (select count(*)::int from public.profiles where institution_id is distinct from $1) p,
+    (select count(*)::int from public.courses where institution_id <> $1) c`, [A]);
+  check("Multicolegio: los datos que ya existían quedan en el primer colegio", backfilled.s === 0 && backfilled.p === 0 && backfilled.c === 0, JSON.stringify(backfilled));
+  const B = (await one("insert into public.institutions (name, short_name, city, status) values ('Colegio San Felipe', 'SF', 'Ipiales', 'active') returning id")).id;
+  await db.query("insert into public.staff_directory (email, full_name, role, area, institution_id) values ('secre@sanfelipe.edu.co', 'Marta Ruano', 'admin', 'Secretaría académica', $1), ('profe@sanfelipe.edu.co', 'Iván Ruano', 'teacher', 'Docencia', $1)", [B]);
+  const adminB = await mk("secre@sanfelipe.edu.co");
+  const teacherB = await mk("profe@sanfelipe.edu.co");
+  const profB = await one("select institution_id from public.profiles where id = $1", [adminB]);
+  check("Multicolegio: la cuenta toma el colegio de su registro en el directorio", profB.institution_id === B, JSON.stringify(profB));
+  const sameIds = await as(adminB, () => runSql(`insert into public.grade_levels (id, name, level, status) values ('7', 'Séptimo', 'Básica secundaria', 'active');
+    insert into public.courses (id, grade_level_id, name, director_email) values ('7A', '7', '7A', 'profe@sanfelipe.edu.co');
+    insert into public.subjects (id, name, code, category) values ('mat', 'Matemáticas', 'MAT-01', 'Ciencias exactas');
+    insert into public.academic_periods (id, year, position, name, open_date, close_date, status) values ('2026-p3', 2026, 3, 'Periodo 3', '2026-07-13', '2026-10-15', 'open');
+    insert into public.teaching_assignments (teacher_email, subject_id, course_id, period_id) values ('profe@sanfelipe.edu.co', 'mat', '7A', '2026-p3')`).then(() => null, (e) => e.message));
+  check("Multicolegio: otro colegio crea su propio grado 7, curso 7A, materia «mat» y periodo abierto (sin chocar con el primero)", !sameIds, sameIds || "");
+  const enrolledB = await as(adminB, () => one("select public.enroll_student($1::jsonb) id", [JSON.stringify({ year: "2026", first_names: "Sara", last_names: "Ruano Paz", doc_type: "Tarjeta de identidad", document: "TI 1084655210", course_id: "7A", guardian_name: "Luz Paz", guardian_phone: "3120000000" })]));
+  const codeMax = (await one("select max(id::bigint)::text m from public.students where id ~ '^2026[0-9]{4}$'")).m;
+  check("Multicolegio: el mismo documento puede estar en dos colegios y el código estudiantil sigue siendo único en la plataforma", enrolledB.id === codeMax, JSON.stringify({ enrolledB, codeMax }));
+  const seenByB = await as(adminB, () => one("select count(*)::int n from public.students"));
+  const seenByA = await as(patricia, () => one("select count(*)::int n, count(*) filter (where id = $1)::int b from public.students", [enrolledB.id]));
+  check("Multicolegio: cada Secretaría ve solo los estudiantes de su colegio", seenByB.n === 1 && seenByA.n === studentsA && seenByA.b === 0, `B ve ${seenByB.n}, A ve ${seenByA.n} (con el de B: ${seenByA.b})`);
+  const ovB = await as(adminB, () => one("select count(*)::int n, max(grade_level_id) g from public.student_overview"));
+  check("Multicolegio: la vista de estudiantes une el curso dentro del mismo colegio", ovB.n === 1 && ovB.g === "7", JSON.stringify(ovB));
+  const crossWrite = await as(patricia, () => errorOf("insert into public.courses (id, grade_level_id, name, institution_id) values ('9Z', '7', '9Z', $1)", [B]));
+  check("Multicolegio: nadie escribe en otro colegio aunque mande su id", crossWrite?.includes("row-level security"), crossWrite || "escribió");
+  const teacherBSees = await as(teacherB, () => one("select count(*)::int n from public.students"));
+  const anaSees = await as(ana, () => one("select count(*)::int n from public.students where id = $1", [enrolledB.id]));
+  check("Multicolegio: el docente de un 7A no ve al estudiante del 7A del otro colegio", teacherBSees.n === 1 && anaSees.n === 0, `docente B ${teacherBSees.n}, Ana ve al de B: ${anaSees.n}`);
+
+  await db.query("insert into public.platform_admins (email, full_name) values ('diego@notascan.co', 'Diego Pinta')");
+  const diego = await mk("diego@notascan.co");
+  const diegoProfile = await one("select role::text r, institution_id from public.profiles where id = $1", [diego]);
+  check("Plataforma: la cuenta registrada como administradora de la plataforma no pertenece a ningún colegio", diegoProfile.r === "platform" && diegoProfile.institution_id === null, JSON.stringify(diegoProfile));
+  const diegoData = await as(diego, () => one(`select (select count(*)::int from public.students) s, (select count(*)::int from public.grades) g, (select count(*)::int from public.student_medical) m,
+    (select count(*)::int from public.guardians) gd, (select count(*)::int from public.observations) o, (select count(*)::int from public.institutions) i`));
+  check("Plataforma: ve los colegios pero ningún estudiante, nota, acudiente, dato médico ni observación", diegoData.s === 0 && diegoData.g === 0 && diegoData.m === 0 && diegoData.gd === 0 && diegoData.o === 0 && diegoData.i === 2, JSON.stringify(diegoData));
+  const stats = await as(diego, () => db.query("select institution_id, students, teachers, jsonb_array_length(weekly) w from public.platform_stats()").then((r) => r.rows));
+  const sa = stats.find((r) => r.institution_id === A), sb = stats.find((r) => r.institution_id === B);
+  const activeA = (await one("select count(*)::int n from public.students where institution_id = $1 and status = 'active'", [A])).n;
+  check("Plataforma: cifras por colegio (estudiantes activos, docentes, 8 semanas de actividad)", stats.length === 2 && sa.students === activeA && sb.students === 1 && sb.teachers === 1 && sa.w === 8, JSON.stringify(stats));
+  const statsLeak = Object.keys((await as(diego, () => db.query("select * from public.platform_stats() limit 1"))).rows[0]).join(",");
+  check("Plataforma: las cifras no traen nombres ni documentos", !/name|document|email/.test(statsLeak), statsLeak);
+  const notPlatform = await as(patricia, () => errorOf("select * from public.platform_stats()"));
+  check("Plataforma: un colegio no consulta las cifras de la plataforma", notPlatform?.includes("Solo la plataforma"), notPlatform || "consultó");
+  const identity = await as(diego, () => errorOf("update public.institutions set resolution = 'Resolución 0456 de 2019', dane = '152356000123', logo_path = 'sanfelipe/logo.png' where id = $1", [B]));
+  check("Plataforma: carga la identidad de un colegio", !identity, identity || "");
+  const badDane = await as(diego, () => errorOf("update public.institutions set dane = '123' where id = $1", [B]));
+  check("Plataforma: un DANE que no tiene 12 dígitos se rechaza", badDane?.includes("check"), badDane || "se guardó");
+  const ownRow = await as(adminB, () => db.query("select name, resolution from public.institutions").then((r) => r.rows));
+  const schoolEdits = await as(adminB, () => db.query("update public.institutions set name = 'Otro nombre'").then((r) => r.affectedRows));
+  check("Colegio: lee solo su propia identidad y no puede cambiarla", ownRow.length === 1 && ownRow[0].resolution === "Resolución 0456 de 2019" && schoolEdits === 0, JSON.stringify({ ownRow, schoolEdits }));
+  const logoUp = await as(diego, () => errorOf("insert into storage.objects (bucket_id, name) values ('institution-logos', 'sanfelipe/logo.png')"));
+  const logoUpSchool = await as(adminB, () => errorOf("insert into storage.objects (bucket_id, name) values ('institution-logos', 'sanfelipe/otro.png')"));
+  check("Plataforma: solo la plataforma sube logos", !logoUp && logoUpSchool?.includes("row-level security"), `plataforma: ${logoUp || "ok"} · colegio: ${logoUpSchool || "subió"}`);
+  await as(diego, () => db.query("update public.institutions set status = 'suspended' where id = $1", [B]));
+  const suspended = await as(adminB, () => one("select public.current_app_role()::text r, (select count(*)::int from public.students) n"));
+  check("Plataforma: un colegio suspendido no entra (sin rol ni datos)", suspended.r === null && suspended.n === 0, JSON.stringify(suspended));
+  const otherStillIn = await as(patricia, () => one("select public.current_app_role()::text r"));
+  check("Plataforma: suspender un colegio no afecta a los demás", otherStillIn.r === "admin", JSON.stringify(otherStillIn));
+
+  // ---------- 13. «supabase db reset»: todas las migraciones y después la semilla ----------
+  {
+    const fresh = new PGlite();
+    await fresh.exec(SUPABASE_STUBS);
+    for (const f of migrations) await fresh.exec(readFileSync(join(ROOT, "supabase/migrations", f), "utf8"));
+    const resetErr = await fresh.exec(readFileSync(join(ROOT, "supabase/seed.sql"), "utf8")).then(() => null, (e) => e.message);
+    const freshCount = resetErr ? null : (await fresh.query("select count(*)::int n, count(distinct institution_id)::int i from public.students")).rows[0];
+    check("Instalación desde cero: la semilla carga después de todas las migraciones y queda en el único colegio", !resetErr && freshCount.n === 72 && freshCount.i === 1, resetErr || JSON.stringify(freshCount));
+    await fresh.close();
+  }
+
+  // ---------- 14. Fotos de exámenes ----------
   const ownPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${ana}/parcial2/foto1.jpg')`));
   const otherPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${carlos}/parcial2/foto1.jpg')`));
   check("El docente sube fotos solo a su carpeta del bucket privado", !ownPhoto && otherPhoto?.includes("row-level security"), `propia: ${ownPhoto || "ok"} · ajena: ${otherPhoto || "se subió"}`);
