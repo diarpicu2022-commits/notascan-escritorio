@@ -20,6 +20,7 @@
     "verify:db": "node scripts/verify-db.mjs",
     "verify:auth": "node scripts/verify-auth.mjs",
     "verify:states": "node scripts/verify-states.mjs",
+    "verify:identity": "node scripts/verify-identity.mjs",
     "verify:data": "node scripts/verify-data.mjs",
     "verify:teacher-data": "node scripts/verify-teacher-data.mjs",
     "verify:admin-data": "node scripts/verify-admin-data.mjs",

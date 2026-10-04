@@ -2,9 +2,13 @@ import { cx } from "../../lib/cx";
 import { formatGrade } from "../../lib/grade";
 import { GRADE_NAME, PERF, PERIOD_SETUP, directorMessage, directorOf, periodIndex, subjectGrades } from "../../data/academic";
 import { seeded, type StudentRecord } from "../../data/students";
+import { DEMO_INSTITUTION, type Institution } from "../../services/institution";
+import { InstitutionHeader } from "./InstitutionIdentity";
 
 /** Todo lo que imprime un boletín. En modo normal sale de la base; en demostración, de las reglas del sistema. */
 export interface ReportCardData {
+  /** Colegio que emite el boletín (logo, nombre, resolución, DANE). */
+  school: Institution;
   studentName: string;
   period: string;
   year: number;
@@ -33,7 +37,7 @@ export function demoReportCard(s: StudentRecord, period = "Periodo 3"): ReportCa
   const cum = Math.round((rows.reduce((a, r) => a + r.cumulative, 0) / rows.length) * 10) / 10;
   const director = directorOf(s);
   return {
-    studentName: s.name, period, year: 2026, index: N, totalPeriods: PERIOD_SETUP.names.length,
+    school: DEMO_INSTITUTION, studentName: s.name, period, year: 2026, index: N, totalPeriods: PERIOD_SETUP.names.length,
     weightsText: PERIOD_SETUP.names.map((_, i) => "P" + (i + 1) + " " + PERIOD_SETUP.weights[i] + "%").join(" · "),
     facts: [
       ["Estudiante", s.name], ["Documento", s.document], ["Grado", GRADE_NAME[s.grade]], ["Curso", s.course],
@@ -56,11 +60,7 @@ export function ReportCardView({ data: d, compact }: { data: ReportCardData; com
   const rectorShort = d.rector.split(" ")[0].charAt(0) + ". " + d.rector.split(" ").slice(1).join(" ");
   return (
     <article className={cx("ns-paper", compact && "ns-paper--compact")} aria-label={"Boletín de " + d.studentName + ", " + d.period}>
-      <header className="ns-paper-head">
-        <div className="ns-paper-crest" aria-hidden><span>LA</span></div>
-        <div><strong className="ns-paper-school">Colegio Los Andes</strong><span>Pasto, Nariño · Resolución 0123 de 2015 · DANE 152001000000</span></div>
-        <div className="ns-paper-title"><span>Informe académico</span><strong>{d.period + " · " + d.year}</strong><small>{"Periodo " + N + " de " + d.totalPeriods}</small></div>
-      </header>
+      <InstitutionHeader institution={d.school} period={d.period} year={d.year} index={N} total={d.totalPeriods} />
       <section className="ns-paper-student">
         {d.facts.map((x) => <div key={x[0]}><span>{x[0]}</span><strong>{x[1]}</strong></div>)}
       </section>

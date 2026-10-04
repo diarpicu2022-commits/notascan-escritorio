@@ -3,6 +3,7 @@ import type { DesktopRole } from "../data/roles";
 import { CardCheck } from "../dev/CardCheck";
 import { ComponentsCheck } from "../dev/ComponentsCheck";
 import { TokenCheck } from "../dev/TokenCheck";
+import { IdentityCheck } from "../dev/IdentityCheck";
 import { LoginPage } from "../pages/LoginPage";
 import { StudentProfilePage } from "../pages/StudentProfilePage";
 import { AnalyticsPage, ObserverPage, PrincipalDashboardPage, RequestsPage, TeacherMonitoringPage } from "../pages/principal/PrincipalPages";
@@ -75,7 +76,7 @@ export function App() {
   }), [sync]);
 
   // Vistas de verificación: solo en modo demostración (nunca en el build normal).
-  if (route.kind === "dev" && DEMO) return route.view === "tokens" ? <TokenCheck /> : route.view === "components" ? <ComponentsCheck /> : <CardCheck />;
+  if (route.kind === "dev" && DEMO) return route.view === "tokens" ? <TokenCheck /> : route.view === "components" ? <ComponentsCheck /> : route.view === "identity" ? <IdentityCheck /> : <CardCheck />;
 
   // ---------- Sesión ----------
   if (!DEMO && auth.status === "loading") return null;

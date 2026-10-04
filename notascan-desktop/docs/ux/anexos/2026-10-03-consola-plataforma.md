@@ -106,3 +106,36 @@ cero (`supabase db reset`).
 
 Sin cambios en la app en este paso. Pendiente de comprobar en el proyecto real tras aplicar: que PostgREST resuelve las
 relaciones con las claves compuestas (las consultas de la app con `subject:subjects(...)` y `academic_periods!inner`).
+
+## 8. Paso 7b · Componente clave: identidad del colegio (2026-10-04)
+
+Diego aprueba 7a («apruebo sigue»). Las migraciones de 7a **no se aplicaron**: falta su autorización expresa y su correo
+de plataforma.
+
+- `services/institution.ts`: identidad del colegio (nombre, iniciales, ciudad, departamento, resolución, DANE, logo).
+  Cada colegio lee la suya (`useMyInstitution`); la línea legal solo muestra lo que existe (sin DANE no escribe «DANE»).
+- `InstitutionIdentity.tsx`: `SchoolCrest` (el escudo del boletín del sistema; con logo, fondo papel y borde fino, logo
+  **contenido** sin recortar ni deformar; sin logo, las iniciales), `InstitutionHeader` (encabezado del boletín),
+  `SchoolBadge` (colegio en el menú), `IdentityEditor` (formulario con logo: PNG/JPG/SVG/WebP hasta 1 MB, DANE de 12
+  dígitos, iniciales hasta 3) e `IdentityPreview` (vista previa en vivo del boletín y del menú). Lo usará la consola en 7d.
+- El boletín usa `InstitutionHeader` con el colegio de la base (en demostración, el del sistema: mismo DOM). El menú de
+  la app muestra el colegio de la sesión en modo normal (en demostración, el marco del sistema sin cambios).
+- Movimiento: el logo entra con `ns-pop` del sistema (220 ms, `transform`/`opacity`); sin animación con movimiento
+  reducido.
+
+Verificación `verify:identity` 24/25 (vista `#/dev/identity`, solo demostración): iniciales y datos del colegio, vista
+previa en vivo en boletín y menú, línea legal sin datos inventados, DANE incompleto, logos de prueba ancho (3:1) y alto
+(1:3) generados con PIL **contenidos con su proporción** en ambos escudos, logo de más de 1 MB y archivo que no es imagen
+rechazados conservando el anterior, quitar logo, contraste del nombre 14.10:1, línea legal 6.85:1, nombre en el menú
+11.54:1, teclado con foco visible, sin desbordamiento a 1440/1024/768 (a 768 la vista previa baja), consola limpia,
+movimiento reducido. Regresión: tokens 26/26, card 51/51, shell 62/62, components 121/121, admin 102/102, principal
+76/76, teacher 123/123, states 77/77, auth 20/20, data 8/8, teacher-data 33/33, admin-data 36/36, db 108/108.
+
+**Falla medida, del propio sistema (enmienda 4a propuesta, sin aplicar):** las iniciales del escudo salen gris sobre
+navy, **2.06:1**, porque la regla del sistema `.ns-paper-head span { color: var(--muted) }` alcanza también al `span` del
+escudo. El boletín original ya lo tiene. Propuesta: `.ns-paper-head .ns-paper-crest span { color: var(--gold); }` en
+`amendments.css` (dorado sobre navy, texto grande ≈ 4.9:1). Espera el permiso de Diego.
+
+Fallos propios encontrados y corregidos: el logo alto desbordaba el escudo (el escudo es una rejilla y la imagen alta la
+estiraba; ahora es un bloque); el campo de resolución vacío mostraba «Resolución 0123 de 2015» como ejemplo, que parecía
+un dato real; la vista previa del menú arrastraba la línea superior del pie.

@@ -5,6 +5,7 @@ import { Icon } from "../atoms/Icon";
 import { ConnectivityStatus } from "../molecules/ConnectivityStatus";
 import { GlobalSearch } from "../molecules/GlobalSearch";
 import { AppShell } from "./AppShell";
+import type { Institution } from "../../services/institution";
 
 export interface RoleShellProps {
   role: DesktopRole;
@@ -13,6 +14,7 @@ export interface RoleShellProps {
   overlay?: ReactNode;
   /** Persona con sesión (perfil real). Sin ella se muestra la persona de ejemplo del rol. */
   user?: { name: string; role: string };
+  school?: Institution | null;
   onNavigate?: (page: string, params?: { id?: string; tab?: string }) => void;
   onLogout?: () => void;
   style?: CSSProperties;
@@ -20,7 +22,7 @@ export interface RoleShellProps {
 }
 
 /** AppShell + navegación del rol + herramientas: chip de rol, búsqueda global y, para el docente, conexión. */
-export function RoleShell({ role, active, counts, overlay, user, onNavigate, onLogout, style, children }: RoleShellProps) {
+export function RoleShell({ role, active, counts, overlay, user, school, onNavigate, onLogout, style, children }: RoleShellProps) {
   const r = ROLES[role];
   const { sync, setSync, onSync } = useSync();
   const tools = (
@@ -40,7 +42,7 @@ export function RoleShell({ role, active, counts, overlay, user, onNavigate, onL
   return (
     <AppShell
       active={active} onNavigate={onNavigate} onLogout={onLogout} style={style} overlay={overlay}
-      items={roleNav(role, navCounts)} user={user || r.user} course={r.course} courseLabel={r.courseLabel} density={r.density} topbar={tools}
+      items={roleNav(role, navCounts)} user={user || r.user} school={school} course={r.course} courseLabel={r.courseLabel} density={r.density} topbar={tools}
     >
       {children}
     </AppShell>

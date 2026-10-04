@@ -4,6 +4,7 @@ import { DEMO, supabase } from "../lib/supabase";
 import { PERIODS } from "../data/admin";
 import { ALL_STUDENTS, COURSES, type StudentRecord } from "../data/students";
 import { demoReportCard, type ReportCardData } from "../components/organisms/ReportCardDocument";
+import { DEMO_INSTITUTION, toInstitution, type InstitutionRow } from "./institution";
 import { demoData, demoInitial, forcedState } from "./client";
 
 /*
@@ -25,14 +26,18 @@ interface Ctx { course: string; period: string }
 
 async function fetchReportCards({ course, period }: Ctx): Promise<ReportCardsData> {
   const sb = supabase();
-  const [pq, cq, gq, sq, dq] = await Promise.all([
+  const [pq, cq, gq, sq, dq, iq] = await Promise.all([
     sb.from("academic_periods").select("id, name, year, position, final_weight, open_date, close_date").order("year").order("position"),
     sb.from("courses").select("id, grade_level_id, director_email").neq("status", "archived").order("id"),
     sb.from("grade_levels").select("id, name"),
     sb.from("student_overview").select("id, full_name, document, course_id, grade_level_id, status, library_ok, fees_ok, documents_ok").eq("course_id", course).in("status", ["active", "pending"]).order("full_name"),
     sb.from("staff_directory").select("email, full_name, role"),
+    sb.from("institutions").select("id, name, short_name, city, department, resolution, dane, logo_path, status").limit(1),
   ]);
-  [pq, cq, gq, sq, dq].forEach(throwIf);
+  [pq, cq, gq, sq, dq, iq].forEach(throwIf);
+  // El colegio de quien consulta (el RLS solo deja leer el propio).
+  const instRow = ((iq.data ?? []) as InstitutionRow[])[0];
+  const school = instRow ? toInstitution(instRow) : DEMO_INSTITUTION;
   const periods = (pq.data ?? []) as Array<{ id: string; name: string; year: number; position: number; final_weight: number; open_date: string; close_date: string }>;
   const gradeNames = new Map(((gq.data ?? []) as Array<{ id: string; name: string }>).map((x) => [x.id, x.name]));
   const courses = ((cq.data ?? []) as Array<{ id: string; grade_level_id: string; director_email: string | null }>);
@@ -104,7 +109,7 @@ async function fetchReportCards({ course, period }: Ctx): Promise<ReportCardsDat
       const blocked = !(b.s.library_ok && b.s.fees_ok && b.s.documents_ok);
       const pos = ranked.indexOf(b);
       const data: ReportCardData = {
-        studentName: b.s.full_name, period: cur.name, year: cur.year, index: cur.position, totalPeriods,
+        school, studentName: b.s.full_name, period: cur.name, year: cur.year, index: cur.position, totalPeriods,
         weightsText: periods.filter((p) => p.year === cur.year).map((p) => "P" + p.position + " " + Number(p.final_weight) + "%").join(" · "),
         facts: [["Estudiante", b.s.full_name], ["Documento", b.s.document], ["Grado", gradeNames.get(b.s.grade_level_id) ?? b.s.grade_level_id], ["Curso", course],
           ["Director de grupo", director], ["Puesto en el curso", pos >= 0 ? pos + 1 + " de " + ranked.length : "Sin notas del periodo"]],

@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { MotionConfig } from "framer-motion";
 import "./styles/index.css";
 import "./styles/print.css";
+import "./styles/institution.css";
 import { App } from "./app/App";
 import { AuthProvider } from "./app/AuthContext";
 import { QueryClientProvider } from "@tanstack/react-query";

@@ -5,6 +5,8 @@ import { Icon } from "../atoms/Icon";
 import { BrandTile, Logo } from "../atoms/Logo";
 import { NavigationItem } from "../molecules/NavigationItem";
 import { UserProfile } from "../molecules/UserProfile";
+import type { Institution } from "../../services/institution";
+import { SchoolBadge } from "./InstitutionIdentity";
 
 interface SidebarProps {
   items: NavItem[];
@@ -13,6 +15,8 @@ interface SidebarProps {
   user: { name: string; role: string };
   course?: string;
   courseLabel?: string;
+  /** Colegio de la sesión (modo normal). Sin él, el marco del sistema. */
+  school?: Institution | null;
   onNavigate?: (id: string) => void;
   onLogout?: () => void;
   onClose?: () => void;
@@ -20,7 +24,7 @@ interface SidebarProps {
 }
 
 /** Navegación global. Solo navega: sin filtros, títulos ni acciones de página. */
-export function Sidebar({ items, active, collapsed: rail, user, course, courseLabel, onNavigate, onLogout, onClose, className }: SidebarProps) {
+export function Sidebar({ items, active, collapsed: rail, user, course, courseLabel, school, onNavigate, onLogout, onClose, className }: SidebarProps) {
   return (
     <aside className={cx("ns-sidebar", rail && "ns-sidebar--rail", className)} aria-label="Navegación principal">
       <div className="ns-sidebar-brand">
@@ -41,6 +45,7 @@ export function Sidebar({ items, active, collapsed: rail, user, course, courseLa
         </ul>
       </nav>
       <div className="ns-sidebar-foot">
+        {rail || !school ? null : <SchoolBadge institution={school} />}
         {rail || !course ? null : (
           <div className="ns-sidebar-course">
             <span className="ns-overline">{courseLabel || "Periodo 3 · 2026"}</span>

@@ -72,10 +72,12 @@ Lo primero que se lee al retomar.
       estadísticas por colegio. Paso 7 (en diseño).
 - **Paso 7 · Consola de la plataforma (multicolegio).** Anexo `docs/ux/anexos/2026-10-03-consola-plataforma.md` con
   investigación, contrato (dirección A · Registro de colegios; una base separada por colegio; Diego ve solo cifras y uso).
-  - **7a (hecho 2026-10-04, esperando visto bueno):** base multicolegio. Migraciones `20261004090000_rol_plataforma.sql`
+  - **7a (hecho y aprobado 2026-10-04):** base multicolegio. Migraciones `20261004090000_rol_plataforma.sql`
     y `20261004100000_multicolegio.sql`. `verify:db` 108/108. **Sin aplicar en Supabase.**
-  - Siguientes: 7b identidad del colegio (logo y encabezado del boletín con vista previa en vivo), 7c marco del rol
-    Plataforma, 7d pantallas.
+  - **7b (hecho 2026-10-04, esperando visto bueno):** identidad del colegio (escudo con logo o iniciales, encabezado del
+    boletín, colegio en el menú, editor con vista previa en vivo en `#/dev/identity`). `verify:identity` 24/25: la falla
+    es del sistema (iniciales del escudo 2.06:1) → enmienda 4a propuesta.
+  - Siguientes: 7c marco del rol Plataforma, 7d pantallas.
   - Después: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
