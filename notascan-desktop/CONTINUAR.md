@@ -73,10 +73,12 @@ Lo primero que se lee al retomar.
 - **Paso 7 · Consola de la plataforma (multicolegio).** Anexo `docs/ux/anexos/2026-10-03-consola-plataforma.md` con
   investigación, contrato (dirección A · Registro de colegios; una base separada por colegio; Diego ve solo cifras y uso).
   - **7a (hecho y aprobado 2026-10-04):** base multicolegio. Migraciones `20261004090000_rol_plataforma.sql`
-    y `20261004100000_multicolegio.sql`. `verify:db` 108/108. **Sin aplicar en Supabase.**
-  - **7b (hecho 2026-10-04, esperando visto bueno):** identidad del colegio (escudo con logo o iniciales, encabezado del
-    boletín, colegio en el menú, editor con vista previa en vivo en `#/dev/identity`). `verify:identity` 24/25: la falla
-    es del sistema (iniciales del escudo 2.06:1) → enmienda 4a propuesta.
+    y `20261004100000_multicolegio.sql`. `verify:db` 108/108. **Aplicadas en Supabase el 2026-10-04** (cotejadas por SHA-1).
+    Diego registrado en `platform_admins`. **Pendiente de Diego:** crear su usuario en Authentication → Add user con
+    su correo (Auto Confirm); el perfil queda con rol «platform» y sin colegio.
+  - **7b (hecho y aprobado 2026-10-04, con la enmienda 4a):** identidad del colegio (escudo con logo o iniciales, encabezado del
+    boletín, colegio en el menú, editor con vista previa en vivo en `#/dev/identity`). `verify:identity` 25/25 con la
+    enmienda 4a (iniciales del escudo en dorado, 4.91:1).
   - Siguientes: 7c marco del rol Plataforma, 7d pantallas.
   - Después: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.

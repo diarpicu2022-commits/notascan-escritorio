@@ -31,3 +31,8 @@
 .ns-change-big > div:first-child strong { color: var(--charcoal); }
 .ns-change-big .is-new { background: var(--paper); border-color: var(--gold); box-shadow: var(--shadow-gold); }
 .ns-change-big .is-new .ns-overline { color: var(--navy); }
+
+/* 2026-10-04 · Enmienda 4a (contraste del escudo del boletín). La regla del sistema `.ns-paper-head span`
+   (gris para la línea legal) alcanzaba también las iniciales del escudo: gris sobre navy, 2.06:1. Las iniciales
+   vuelven al dorado que el escudo declara (texto grande). Aprobada por Diego el 2026-10-04. */
+.ns-paper-head .ns-paper-crest span { color: var(--gold); }

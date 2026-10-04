@@ -139,3 +139,18 @@ escudo. El boletín original ya lo tiene. Propuesta: `.ns-paper-head .ns-paper-c
 Fallos propios encontrados y corregidos: el logo alto desbordaba el escudo (el escudo es una rejilla y la imagen alta la
 estiraba; ahora es un bloque); el campo de resolución vacío mostraba «Resolución 0123 de 2015» como ejemplo, que parecía
 un dato real; la vista previa del menú arrastraba la línea superior del pie.
+
+**2026-10-04 · Diego aprueba 7b, la enmienda 4a y la aplicación de 7a, y pide registrarse con su correo y nombre.**
+
+- Enmienda 4a aplicada en `amendments.css` (iniciales del escudo en dorado): `verify:identity` 25/25 (4.91:1); la
+  referencia del sistema se compara con la enmienda: teacher 123/123, admin 102/102.
+- Migraciones de 7a aplicadas en el proyecto real (SQL Editor, cada una en su transacción; la de multicolegio, 25 532
+  bytes, copiada por partes y cotejada por SHA-1 con el repositorio; Supabase la marcó «destructiva» por quitar y
+  recrear claves e índices y por el `UPDATE` de relleno, ambos previstos). Un intento de servir el archivo desde un
+  servidor local fue bloqueado por los permisos de la sesión (exponer un servicio local) y no se usó.
+- Comprobado en la base: 1 colegio con 72 de 72 estudiantes, 22 políticas restrictivas «solo mi colegio», clave
+  (colegio, código) en cursos y llaves foráneas compuestas, bucket `institution-logos` público, `platform_stats` sin
+  ejecución para anónimos, y Diego en `platform_admins` (Diego Armando Pinta Cuasquen).
+- API: las consultas de la app con relaciones (`subjects`, `academic_periods!inner`, `teaching_assignments`, `students`,
+  `profiles`, `grade_levels`) responden «permiso denegado» sin sesión, y una relación inexistente de control responde
+  `PGRST200`: PostgREST resuelve las llaves compuestas.
