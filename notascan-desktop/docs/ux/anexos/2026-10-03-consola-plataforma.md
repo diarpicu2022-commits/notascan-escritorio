@@ -177,3 +177,37 @@ a lectores de pantalla, orden de regiones del detalle, volver a la lista, sin de
 
 Fallo propio de la prueba, corregido: las primeras capturas salieron a mitad de la animación de entrada del sistema; ahora
 se toman con las animaciones congeladas.
+
+## 10. Paso 7d · Pantallas de la consola (2026-10-04)
+
+Diego aprueba 7c y pide crear su usuario de Supabase: **no se hizo** (crear cuentas y escribir contraseñas queda en
+sus manos); se le dieron los pasos (Authentication → Add user, su correo, Auto Confirm).
+
+- **Lista** (`DataGrid` del sistema): pestañas Activos / Implementación / Suspendidos con su cantidad; columnas colegio
+  (escudo pequeño y nombre, abre la ficha), ciudad, estudiantes, uso de 7 días, **8 semanas** (barras pequeñas navy, la
+  semana en curso en dorado), adopción (crece / estable / se cae / sin uso: últimas 4 semanas contra las 4 anteriores,
+  ±20 %), cantidad de alertas y último acceso. Orden por defecto: primero los que se caen.
+- **Dar de alta un colegio** (`Drawer`): colegio, iniciales, ciudad, departamento, plan, contrato y su **primera cuenta
+  de Secretaría** (nombre y correo). Una sola función de la base (`create_institution`): colegio en implementación y
+  la Secretaría registrada en el directorio de ese colegio; un correo ya usado en NotaScan se rechaza.
+- **Ficha**: «Requiere atención» primero (contrato vencido o por vencer, sin uso en dos semanas, uso cayendo, sin
+  cuenta de Secretaría o nadie ha entrado, sin logo, faltan resolución o DANE), cada alerta con su salida; **Uso** con
+  cuatro cifras y el gráfico de barras del sistema (eje entero); **Identidad** con el editor y la vista previa en vivo
+  de 7b; el logo se sube al bucket público en la carpeta del colegio al guardar.
+- **Región nueva «Servicio»** (añadido al contrato, **espera visto bueno**): estado, plan y contrato; suspender pide
+  confirmación y explica que nadie del colegio entra hasta reactivarlo, sin perder datos.
+- Privacidad: solo cifras de `platform_stats`; la prueba comprueba que no aparece ningún nombre de estudiante.
+
+Migración `20261004130000_consola_plataforma.sql`: `create_institution` (solo plataforma) y `platform_stats` con las
+cuentas de Secretaría registradas. **Sin aplicar en Supabase.**
+
+Verificación: `verify:platform` 26/26 (demo: marco, pestañas con cantidad, orden por adopción, barras, privacidad, alta
+con errores y confirmación, ficha en su orden, alertas, uso, identidad en vivo y guardar solo con cambios, suspender con
+confirmación, contraste: alerta, detalle, rótulo y cifra; sin desbordamiento a 1440/1024/768; colegio inexistente),
+`verify:platform-auth` 8/8 (modo normal: alta en una llamada y abre la ficha, logo subido a `institution-logos/<id>/` y
+ruta guardada con el DANE, suspensión guardada, «Sin permiso» en ambos sentidos), `verify:db` 114/114. Regresión en
+verde.
+
+Fallos propios encontrados y corregidos: el gráfico de uso marcaba el eje con decimales (172,5) y era demasiado alto;
+al ensancharlo para bajarle la altura, sus textos quedaron diminutos a 1024 px; ahora usa el ancho del sistema dentro de
+un contenedor de 640 px y un tope redondo par (marcas 0 / mitad / tope enteras).

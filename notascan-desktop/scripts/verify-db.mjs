@@ -363,6 +363,19 @@ try {
   const logoUp = await as(diego, () => errorOf("insert into storage.objects (bucket_id, name) values ('institution-logos', 'sanfelipe/logo.png')"));
   const logoUpSchool = await as(adminB, () => errorOf("insert into storage.objects (bucket_id, name) values ('institution-logos', 'sanfelipe/otro.png')"));
   check("Plataforma: solo la plataforma sube logos", !logoUp && logoUpSchool?.includes("row-level security"), `plataforma: ${logoUp || "ok"} · colegio: ${logoUpSchool || "subió"}`);
+  // Alta de un colegio (7d): colegio en implementación y su primera cuenta de Secretaría, solo desde la plataforma.
+  const newSchool = await as(diego, () => one("select public.create_institution($1::jsonb) id", [JSON.stringify({ name: "Institución Educativa La Merced", short_name: "iem", city: "Túquerres", department: "Nariño", plan: "Anual", contract_until: "2027-06-30", admin_name: "Rosa Erazo", admin_email: "Secretaria@LaMerced.edu.co" })]));
+  const created = await one(`select i.status, i.short_name, (select role::text || ':' || email from public.staff_directory d where d.institution_id = i.id) d from public.institutions i where i.id = $1`, [newSchool.id]);
+  check("Alta: crea el colegio en implementación con su primera cuenta de Secretaría (correo en minúsculas)", created.status === "implementation" && created.short_name === "IEM" && created.d === "admin:secretaria@lamerced.edu.co", JSON.stringify(created));
+  const dupMail = await as(diego, () => errorOf("select public.create_institution($1::jsonb)", [JSON.stringify({ name: "Otro", admin_name: "X", admin_email: "patricia@losandes.edu.co" })]));
+  check("Alta: un correo que ya está en NotaScan se rechaza", dupMail?.includes("ya está registrado"), dupMail || "se creó");
+  const schoolCreates = await as(patricia, () => errorOf("select public.create_institution($1::jsonb)", [JSON.stringify({ name: "Pirata", admin_name: "X", admin_email: "x@pirata.co" })]));
+  check("Alta: un colegio no da de alta colegios", schoolCreates?.includes("Solo la plataforma"), schoolCreates || "creó");
+  const secStats = await as(diego, () => one("select secretaries from public.platform_stats() where institution_id = $1", [newSchool.id]));
+  check("Cifras: cuentan las cuentas de Secretaría registradas", secStats.secretaries === 1, JSON.stringify(secStats));
+  const firstLogin = await mk("secretaria@lamerced.edu.co");
+  const firstProfile = await one("select role::text r, institution_id from public.profiles where id = $1", [firstLogin]);
+  check("Alta: cuando la Secretaría crea su acceso, entra a su colegio", firstProfile.r === "admin" && firstProfile.institution_id === newSchool.id, JSON.stringify(firstProfile));
   await as(diego, () => db.query("update public.institutions set status = 'suspended' where id = $1", [B]));
   const suspended = await as(adminB, () => one("select public.current_app_role()::text r, (select count(*)::int from public.students) n"));
   check("Plataforma: un colegio suspendido no entra (sin rol ni datos)", suspended.r === null && suspended.n === 0, JSON.stringify(suspended));

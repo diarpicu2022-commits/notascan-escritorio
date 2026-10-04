@@ -1,0 +1,18 @@
+/* Consola de la plataforma (paso 7d, contrato del anexo 2026-10-03-consola-plataforma). Solo tokens del sistema. */
+
+/* Actividad de 8 semanas en la tabla: barras navy; la semana en curso, dorada. */
+.ns-spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 24px; vertical-align: middle; }
+.ns-spark i { display: block; width: 6px; min-height: 2px; background: var(--navy); border-radius: 1px; }
+.ns-spark i.is-now { background: var(--gold); }
+
+/* Cifras de uso del colegio: cuatro baldosas en línea (dos en ventanas estrechas). */
+.ns-plat-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+.ns-plat-stat { display: grid; gap: var(--space-1); padding: var(--space-4); border: var(--border-hairline) solid var(--hairline); border-radius: var(--radius-md); background: var(--paper); }
+@media (max-width: 1100px) { .ns-plat-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Requiere atención: el icono lleva el tono de la gravedad (además de la palabra). */
+.ns-attn-burgundy { background: var(--burgundy-soft); color: var(--burgundy); }
+.ns-attn-gold { background: var(--gold-soft); color: var(--gold-ink); }
+
+/* Gráfico de actividad: el SVG del sistema escala con el ancho; se limita para que el texto quede a su tamaño. */
+.ns-plat-chart { max-width: 640px; }

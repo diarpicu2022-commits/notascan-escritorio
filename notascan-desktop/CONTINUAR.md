@@ -79,10 +79,15 @@ Lo primero que se lee al retomar.
   - **7b (hecho y aprobado 2026-10-04, con la enmienda 4a):** identidad del colegio (escudo con logo o iniciales, encabezado del
     boletín, colegio en el menú, editor con vista previa en vivo en `#/dev/identity`). `verify:identity` 25/25 con la
     enmienda 4a (iniciales del escudo en dorado, 4.91:1).
-  - **7c (hecho 2026-10-04, esperando visto bueno):** marco del rol Plataforma (menú «Colegios», sin búsqueda de
+  - **7c (hecho y aprobado 2026-10-04):** marco del rol Plataforma (menú «Colegios», sin búsqueda de
     estudiantes, entrada con cualquier opción del selector) y esqueleto de lista y detalle. `verify:platform` 11/11,
     `verify:platform-auth` 5/5.
-  - Siguientes: 7d pantallas (lista de colegios con datos, detalle, alta e identidad con subida del logo) y estados.
+  - **7d (hecho 2026-10-04, esperando visto bueno):** lista de colegios con adopción, alta con primera Secretaría,
+    ficha (atención, uso, identidad con logo, servicio). `verify:platform` 26/26, `verify:platform-auth` 8/8, `verify:db`
+    114/114. Región «Servicio» añadida al contrato: espera visto bueno.
+    - **Pendiente:** aplicar `20261004130000_consola_plataforma.sql` en Supabase (sin ella no se puede dar de alta).
+    - **Pendiente de Diego:** crear su usuario (Authentication → Add user, su correo, Auto Confirm) y, para cada colegio
+      nuevo, el acceso de su Secretaría (o un envío de invitación por correo, que necesita una función de servidor).
   - Después: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
