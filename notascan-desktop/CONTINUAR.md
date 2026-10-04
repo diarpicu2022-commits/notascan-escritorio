@@ -82,12 +82,16 @@ Lo primero que se lee al retomar.
   - **7c (hecho y aprobado 2026-10-04):** marco del rol Plataforma (menú «Colegios», sin búsqueda de
     estudiantes, entrada con cualquier opción del selector) y esqueleto de lista y detalle. `verify:platform` 11/11,
     `verify:platform-auth` 5/5.
-  - **7d (hecho 2026-10-04, esperando visto bueno):** lista de colegios con adopción, alta con primera Secretaría,
+  - **7d (hecho y aprobado 2026-10-04, con la región «Servicio»; migración aplicada):** lista de colegios con adopción, alta con primera Secretaría,
     ficha (atención, uso, identidad con logo, servicio). `verify:platform` 26/26, `verify:platform-auth` 8/8, `verify:db`
     114/114. Región «Servicio» añadida al contrato: espera visto bueno.
-    - **Pendiente:** aplicar `20261004130000_consola_plataforma.sql` en Supabase (sin ella no se puede dar de alta).
     - **Pendiente de Diego:** crear su usuario (Authentication → Add user, su correo, Auto Confirm) y, para cada colegio
-      nuevo, el acceso de su Secretaría (o un envío de invitación por correo, que necesita una función de servidor).
+      nuevo, el acceso de su Secretaría (resuelto en 7e con invitaciones).
+  - **7e (hecho 2026-10-04, esperando visto bueno):** invitaciones por correo (función `invite-staff` desplegada,
+    migración `20261004160000_invitaciones.sql` aplicada) y activación con código en el login; también restablecer con
+    código. `verify:invite` 14/14, regresión en verde.
+    - **Pendiente de Diego:** pegar las plantillas de `supabase/templates/` en Authentication → Emails (o autorizarme), y
+      configurar un SMTP propio: el correo por defecto solo entrega a miembros del equipo y 2 por hora.
   - Después: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;

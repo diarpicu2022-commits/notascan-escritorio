@@ -95,6 +95,12 @@ export function App() {
             return r.error;
           }}
           onForgot={auth.resetPassword}
+          onAcceptCode={auth.acceptCode}
+          onSetPassword={async (password) => {
+            const r = await auth.setNewPassword(password);
+            if (!r.error && r.role) window.location.hash = hrefFor(r.role, "dashboard");
+            return r.error;
+          }}
         />;
   }
 

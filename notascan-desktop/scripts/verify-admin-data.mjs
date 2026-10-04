@@ -32,6 +32,7 @@ async function mockApi(page) {
   await page.route("**/auth/v1/token**", (r) => r.fulfill({ json: { access_token: jwt, token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: "r", user } }));
   await page.route("**/auth/v1/user**", (r) => r.fulfill({ json: user }));
   await page.route("**/auth/v1/recover**", (r) => { record(r); r.fulfill({ json: {} }); });
+  await page.route("**/functions/v1/invite-staff**", (r) => { record(r); r.fulfill({ json: { sent: [r.request().postDataJSON().email] } }); });
   await page.route("**/rest/v1/rpc/**", (r) => {
     record(r);
     const u = r.request().url();
@@ -164,7 +165,8 @@ try {
   report.check("Usuarios: personal con estado de su cuenta y último acceso; acudientes «Sin cuenta»",
     users.length === 5 && users.some((t) => t.includes("Ana Lucía Rosero") && t.includes("Activo") && t.includes("Hoy, ")) && users.some((t) => t.includes("Docente Nuevo") && t.includes("Sin cuenta") && t.includes("Nunca")) && users.some((t) => t.includes("Gloria López") && t.includes("Acudiente")),
     users.join(" / ").slice(0, 400));
-  report.check("Usuarios: sin cuenta no se puede desactivar ni restablecer", await page.getByRole("button", { name: "Desactivar a Docente Nuevo" }).isDisabled() && await page.getByRole("button", { name: "Restablecer contraseña de Docente Nuevo" }).isDisabled());
+  report.check("Usuarios: sin cuenta no se desactiva y en vez de restablecer se le envía la invitación",
+    await page.getByRole("button", { name: "Desactivar a Docente Nuevo" }).isDisabled() && (await page.getByRole("button", { name: "Restablecer contraseña de Docente Nuevo" }).count()) === 0 && !(await page.getByRole("button", { name: "Enviar invitación a Docente Nuevo" }).isDisabled()));
   await page.getByRole("button", { name: "Invitar usuario" }).click();
   await page.locator(".ns-drawer").getByRole("button", { name: "Registrar usuario" }).click();
   report.check("Usuarios: registrar sin datos marca nombre y correo", (await page.locator(".ns-drawer .ns-field-error").count()) === 2);
@@ -172,8 +174,10 @@ try {
   await page.locator(".ns-drawer").getByLabel("Correo").fill("Rocio.Bastidas@losandes.edu.co");
   await page.locator(".ns-drawer").getByLabel("Rol").selectOption("staff");
   await page.locator(".ns-drawer").getByRole("button", { name: "Registrar usuario" }).click();
-  await toastTitle(page, "Usuario registrado");
+  await toastTitle(page, "Invitación enviada");
   const sPost = last("POST", "staff_directory");
+  const inv = writes.filter((w) => w.url.includes("/functions/v1/invite-staff")).pop();
+  report.check("Usuarios: al registrar a alguien sale su invitación con el código (función invite-staff)", inv?.body.email === "rocio.bastidas@losandes.edu.co", JSON.stringify(inv?.body));
   report.check("Usuarios: registrar guarda el correo en minúsculas con el rol de la base", JSON.stringify(sPost?.body) === JSON.stringify({ email: "rocio.bastidas@losandes.edu.co", full_name: "Rocío Bastidas", role: "admin", area: "Secretaría académica" }), JSON.stringify(sPost?.body));
   await page.getByRole("button", { name: "Desactivar a Ana Lucía Rosero" }).click();
   await page.locator("[role=alertdialog]").getByRole("button", { name: "Desactivar" }).click();

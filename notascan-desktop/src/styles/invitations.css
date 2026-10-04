@@ -1,0 +1,4 @@
+/* Activar la cuenta con el código del correo (paso 7e). Texto de apoyo del formulario de acceso: mismo papel que las
+   etiquetas del panel (ivory sobre navy), un peso por debajo. Solo tokens. */
+.ns-auth-note { margin: 0; font: 400 14px/20px var(--font-ui); color: var(--ivory); }
+@media (max-width: 820px) { .ns-auth-note { color: var(--charcoal); } }

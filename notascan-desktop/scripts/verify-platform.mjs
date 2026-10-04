@@ -124,6 +124,7 @@ try {
       await p.route("**/rest/v1/rpc/platform_stats**", (r) => r.fulfill({ json: [{ institution_id: SCHOOL.id, students: 41, teachers: 4, secretaries: 1, accounts: 5, last_seen: null, grades_7d: 3, grades_30d: 36, attendance_7d: 10, observations_30d: 2, weekly: [140, 150, 120, 130, 60, 20, 5, 8] }] }));
       await p.route("**/rest/v1/rpc/create_institution**", (r) => { rec(r); return r.fulfill({ json: "22222222-2222-4222-8222-222222222222" }); });
       await p.route("**/storage/v1/object/institution-logos/**", (r) => { rec(r); return r.fulfill({ json: { Key: "institution-logos/x" } }); });
+      await p.route("**/functions/v1/invite-staff**", (r) => { rec(r); return r.fulfill({ json: { sent: ["secretaria@champagnat.edu.co"] } }); });
     });
     await login(page, "Docente", "diarpicu2022@gmail.com");
     await page.waitForURL(/#\/platform\/dashboard$/, { timeout: 8000 }).catch(() => {});
@@ -139,6 +140,9 @@ try {
     await page.locator(".ns-drawer").getByRole("button", { name: "Dar de alta" }).click();
     await page.waitForURL(/#\/platform\/school\/22222222/, { timeout: 8000 }).catch(() => {});
     const cr = writes.find((w) => w.url.includes("rpc/create_institution"));
+    for (let k = 0; k < 30 && !writes.some((w) => w.url.includes("/functions/v1/invite-staff")); k++) await page.waitForTimeout(100);
+    const inv = writes.find((w) => w.url.includes("/functions/v1/invite-staff"));
+    report.check("Alta: envía enseguida la invitación a la Secretaría del colegio nuevo", inv?.body.institution_id === "22222222-2222-4222-8222-222222222222", JSON.stringify(inv?.body));
     report.check("Alta: una sola llamada con el colegio y su primera Secretaría, y abre su ficha",
       cr?.body.p.name === "Colegio Champagnat" && cr.body.p.short_name === "CHA" && cr.body.p.admin_email === "Secretaria@Champagnat.edu.co" && page.url().includes("#/platform/school/22222222"), JSON.stringify(cr?.body));
 

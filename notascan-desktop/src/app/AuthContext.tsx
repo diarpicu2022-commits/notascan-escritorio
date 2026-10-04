@@ -5,7 +5,10 @@ import { DEMO, setRemember, supabase } from "../lib/supabase";
 export interface Profile { id: string; email: string; fullName: string; role: DesktopRole }
 
 /** Errores del login con el texto que ve la persona y el campo donde va. */
-export interface LoginError { field: "email" | "password" | "role" | "form"; message: string }
+export interface LoginError { field: "email" | "password" | "role" | "form" | "code" | "newPassword"; message: string }
+
+/** Para qué es el código del correo: activar una invitación o restablecer la contraseña. */
+export type CodePurpose = "invite" | "recovery";
 
 interface AuthState {
   status: "loading" | "signed-out" | "signed-in";
@@ -14,6 +17,10 @@ interface AuthState {
   signIn: (email: string, password: string, role: DesktopRole, remember: boolean) => Promise<{ error: LoginError | null; role: DesktopRole }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<LoginError | null>;
+  /** Verifica el código de 6 dígitos del correo. La sesión queda abierta solo para crear la contraseña. */
+  acceptCode: (email: string, code: string, purpose: CodePurpose) => Promise<LoginError | null>;
+  /** Guarda la contraseña nueva y entra con el rol del perfil. */
+  setNewPassword: (password: string) => Promise<{ error: LoginError | null; role: DesktopRole | null }>;
 }
 
 const ROLE_NAME: Record<DesktopRole, string> = { teacher: "Docente", admin: "Secretaría", principal: "Rectoría", platform: "Plataforma" };
@@ -110,7 +117,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? { field: "form", message: "No pudimos enviar el correo. Inténtalo de nuevo en unos minutos." } : null;
   }, []);
 
-  const value = useMemo(() => ({ status, profile, signIn, signOut, resetPassword }), [status, profile, signIn, signOut, resetPassword]);
+  const acceptCode = useCallback<AuthState["acceptCode"]>(async (email, code, purpose) => {
+    // Mientras la persona no crea su contraseña, el evento SIGNED_IN no la lleva al inicio.
+    signingIn.current = true;
+    const sb = supabase();
+    const e = email.trim().toLowerCase(), token = code.replace(/\D/g, "");
+    // Una invitación reenviada llega como código de acceso («email»); la primera, como «invite».
+    const types: Array<"invite" | "email" | "recovery"> = purpose === "recovery" ? ["recovery"] : ["invite", "email"];
+    let last = "";
+    for (const type of types) {
+      const r = await sb.auth.verifyOtp({ email: e, token, type });
+      if (!r.error) return null;
+      last = r.error.message;
+    }
+    signingIn.current = false;
+    return /expired|invalid|not found/i.test(last)
+      ? { field: "code", message: "El código no es válido o ya venció. Pide uno nuevo." }
+      : { field: "form", message: "No pudimos conectar con NotaScan. Revisa tu conexión e inténtalo de nuevo." };
+  }, []);
+
+  const setNewPassword = useCallback<AuthState["setNewPassword"]>(async (password) => {
+    const sb = supabase();
+    const { error } = await sb.auth.updateUser({ password });
+    if (error) {
+      return { error: /weak|short|characters/i.test(error.message)
+        ? { field: "newPassword", message: "Elige una contraseña más segura: al menos 8 caracteres con letras y números." }
+        : { field: "form", message: "No pudimos guardar la contraseña. Revisa tu conexión e inténtalo de nuevo." }, role: null };
+    }
+    const p = await loadProfile().catch(() => null);
+    signingIn.current = false;
+    if (!p) {
+      await sb.auth.signOut();
+      return { error: { field: "form", message: "Tu contraseña quedó guardada, pero tu cuenta aún no tiene acceso. Habla con tu coordinación." }, role: null };
+    }
+    setProfile(p);
+    setStatus("signed-in");
+    touchLastSeen();
+    return { error: null, role: p.role };
+  }, []);
+
+  const value = useMemo(() => ({ status, profile, signIn, signOut, resetPassword, acceptCode, setNewPassword }), [status, profile, signIn, signOut, resetPassword, acceptCode, setNewPassword]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

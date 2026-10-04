@@ -211,3 +211,39 @@ verde.
 Fallos propios encontrados y corregidos: el gráfico de uso marcaba el eje con decimales (172,5) y era demasiado alto;
 al ensancharlo para bajarle la altura, sus textos quedaron diminutos a 1024 px; ahora usa el ancho del sistema dentro de
 un contenedor de 640 px y un tope redondo par (marcas 0 / mitad / tope enteras).
+
+## 11. Paso 7e · Invitaciones por correo y activación con código (2026-10-04)
+
+Diego aprueba 7d (incluida la región «Servicio»), pide aplicar su migración y hacer las invitaciones por correo.
+
+- Migración 7d aplicada (`create_institution`, `platform_stats` con cuentas de Secretaría; Supabase la marcó «destructiva»
+  por el `drop function platform_stats()`, que se recrea en la misma transacción).
+- **Función de servidor `invite-staff`** (Edge Function, desplegada desde el editor de Supabase, código cotejado por
+  SHA-1 con `supabase/functions/invite-staff/index.ts`): comprueba con la sesión de quien llama que es la Plataforma
+  (invita a la Secretaría registrada de un colegio) o la Secretaría (invita a alguien del directorio de SU colegio); solo
+  invita a quien está en el directorio y aún no tiene cuenta activa; reenvía con un código nuevo si ya estaba invitado. La
+  clave de servicio la pone Supabase dentro de la función y nunca llega a la app. Comprobado en producción: OPTIONS 204,
+  sin sesión 401, con una clave que no es de usuario 403.
+- Migración `20261004160000_invitaciones.sql` (aplicada): un usuario invitado queda con perfil **«invited»** (sin rol ni
+  datos) hasta confirmar el código; al confirmar pasa a «active».
+- **Activación con código** (decisión técnica, sin página web que hospedar): el correo trae un código de 6 dígitos. En el
+  login (solo modo normal; la demostración no cambia): «¿Te invitaron? Activa tu cuenta con el código del correo» →
+  correo + código → «Crea tu contraseña» (8 caracteres con letras y números, repetida) → entra con el rol de su perfil.
+  «¿Olvidaste tu contraseña?» ahora envía un código y ofrece «Ya tengo el código» (resuelve el pendiente de 6a: el enlace
+  de restablecimiento no tenía página de destino).
+- Dónde se invita: al **dar de alta un colegio** sale la invitación de su Secretaría; en la ficha, «Enviar invitación a
+  Secretaría»; en Usuarios de Secretaría, registrar a alguien envía su invitación y quien no tiene cuenta tiene «Enviar /
+  Reenviar invitación» en lugar de «Restablecer contraseña».
+- Plantillas de correo con el código en `supabase/templates/` (invitación, código reenviado y restablecimiento).
+
+**Hallazgos de la documentación de Supabase que Diego debe decidir:**
+1. Hay que pegar esas plantillas en Authentication → Emails (cambio de configuración de su proyecto: espera su permiso o lo
+   hace él). Sin `{{ .Token }}` el correo trae un enlace y no el código.
+2. **El correo por defecto de Supabase solo entrega a miembros del equipo del proyecto y 2 correos por hora**: sirve para
+   probar con su propio correo, no para invitar Secretarías reales. Hace falta un SMTP propio (Resend, Brevo…).
+
+Verificación: `verify:invite` 14/14 (activar con código: errores de correo y código, código solo dígitos, código equivocado
+probando invitación y reenvío, código correcto sin entrar todavía, contraste del texto de apoyo, contraseña débil y que no
+coincide, guardar y entrar al rol; restablecer con «Ya tengo el código» como «recovery»; volver al login),
+`verify:platform-auth` 9/9 (la invitación sale al dar de alta), `verify:admin-data` 37/37 (registrar envía la invitación;
+sin cuenta: invitar en vez de restablecer), `verify:db` 118/118 (invitado sin rol hasta confirmar). Regresión en verde.

@@ -19,7 +19,7 @@ import { DEMO } from "../../lib/supabase";
 import { lastSeen } from "../../services/admin";
 import type { Institution, InstitutionStatus } from "../../services/institution";
 import {
-  attentionOf, platformMessage, useCreateSchool, useSaveIdentity, useSaveService, useSchools, type Adoption, type NewSchool, type SchoolRow,
+  attentionOf, platformMessage, sendInvitation, useCreateSchool, useSaveIdentity, useSaveService, useSchools, type Adoption, type NewSchool, type SchoolRow,
 } from "../../services/platform";
 
 /*
@@ -75,10 +75,15 @@ export function PlatformSchoolsPage() {
   function submit() {
     setTried(true); setErr(null);
     if (e.name || e.adminName || e.adminEmail) return;
+    const mail = f.adminEmail.trim().toLowerCase();
     create.mutateAsync(f).then(
       (id) => {
         setForm(null); setTried(false);
-        showToast({ tone: "success", title: "Colegio dado de alta", message: f.adminEmail.trim().toLowerCase() + " ya puede crear su acceso como Secretaría." });
+        // La invitación sale enseguida; si falla, el colegio ya existe y se puede reenviar desde su ficha.
+        sendInvitation({ institutionId: id }).then(
+          () => showToast({ tone: "success", title: "Colegio dado de alta", message: "Enviamos a " + mail + " un código para activar su cuenta de Secretaría." }),
+          (x) => showToast({ tone: "error", title: "Colegio dado de alta, invitación sin enviar", message: (x instanceof Error ? x.message : "") + " Reenvíala desde la ficha del colegio." }),
+        );
         if (!DEMO) navigate("school", { id });
       },
       (x) => setErr(platformMessage(x)),
@@ -125,7 +130,7 @@ export function PlatformSchoolsPage() {
           <Input label="Contrato hasta" type="date" value={f.contractUntil} onChange={set("contractUntil")} className="ns-span-2" />
           <h3 className="ns-subhead ns-span-2">Primera cuenta de Secretaría</h3>
           <Input label="Nombre completo" required value={f.adminName} onChange={set("adminName")} error={tried ? e.adminName : undefined} />
-          <Input label="Correo" type="email" required value={f.adminEmail} onChange={set("adminEmail")} error={tried ? e.adminEmail : undefined} hint="Con este correo crea su acceso; desde ahí registra al resto del colegio." />
+          <Input label="Correo" type="email" required value={f.adminEmail} onChange={set("adminEmail")} error={tried ? e.adminEmail : undefined} hint="Le enviamos un código para activar su cuenta; desde ahí registra al resto del colegio." />
           {err ? <span className="ns-field-error ns-span-2" role="alert"><Icon name="error" size={16} />{err}</span> : null}
         </div>
       </Drawer>
@@ -157,6 +162,7 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
   const [tried, setTried] = useState(false);
   const [svc, setSvc] = useState<{ status: InstitutionStatus; plan: string; contractUntil: string } | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
+  const [inviting, setInviting] = useState(false);
   const identityRef = useRef<HTMLDivElement>(null), serviceRef = useRef<HTMLDivElement>(null), usageRef = useRef<HTMLDivElement>(null);
   // Al llegar (o recargar) los datos del colegio, el formulario parte de lo guardado.
   useEffect(() => {
@@ -258,6 +264,15 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
             <Input label="Contrato hasta" type="date" value={svc.contractUntil} onChange={(ev) => setSvc({ ...svc, contractUntil: ev.target.value })} />
             <div className="ns-reg-actions ns-span-2">
               <span className="ns-caption">{school.secretaries ? school.secretaries + (school.secretaries === 1 ? " cuenta de Secretaría registrada." : " cuentas de Secretaría registradas.") : "Sin cuenta de Secretaría registrada."}</span>
+              {school.secretaries ? (
+                <Button variant="ghost" icon="mail" loading={inviting} loadingText="Enviando…" onClick={() => {
+                  setInviting(true);
+                  sendInvitation({ institutionId: i.id }).then(
+                    (sent) => showToast({ tone: "success", title: "Invitación enviada", message: "Enviamos un código de activación a " + sent.join(", ") + "." }),
+                    (x) => showToast({ tone: "error", title: "No enviamos la invitación", message: x instanceof Error ? x.message : "" }),
+                  ).finally(() => setInviting(false));
+                }}>Enviar invitación a Secretaría</Button>
+              ) : null}
               <Button variant="secondary" icon="check" loading={saveSvc.isPending}
                 onClick={() => (svc.status === "suspended" && i.status !== "suspended" ? setConfirmSuspend(true) : saveService())}>Guardar servicio</Button>
             </div>

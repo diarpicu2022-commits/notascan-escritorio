@@ -108,7 +108,7 @@ export function attentionOf(s: SchoolRow): Attention[] {
   if (i.status === "active" && s.weekly.length && s.weekly.slice(-2).every((n) => n === 0)) out.push({ key: "idle", tone: "burgundy", title: "Sin uso en las últimas dos semanas", detail: "No hay notas verificadas ni asistencia tomada.", target: "usage" });
   if (s.adoption === "drops" && i.status === "active") out.push({ key: "drops", tone: "gold", title: "El uso viene cayendo", detail: "Las últimas 4 semanas tienen más de un 20 % menos de actividad que las 4 anteriores.", target: "usage" });
   if (!s.secretaries) out.push({ key: "no-admin", tone: "burgundy", title: "Sin cuenta de Secretaría registrada", detail: "Nadie del colegio puede configurar la estructura ni matricular.", target: "service" });
-  else if (!s.accounts && i.status !== "suspended") out.push({ key: "no-login", tone: "gold", title: "Nadie del colegio ha entrado todavía", detail: "La Secretaría registrada aún no crea su acceso.", target: "service" });
+  else if (!s.accounts && i.status !== "suspended") out.push({ key: "no-login", tone: "gold", title: "Nadie del colegio ha entrado todavía", detail: "La Secretaría registrada aún no activa su cuenta. Puedes reenviarle la invitación.", target: "service" });
   if (!i.logoUrl) out.push({ key: "no-logo", tone: "gold", title: "Sin logo", detail: "Los boletines salen con las iniciales del colegio.", target: "identity" });
   if (!i.resolution.trim() || !i.dane.trim()) out.push({ key: "no-legal", tone: "gold", title: "Faltan resolución o DANE", detail: "El encabezado de los boletines sale incompleto.", target: "identity" });
   return out;
@@ -169,4 +169,19 @@ export function useSaveService() {
     },
     onSuccess: () => { if (!DEMO) qc.invalidateQueries({ queryKey: ["schools"] }); },
   });
+}
+
+/* ---------- Invitaciones por correo (paso 7e) ---------- */
+
+/** Pide a la función invite-staff que envíe la invitación (código de 6 dígitos por correo). */
+export async function sendInvitation(target: { institutionId?: string; email?: string }): Promise<string[]> {
+  if (DEMO) { await new Promise((r) => window.setTimeout(r, 600)); return [target.email ?? "secretaria@colegio.edu.co"]; }
+  const { data, error } = await supabase().functions.invoke("invite-staff", { body: target.institutionId ? { institution_id: target.institutionId } : { email: target.email } });
+  if (error) {
+    // El cuerpo de la respuesta trae el motivo en español (sin cuenta de Secretaría, ya activa, límite de correos…).
+    const ctx = (error as { context?: Response }).context;
+    const detail = ctx ? await ctx.json().then((b: { error?: string }) => b.error, () => undefined) : undefined;
+    throw new Error(detail || "No pudimos enviar la invitación. Revisa tu conexión e inténtalo de nuevo.");
+  }
+  return (data as { sent?: string[] }).sent ?? [];
 }

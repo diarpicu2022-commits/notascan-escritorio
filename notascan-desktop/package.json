@@ -23,6 +23,7 @@
     "verify:identity": "node scripts/verify-identity.mjs",
     "verify:platform": "node scripts/verify-platform.mjs",
     "verify:platform-auth": "node scripts/verify-platform.mjs auth",
+    "verify:invite": "node scripts/verify-invite.mjs",
     "verify:data": "node scripts/verify-data.mjs",
     "verify:teacher-data": "node scripts/verify-teacher-data.mjs",
     "verify:admin-data": "node scripts/verify-admin-data.mjs",

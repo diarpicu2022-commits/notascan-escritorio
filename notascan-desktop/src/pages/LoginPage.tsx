@@ -5,7 +5,7 @@ import { Dots } from "../components/atoms/Button";
 import { Icon, type IconName } from "../components/atoms/Icon";
 import { Logo } from "../components/atoms/Logo";
 import { Toast } from "../components/organisms/Toast";
-import type { LoginError } from "../app/AuthContext";
+import type { CodePurpose, LoginError } from "../app/AuthContext";
 
 /** Ilustración propia del login: hoja de examen + teléfono escaneando, dentro de manchas orgánicas. */
 function LoginIllustration() {
@@ -101,10 +101,82 @@ interface LoginPageProps {
   onSubmit?: (data: { email: string; password: string; role: DesktopRole; remember: boolean }) => Promise<LoginError | null>;
   /** «¿Olvidaste tu contraseña?»: envía el correo de restablecimiento de Supabase. */
   onForgot?: (email: string) => Promise<LoginError | null>;
+  /** Modo normal: verifica el código de 6 dígitos del correo (invitación o restablecimiento). */
+  onAcceptCode?: (email: string, code: string, purpose: CodePurpose) => Promise<LoginError | null>;
+  /** Modo normal: guarda la contraseña nueva y entra. */
+  onSetPassword?: (password: string) => Promise<LoginError | null>;
+}
+
+/** Código del correo → contraseña nueva. Mismas piezas del formulario de acceso. */
+function CodeFlow({ purpose, initialEmail, onAcceptCode, onSetPassword, onBack }: {
+  purpose: CodePurpose; initialEmail: string; onBack: () => void;
+  onAcceptCode: NonNullable<LoginPageProps["onAcceptCode"]>; onSetPassword: NonNullable<LoginPageProps["onSetPassword"]>;
+}) {
+  const [step, setStep] = useState<"code" | "password">("code");
+  const [email, setEmail] = useState(initialEmail);
+  const [code, setCode] = useState("");
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [show, setShow] = useState(false);
+  const [tried, setTried] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<LoginError | null>(null);
+  const okEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), okCode = /^\d{6}$/.test(code);
+  const strong = pw.length >= 8 && /[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(pw) && /\d/.test(pw);
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setTried(true); setErr(null);
+    if (step === "code") {
+      if (!okEmail || !okCode) return;
+      setBusy(true);
+      const r = await onAcceptCode(email, code, purpose);
+      setBusy(false);
+      if (r) { setErr(r); return; }
+      setStep("password"); setTried(false);
+      return;
+    }
+    if (!strong || pw !== pw2) return;
+    setBusy(true);
+    const r = await onSetPassword(pw);
+    setBusy(false);
+    if (r) setErr(r);
+  }
+  const title = step === "password" ? "Crea tu contraseña" : purpose === "invite" ? "Activa tu cuenta" : "Restablece tu contraseña";
+  return (
+    <form className="ns-auth-form" onSubmit={submit} noValidate>
+      <h2>{title}</h2>
+      {step === "code" ? (
+        <>
+          <p className="ns-auth-note">{purpose === "invite" ? "Escribe el correo con el que te invitaron y el código de 6 dígitos que te llegó." : "Escribe tu correo y el código de 6 dígitos que te enviamos."}</p>
+          <AuthField id="code-email" label="Correo institucional" icon="mail" type="email" placeholder="nombre@colegio.edu.co" auto="email"
+            value={email} onChange={(e) => setEmail(e.target.value)} error={tried && !okEmail ? "Escribe tu correo completo." : err?.field === "email" ? err.message : null} />
+          <AuthField id="code-token" label="Código del correo" icon="key" type="text" placeholder="123456" auto="one-time-code"
+            value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            error={tried && !okCode ? "El código tiene 6 dígitos." : err?.field === "code" ? err.message : null} />
+        </>
+      ) : (
+        <>
+          <p className="ns-auth-note">{"Código verificado para " + email.trim().toLowerCase() + ". Elige la contraseña con la que vas a entrar."}</p>
+          <AuthField id="code-pass" label="Contraseña nueva" icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="new-password"
+            value={pw} onChange={(e) => setPw(e.target.value)}
+            error={tried && !strong ? "Al menos 8 caracteres con letras y números." : err?.field === "newPassword" ? err.message : null}
+            after={<button type="button" className="ns-auth-eye" aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"} aria-pressed={show} onClick={() => setShow(!show)}><Icon name="eye" size={18} /></button>} />
+          <AuthField id="code-pass2" label="Repite la contraseña" icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="new-password"
+            value={pw2} onChange={(e) => setPw2(e.target.value)} error={tried && strong && pw !== pw2 ? "Las contraseñas no coinciden." : null} />
+        </>
+      )}
+      {err?.field === "form" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{err.message}</span> : null}
+      <button type="submit" className="ns-auth-submit" aria-busy={busy || undefined} disabled={busy}>
+        {busy ? <><Dots /> {step === "code" ? "Verificando…" : "Guardando…"}</> : <>{step === "code" ? "Continuar" : "Guardar y entrar"} <Icon name="arrow" size={18} /></>}
+      </button>
+      <p className="ns-auth-foot"><a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Volver a iniciar sesión</a></p>
+    </form>
+  );
 }
 
 /** Acceso de escritorio: pantalla dividida con ilustración del flujo y formulario en píldoras. */
-export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot }: LoginPageProps) {
+export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot, onAcceptCode, onSetPassword }: LoginPageProps) {
+  const [codeFlow, setCodeFlow] = useState<CodePurpose | null>(null);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [tried, setTried] = useState(false);
@@ -165,6 +237,9 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
           <h1>¡Hola<span>!</span></h1>
           <p>Bienvenido de nuevo a NotaScan.</p>
         </div>
+        {codeFlow && onAcceptCode && onSetPassword ? (
+          <CodeFlow purpose={codeFlow} initialEmail={email} onAcceptCode={onAcceptCode} onSetPassword={onSetPassword} onBack={() => setCodeFlow(null)} />
+        ) : (
         <form className="ns-auth-form" onSubmit={submit} noValidate>
           <h2>Iniciar sesión</h2>
           <fieldset className="ns-auth-roles">
@@ -193,12 +268,19 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
           <button type="button" className="ns-auth-sso" onClick={() => (onSubmit ? setSsoMsg(true) : onLogin?.(role))}><Icon name="students" size={18} />Cuenta institucional</button>
           {ssoMsg ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />El acceso con cuenta institucional aún no está disponible. Entra con tu correo.</span> : null}
           <a className="ns-auth-mobile-link" href="#/movil"><Icon name="phone" size={16} />¿Eres estudiante o acudiente? Entra a la app móvil</a>
-          <p className="ns-auth-foot">¿Primera vez? <a href="#" onClick={(e) => e.preventDefault()}>Solicita acceso a tu coordinación</a></p>
+          {onAcceptCode
+            ? <p className="ns-auth-foot">¿Te invitaron? <a href="#" onClick={(e) => { e.preventDefault(); setSent(false); setCodeFlow("invite"); }}>Activa tu cuenta con el código del correo</a></p>
+            : <p className="ns-auth-foot">¿Primera vez? <a href="#" onClick={(e) => e.preventDefault()}>Solicita acceso a tu coordinación</a></p>}
         </form>
+        )}
       </main>
       {sent ? (
         <div className="ns-toast-region">
-          <Toast tone="info" title="Revisa tu correo" message={"Te enviamos un enlace a " + email.trim().toLowerCase() + " para elegir una contraseña nueva."} onClose={() => setSent(false)} />
+          <Toast tone="info" title="Revisa tu correo"
+            message={onAcceptCode
+              ? <>{"Te enviamos un código de 6 dígitos a " + email.trim().toLowerCase() + ". "}<a href="#" onClick={(e) => { e.preventDefault(); setSent(false); setCodeFlow("recovery"); }}>Ya tengo el código</a></>
+              : "Te enviamos un enlace a " + email.trim().toLowerCase() + " para elegir una contraseña nueva."}
+            onClose={() => setSent(false)} />
         </div>
       ) : null}
     </div>

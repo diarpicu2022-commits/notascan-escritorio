@@ -15,7 +15,7 @@ const SUPABASE_STUBS = `
   create role anon nologin;
   create role authenticated nologin;
   create schema auth;
-  create table auth.users (id uuid primary key default gen_random_uuid(), email text not null);
+  create table auth.users (id uuid primary key default gen_random_uuid(), email text not null, invited_at timestamptz, email_confirmed_at timestamptz);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   grant usage on schema auth to anon, authenticated;
   grant execute on function auth.uid() to anon, authenticated;
@@ -381,6 +381,19 @@ try {
   check("Plataforma: un colegio suspendido no entra (sin rol ni datos)", suspended.r === null && suspended.n === 0, JSON.stringify(suspended));
   const otherStillIn = await as(patricia, () => one("select public.current_app_role()::text r"));
   check("Plataforma: suspender un colegio no afecta a los demás", otherStillIn.r === "admin", JSON.stringify(otherStillIn));
+
+  // ---------- 12b. Invitaciones (7e) ----------
+  await db.query("insert into public.staff_directory (email, full_name, role, area, institution_id) values ('invitada@losandes.edu.co', 'Clara Invitada', 'teacher', 'Docencia', $1)", [A]);
+  const invited = (await db.query("insert into auth.users (email, invited_at) values ('invitada@losandes.edu.co', now()) returning id")).rows[0].id;
+  const inv1 = await one("select status from public.profiles where id = $1", [invited]);
+  const invRole = await as(invited, () => one("select public.current_app_role()::text r, (select count(*)::int from public.students) n"));
+  check("Invitación: el perfil queda «invitado», sin rol ni datos, hasta aceptar", inv1.status === "invited" && invRole.r === null && invRole.n === 0, JSON.stringify({ inv1, invRole }));
+  await db.query("update auth.users set email_confirmed_at = now() where id = $1", [invited]);
+  const inv2 = await one("select status from public.profiles where id = $1", [invited]);
+  const invRole2 = await as(invited, () => one("select public.current_app_role()::text r"));
+  check("Invitación: al confirmar con el código queda activa con su rol", inv2.status === "active" && invRole2.r === "teacher", JSON.stringify({ inv2, invRole2 }));
+  const confirmedFn = await as(ana, () => errorOf("select public.activate_invited_profile()"));
+  check("La función de activación no se puede llamar directamente", confirmedFn?.includes("permission denied") || confirmedFn?.includes("trigger"), confirmedFn || "se llamó");
 
   // ---------- 13. «supabase db reset»: todas las migraciones y después la semilla ----------
   {

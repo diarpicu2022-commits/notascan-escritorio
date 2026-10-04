@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { USER_ROLES, USER_STATUS, type UserRole } from "../../../data/admin";
 import { DEMO } from "../../../lib/supabase";
 import { adminMessage, sendPasswordReset, useDeactivateUser, useSaveUser, useUsers, type DirUser } from "../../../services/admin";
+import { sendInvitation } from "../../../services/platform";
 import { Avatar } from "../../atoms/Avatar";
 import { Badge } from "../../atoms/Badge";
 import { Button } from "../../atoms/Button";
@@ -32,7 +33,19 @@ export function UserDirectory({ invite, onInviteClose }: { invite?: boolean; onI
   const [form, setForm] = useState<DrawerUser | null>(null);
   const [tried, setTried] = useState(false);
   const [showToast, toastNode] = useToast();
+  const [inviting, setInviting] = useState<string | null>(null);
   useEffect(() => { if (invite) { setDrawer(NEW_USER); } }, [invite]);
+  /** Envía el código de activación (función invite-staff) a alguien registrado sin cuenta activa. */
+  function invite1(email: string, name: string) {
+    setInviting(email);
+    return sendInvitation({ email }).then(
+      () => {
+        if (DEMO) setRows((rs) => rs.map((x) => (x.email === email ? { ...x, status: "invited" } : x)));
+        showToast({ tone: "success", title: "Invitación enviada", message: name + " recibirá un código en " + email + " para activar su cuenta." });
+      },
+      (x) => showToast({ tone: "error", title: "No enviamos la invitación", message: x instanceof Error ? x.message : "" }),
+    ).finally(() => setInviting(null));
+  }
   useEffect(() => { setForm(drawer ? { ...drawer } : null); setTried(false); }, [drawer]);
   const closeDrawer = () => { setDrawer(null); onInviteClose?.(); };
   const t = query.toLowerCase();
@@ -50,11 +63,11 @@ export function UserDirectory({ invite, onInviteClose }: { invite?: boolean; onI
     const isNew = !!f._new;
     saveMut.mutateAsync({ user: f, isNew }).then(
       () => {
-        if (DEMO) setRows(isNew ? rows.concat({ ...f, id: "n" + Date.now(), status: "invited" }) : rows.map((x) => (x.id === f.id ? { ...x, name: f.name, email: f.email, role: f.role } : x)));
+        if (DEMO) setRows(isNew ? rows.concat({ ...f, id: "n" + Date.now(), status: "none" }) : rows.map((x) => (x.id === f.id ? { ...x, name: f.name, email: f.email, role: f.role } : x)));
         closeDrawer();
-        showToast(isNew
-          ? { tone: "success", title: "Usuario registrado", message: f.name.trim() + " ya puede crear su acceso con " + f.email.trim().toLowerCase() + "." }
-          : { tone: "success", title: "Cambios guardados" });
+        // Al registrar a alguien del personal, sale su invitación con el código de activación.
+        if (isNew) invite1(f.email.trim().toLowerCase(), f.name.trim());
+        else showToast({ tone: "success", title: "Cambios guardados" });
       },
       (e) => showToast({ tone: "error", title: "No pudimos guardar", message: adminMessage(e) }),
     );
@@ -79,7 +92,9 @@ export function UserDirectory({ invite, onInviteClose }: { invite?: boolean; onI
         rowActions={(u) => [
           <IconAction key="e" icon="edit" label={"Editar " + u.name} onClick={() => setDrawer(u)} />,
           <IconAction key="v" icon="eye" label={"Ver perfil de " + u.name} onClick={() => setDrawer({ _view: true, ...u })} />,
-          <IconAction key="k" icon="key" label={"Restablecer contraseña de " + u.name} disabled={!DEMO && u.status !== "active"} onClick={() => setReset(u)} />,
+          u.kind === "staff" && (u.status === "none" || u.status === "invited")
+            ? <IconAction key="m" icon="mail" label={(u.status === "invited" ? "Reenviar invitación a " : "Enviar invitación a ") + u.name} disabled={inviting === u.email} onClick={() => invite1(u.email, u.name)} />
+            : <IconAction key="k" icon="key" label={"Restablecer contraseña de " + u.name} disabled={!DEMO && u.status !== "active"} onClick={() => setReset(u)} />,
           <IconAction key="d" icon="userx" tone="danger" label={"Desactivar a " + u.name} disabled={u.status === "inactive" || (!DEMO && !u.profileId)} onClick={() => setDeact(u)} />,
         ]}
       />
