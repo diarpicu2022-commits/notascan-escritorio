@@ -28,7 +28,7 @@ const REVIEW = [
 ];
 
 /** Registro de escrituras por tabla y respuesta configurable (ok o rechazo). */
-const writes = { grades: [], attendance: [], observations: [], period_concepts: [], evaluations: [], recoveries: [] };
+const writes = { grades: [], attendance: [], observations: [], period_concepts: [], evaluations: [], recoveries: [], director_messages: [] };
 const reject = { grades: null };
 
 async function mockApi(page) {
@@ -85,6 +85,12 @@ async function mockApi(page) {
     if (r.request().method() === "POST") { writes.recoveries.push({ url: decodeURIComponent(r.request().url()), body: r.request().postDataJSON() }); return r.fulfill({ status: 201, body: "" }); }
     return r.fulfill({ json: [] });
   });
+  await page.route("**/rest/v1/academic_periods**", (r) => r.fulfill({ json: [{ id: "2026-p3", name: "Periodo 3" }] }));
+  await page.route("**/rest/v1/director_messages**", (r) => { writes.director_messages.push({ url: decodeURIComponent(r.request().url()), body: r.request().postDataJSON() }); return r.fulfill({ status: 201, body: "" }); });
+  await page.route("**/rest/v1/rpc/director_overview**", (r) => r.fulfill({ json: [
+    { student_id: "20261175", full_name: STUDENTS[0].full_name, course_id: "7A", subjects: [{ subject: "Física", grade: 3.4 }, { subject: "Matemáticas", grade: 4.6 }], absences: 1, message: null, message_state: null },
+    { student_id: "20261182", full_name: STUDENTS[1].full_name, course_id: "7A", subjects: [], absences: 0, message: null, message_state: null },
+  ] }));
   await page.route("**/rest/v1/period_concepts**", (r) => {
     const req = r.request();
     if (req.method() === "POST") { writes.period_concepts.push({ url: decodeURIComponent(req.url()), body: req.postDataJSON() }); return r.fulfill({ status: 201, body: "" }); }
@@ -203,6 +209,23 @@ try {
   await page.locator(".ns-toast-title", { hasText: "sin notas verificadas" }).waitFor({ timeout: 4000 }).catch(() => {});
   report.check("Conceptos: sin nota del periodo no se inventa un borrador; se avisa", (await page.locator(".ns-toast-title").textContent()) === "1 estudiante sin notas verificadas");
   await page.screenshot({ path: join(OUT, "paso6b2-conceptos.png") });
+
+  // ---------- 5b. Mensajes del director de grupo (6b.3c) ----------
+  await page.goto(URL_BASE + "#/teacher/concepts");
+  await page.getByRole("tab", { name: "Mensajes de director · 7A" }).click();
+  await page.locator(".ns-concept").first().waitFor({ timeout: 8000 });
+  report.check("Director: pestaña propia con los estudiantes de su grupo", (await page.locator(".ns-header-title").textContent()).includes("Mensajes del director") && (await page.locator(".ns-concept").count()) === 2);
+  await page.locator(".ns-concept").first().getByRole("button", { name: "Sugerir con IA" }).click();
+  await page.locator(".ns-concept").first().getByRole("button", { name: "Aprobar borrador" }).waitFor({ timeout: 4000 });
+  const draftText = await page.locator(".ns-concept").first().locator("textarea").inputValue();
+  report.check("Director: el borrador nombra su mejor y su materia más baja con notas reales", draftText.includes("Se destaca en Matemáticas (4.6)") && draftText.includes("Física (3.4)"), draftText);
+  await page.locator(".ns-concept").first().getByRole("button", { name: "Aprobar borrador" }).click();
+  await page.waitForTimeout(500);
+  const dm = writes.director_messages.filter((w) => w.body[0].state === "reviewed").pop();
+  report.check("Director: aprobar guarda el mensaje revisado del periodo, sin firma del cliente",
+    dm && dm.url.includes("on_conflict=student_id,period_id") && dm.body[0].student_id === "20261175" && dm.body[0].period_id === "2026-p3" && !signed(dm.body[0]), JSON.stringify(dm));
+  await page.locator(".ns-concept").nth(1).getByRole("button", { name: "Sugerir con IA" }).click();
+  report.check("Director: sin notas del periodo no se inventa un mensaje", (await page.locator(".ns-toast-title").last().textContent()) === "1 estudiante sin notas verificadas");
 
   // ---------- 6. Inicio (6b.2b) ----------
   await page.goto(URL_BASE + "#/teacher/dashboard");

@@ -1,7 +1,7 @@
 // Paso 6b.3a · configuración de Secretaría en modo normal (requiere `npm run build`), con la API de Supabase simulada:
 // lo que se lee de la base, lo que se envía al guardar y cómo se muestran las reglas que pone la base.
 import { join } from "node:path";
-import { OUT, URL_BASE, createReport, startPreview, watchConsole } from "./harness.mjs";
+import { OUT, ROOT, URL_BASE, createReport, startPreview, watchConsole } from "./harness.mjs";
 
 const report = createReport();
 const UID = "44444444-4444-4444-8444-444444444444";
@@ -10,6 +10,7 @@ const today = new Date().toISOString();
 
 const STAFF = [
   { email: "ana.lucia@losandes.edu.co", full_name: "Ana Lucía Rosero", role: "teacher" },
+  { email: "hernando@losandes.edu.co", full_name: "Hernando Villota", role: "principal" },
   { email: "nuevo@losandes.edu.co", full_name: "Docente Nuevo", role: "teacher" },
   { email: "patricia@losandes.edu.co", full_name: "Patricia Ortega", role: "admin" },
 ];
@@ -65,6 +66,9 @@ async function mockApi(page) {
   ];
   await table("student_overview", OVERVIEW);
   await table("evaluations", [{ id: 1, assignment_id: 5, weight: 50 }]);
+  await table("period_concepts", [{ student_id: "20261001", assignment_id: 5, text: "Alcanza satisfactoriamente el logro del periodo.", state: "reviewed" }]);
+  await table("director_messages", [{ student_id: "20261001", text: "Ana tuvo un periodo excelente y es un ejemplo para el grupo.", state: "teacher" }]);
+  await table("report_cards", []);
   await table("grades", [{ evaluation_id: 1, student_id: "20261001", value: 4.5 }, { evaluation_id: 1, student_id: "20261002", value: 2.5 }]);
   await table("staff_directory", (u) => (u.includes("role=eq.teacher") ? STAFF.filter((s) => s.role === "teacher") : STAFF));
   await table("guardians", [{ id: 1, full_name: "Gloria López", email: null }]);
@@ -74,7 +78,7 @@ async function mockApi(page) {
     const m = r.request().method();
     if (m === "DELETE") { record(r); return r.fulfill({ status: 400, json: { code: "P0001", message: "Esta asignación ya tiene evaluaciones. Cambia el docente en lugar de eliminarla." } }); }
     if (m !== "GET") { record(r); return r.fulfill({ status: 201, body: "" }); }
-    return r.fulfill({ json: [{ id: 5, teacher_email: "ana.lucia@losandes.edu.co", subject_id: "mat", course_id: "6A", period_id: "2026-p3" }] });
+    return r.fulfill({ json: [{ id: 5, teacher_email: "ana.lucia@losandes.edu.co", subject_id: "mat", course_id: "6A", period_id: "2026-p3", subject: { name: "Matemáticas" } }] });
   });
 
   await page.goto(URL_BASE + "#/login", { waitUntil: "networkidle" });
@@ -92,6 +96,11 @@ try {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
   const page = await ctx.newPage();
   const cons = watchConsole(page);
+  // La impresión del sistema se simula: se cuentan los boletines del documento y se cierra el diálogo.
+  await page.addInitScript(() => {
+    window.__printed = [];
+    window.print = () => { window.__printed.push(document.querySelectorAll(".ns-print-root .ns-paper").length); window.dispatchEvent(new Event("afterprint")); };
+  });
   await mockApi(page);
   // ---------- 1. Estructura académica ----------
   await page.goto(URL_BASE + "#/admin/structure");
@@ -153,7 +162,7 @@ try {
   await page.locator("tbody tr", { hasText: "Ana Lucía Rosero" }).waitFor({ timeout: 10000 });
   const users = await page.locator("tbody tr").allTextContents();
   report.check("Usuarios: personal con estado de su cuenta y último acceso; acudientes «Sin cuenta»",
-    users.length === 4 && users.some((t) => t.includes("Ana Lucía Rosero") && t.includes("Activo") && t.includes("Hoy, ")) && users.some((t) => t.includes("Docente Nuevo") && t.includes("Sin cuenta") && t.includes("Nunca")) && users.some((t) => t.includes("Gloria López") && t.includes("Acudiente")),
+    users.length === 5 && users.some((t) => t.includes("Ana Lucía Rosero") && t.includes("Activo") && t.includes("Hoy, ")) && users.some((t) => t.includes("Docente Nuevo") && t.includes("Sin cuenta") && t.includes("Nunca")) && users.some((t) => t.includes("Gloria López") && t.includes("Acudiente")),
     users.join(" / ").slice(0, 400));
   report.check("Usuarios: sin cuenta no se puede desactivar ni restablecer", await page.getByRole("button", { name: "Desactivar a Docente Nuevo" }).isDisabled() && await page.getByRole("button", { name: "Restablecer contraseña de Docente Nuevo" }).isDisabled());
   await page.getByRole("button", { name: "Invitar usuario" }).click();
@@ -210,8 +219,7 @@ try {
 
   // ---------- 7. Matrícula: importación CSV (6b.3b) ----------
   await page.goto(URL_BASE + "#/admin/enrollment?tab=import");
-  report.check("Importación: sin archivo de ejemplo ni promesa de Excel en modo normal",
-    (await page.getByRole("button", { name: "Usar archivo de ejemplo" }).count()) === 0 && !(await page.locator(".ns-import-drop").textContent()).includes("Excel"));
+  report.check("Importación: sin archivo de ejemplo en modo normal (importaría estudiantes inventados)", (await page.getByRole("button", { name: "Usar archivo de ejemplo" }).count()) === 0);
   const csv = [
     "Nombres;Apellidos;Tipo de documento;Número de documento;Fecha de nacimiento;Curso;Acudiente;Parentesco;Teléfono",
     "Samuel;Ortiz Bravo;Tarjeta de identidad;1084000010;12/03/2014;6A;Marta Bravo;Madre;3120000001",
@@ -243,6 +251,43 @@ try {
   const docs = imp?.body.p.map((x) => x.document + "@" + x.course_id).sort().join(", ");
   report.check("Importación: una sola llamada con válidas, corregidas y con advertencia; sin duplicados ni omitidas",
     docs === "TI 1084000010@6A, TI 1084000011@6A, TI 1084000012@6A, TI 1084000014@6A" && (await page.locator(".ns-reg-done p").textContent()) === "4 estudiantes fueron registrados correctamente.", docs);
+
+  // ---------- 7b. Importación desde Excel (.xlsx real, generado con openpyxl) (6b.3c) ----------
+  await page.goto(URL_BASE + "#/admin/students"); // misma URL que antes: hay que salir para volver a montar
+  await page.goto(URL_BASE + "#/admin/enrollment?tab=import");
+  report.check("Importación: la zona vuelve a aceptar Excel (.xlsx) y CSV", (await page.locator(".ns-import-drop").textContent()).includes("Excel .xlsx"));
+  await page.locator("input[type=file]").setInputFiles(join(ROOT, "scripts/fixtures/matricula.xlsx"));
+  await page.locator(".ns-block-title h2", { hasText: "registros encontrados" }).waitFor({ timeout: 10000 });
+  const xprev = await page.locator("tbody tr").first().textContent();
+  report.check("Excel: lee la primera hoja con fechas de celda y documentos numéricos", (await page.locator(".ns-block-title h2").first().textContent()) === "2 registros encontrados" && xprev.includes("Mariana") && xprev.includes("1084000021") && xprev.includes("12/03/2014"), xprev);
+  await page.getByRole("button", { name: "Validar archivo" }).click();
+  await page.getByRole("button", { name: "Corregir errores" }).click();
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Confirmar importación" }).click();
+  await page.locator("[role=alertdialog]").getByRole("button", { name: "Confirmar importación" }).click();
+  await page.locator(".ns-reg-done h2", { hasText: "Importación completada" }).waitFor({ timeout: 8000 });
+  const ximp = writes.filter((w) => w.url.includes("/rpc/enroll_students")).pop();
+  report.check("Excel: importa con documento, curso en mayúsculas y fecha ISO", JSON.stringify(ximp?.body.p.map((x) => [x.document, x.course_id, x.birth_date])) === JSON.stringify([["TI 1084000021", "6A", "2014-03-12"], ["TI 1084000022", "6A", "2014-07-01"]]), JSON.stringify(ximp?.body.p));
+
+  // ---------- 7c. Boletines (6b.3c) ----------
+  await page.goto(URL_BASE + "#/admin/reportcards");
+  await page.locator("tbody tr", { hasText: "Ana Bravo Paz" }).waitFor({ timeout: 10000 });
+  const rcRows = await page.locator("tbody tr").allTextContents();
+  report.check("Boletines: estado de cada estudiante (Luis bloqueado por paz y salvo)", rcRows.some((t) => t.includes("Ana Bravo Paz") && t.includes("4.5") && t.includes("Pendiente")) && rcRows.some((t) => t.includes("Luis Mora Ortiz") && t.includes("Bloqueado")), rcRows.join(" / "));
+  await page.locator("tbody tr", { hasText: "Ana Bravo Paz" }).getByRole("button", { name: "Previsualizar" }).click();
+  const paper = await page.locator("[role=dialog] .ns-paper").textContent();
+  report.check("Boletín: materia, docente, nota verificada, concepto revisado, mensaje del director, puesto y rector reales",
+    ["Matemáticas", "Ana Lucía Rosero", "4.5", "Alcanza satisfactoriamente el logro del periodo.", "Ana tuvo un periodo excelente", "Puesto en el curso1 de 2", "Hernando Villota", "Periodo 3 · 2026"].every((t) => paper.includes(t)), paper.slice(0, 300));
+  await page.locator("[role=dialog]").getByRole("button", { name: "Generar PDF" }).click();
+  await page.locator(".ns-toast-title", { hasText: "boletín generado" }).waitFor({ timeout: 8000 });
+  const rcPost = last("POST", "report_cards");
+  report.check("Boletín: abre la impresión con un boletín y lo marca como generado en la base",
+    JSON.stringify(await page.evaluate(() => window.__printed)) === "[1]" && JSON.stringify(rcPost?.body) === JSON.stringify([{ student_id: "20261001", period_id: "2026-p3", status: "generated" }]), JSON.stringify(rcPost?.body));
+  await page.getByRole("button", { name: "Generar todos" }).click();
+  await page.locator("[role=alertdialog]").getByRole("button", { name: "Generar todos" }).click();
+  await page.waitForTimeout(600);
+  report.check("Boletines: «Generar todos» imprime solo los habilitados (1 de 2), uno por página", JSON.stringify(await page.evaluate(() => window.__printed)) === "[1,1]", JSON.stringify(await page.evaluate(() => window.__printed)));
+  await page.screenshot({ path: join(OUT, "paso6b3c-boletines.png") });
 
   // ---------- 8. Paz y salvo (6b.3b) ----------
   await page.goto(URL_BASE + "#/admin/clearances");

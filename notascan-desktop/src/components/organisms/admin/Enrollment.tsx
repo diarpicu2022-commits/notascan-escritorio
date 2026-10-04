@@ -196,7 +196,7 @@ export function BulkImportPanel({ onNavigate, initialStep = 0 }: { onNavigate?: 
   if (step === 0) {
     content = (
       <div className="ns-import-grid">
-        <ImportFileZone csvOnly={!DEMO} onError={setErr} onFile={(f) => {
+        <ImportFileZone onError={setErr} onFile={(f) => {
           if (DEMO) { setFile(f); setErr(null); setStep(1); return; }
           setErr(null); setBusy(true);
           readImportFile(f.file!).then(

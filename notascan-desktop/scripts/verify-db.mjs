@@ -267,7 +267,37 @@ try {
   const anonEnroll = await as(null, () => errorOf("select public.enroll_student('{}'::jsonb)"));
   check("Sin sesión no se llama enroll_student", anonEnroll?.includes("permission denied"), anonEnroll || "se llamó");
 
-  // ---------- 11. Fotos de exámenes ----------
+  // ---------- 11. Boletines y mensaje del director (6b.3c) ----------
+  // Directores de la semilla: Ana Lucía dirige 6A; Jorge Insuasty, 7B.
+  const st6A = (await one("select id from public.students where course_id = '6A' and status = 'active' order by id limit 1")).id;
+  const st7A = (await one("select id from public.students where course_id = '7A' and status = 'active' order by id limit 1")).id;
+  const expected6A = (await one("select count(*)::int n from public.students where course_id = '6A' and status in ('active', 'pending')")).n;
+  const anaGroup = await as(ana, () => db.query("select course_id, subjects from public.director_overview('2026-p3')").then((r) => r.rows));
+  check("Director: el resumen trae solo los estudiantes de su grupo (Ana: 6A)", anaGroup.length === expected6A && anaGroup.every((r) => r.course_id === "6A"), `${anaGroup.length} de ${expected6A}`);
+  const jorgeGroup = await as(jorge, () => db.query("select course_id from public.director_overview('2026-p3')").then((r) => r.rows));
+  check("Director: otro director ve solo el suyo (Jorge: 7B)", jorgeGroup.length > 0 && jorgeGroup.every((r) => r.course_id === "7B"), String(jorgeGroup.length));
+  const patriciaGroup = await as(patricia, () => db.query("select 1 from public.director_overview('2026-p3')").then((r) => r.rows.length));
+  check("Director: quien no dirige ningún curso no recibe filas", patriciaGroup === 0, String(patriciaGroup));
+  const msg = (student, state) => `insert into public.director_messages (student_id, period_id, text, state, author_id) values ('${student}', '2026-p3', 'Un periodo muy positivo.', '${state}', '${carlos}')
+    on conflict (student_id, period_id) do update set text = excluded.text, state = excluded.state, author_id = excluded.author_id`;
+  const m1 = await as(ana, () => errorOf(msg(st6A, "teacher")));
+  const m1r = await one("select author_id from public.director_messages where student_id = $1", [st6A]);
+  const m2 = await as(ana, () => errorOf(msg(st6A, "ai")));
+  const m2r = await one("select author_id from public.director_messages where student_id = $1", [st6A]);
+  check("Mensaje: escrito por el director lleva su firma (aunque mande otra); un borrador de IA no lleva ninguna", !m1 && !m2 && m1r.author_id === ana && m2r.author_id === null, m1 || m2 || JSON.stringify([m1r, m2r]));
+  const m3 = await as(ana, () => errorOf(msg(st7A, "teacher")));
+  check("Mensaje: no se escribe para un estudiante de otro grupo", m3?.includes("row-level security"), m3 || "lo escribió");
+  const jorgeReads = await as(jorge, () => one("select count(*)::int n from public.director_messages where student_id = $1", [st6A]));
+  const adminReads = await as(patricia, () => one("select count(*)::int n from public.director_messages where student_id = $1", [st6A]));
+  check("Mensaje: lo leen Secretaría y Rectoría, no otros directores", jorgeReads.n === 0 && adminReads.n === 1, `Jorge ${jorgeReads.n}, Secretaría ${adminReads.n}`);
+  const rc = await as(patricia, () => errorOf(`insert into public.report_cards (student_id, period_id, status) values ('${st6A}', '2026-p3', 'generated')
+    on conflict (student_id, period_id) do update set status = excluded.status`));
+  const rcr = await one("select generated_by, generated_at is not null at from public.report_cards where student_id = $1 and period_id = '2026-p3'", [st6A]);
+  check("Boletín generado: la base pone quién y cuándo", !rc && rcr.generated_by === patricia && rcr.at, rc || JSON.stringify(rcr));
+  const anonOverview = await as(null, () => errorOf("select * from public.director_overview('2026-p3')"));
+  check("Sin sesión no se llama director_overview", anonOverview?.includes("permission denied"), anonOverview || "se llamó");
+
+  // ---------- 12. Fotos de exámenes ----------
   const ownPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${ana}/parcial2/foto1.jpg')`));
   const otherPhoto = await as(ana, () => errorOf(`insert into storage.objects (bucket_id, name) values ('exam-photos', '${carlos}/parcial2/foto1.jpg')`));
   check("El docente sube fotos solo a su carpeta del bucket privado", !ownPhoto && otherPhoto?.includes("row-level security"), `propia: ${ownPhoto || "ok"} · ajena: ${otherPhoto || "se subió"}`);

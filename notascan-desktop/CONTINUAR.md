@@ -62,7 +62,13 @@ Lo primero que se lee al retomar.
       SHA-1). Comprobado: `enroll_student` y `enroll_students` con security invoker, solo para authenticated. El próximo
       código estudiantil será 20261505.
     - **Pendiente legal:** autorización del acudiente (Ley 1581) antes de matricular con datos reales.
-  - Siguientes: 6b.3c Boletines (con la decisión del PDF, el mensaje del director y el puesto en el curso);
+  - **6b.3c (hecho 2026-10-03, esperando visto bueno):** Boletines con datos reales e impresión a PDF, mensaje del
+    director (Docente → Conceptos → «Mensajes de director»), importación .xlsx con `read-excel-file`.
+    Migración `20261003230000_boletines.sql`. `verify:admin-data` 36/36, `verify:teacher-data` 33/33, `verify:db` 86/86.
+    - **Pendiente:** aplicar `20261003230000_boletines.sql` en Supabase. Sin ella, la pestaña del director no aparece y
+      «Generar» no marca los boletines.
+    - **Pendiente de Diego:** datos reales de la institución para el encabezado del boletín (hoy los de demostración).
+  - Siguientes: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.

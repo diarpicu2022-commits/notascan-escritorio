@@ -3,9 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatGrade } from "../../../lib/grade";
 import { GRADE_NAME } from "../../../data/academic";
 import { PERIODS, exportCSV } from "../../../data/admin";
-import { ALL_STUDENTS, COURSES, type StudentRecord } from "../../../data/students";
+import { COURSES, type StudentRecord } from "../../../data/students";
 import { DEMO } from "../../../lib/supabase";
 import { rankRows, saveClearance, useAcademic, type ClearKey, type RankRow } from "../../../services/enrollment";
+import { cardOf, useMarkGenerated, useReportCards, type RcRow, type RcState } from "../../../services/reportCards";
 import { useStudents } from "../../../services/students";
 import { Avatar } from "../../atoms/Avatar";
 import { Badge, type BadgeTone } from "../../atoms/Badge";
@@ -16,16 +17,15 @@ import { Switch } from "../../atoms/Switch";
 import { FilterGroup } from "../../molecules/Filters";
 import { DataGrid } from "../DataGrid";
 import { ConfirmAction, Modal } from "../Overlays";
-import { ReportCardDocument } from "../ReportCardDocument";
+import { ReportCardView } from "../ReportCardDocument";
+import { PrintDocuments } from "../PrintDocuments";
 import { useToast } from "../Toast";
 
 /* ---------- Boletines ---------- */
 
-type RcState = "pending" | "generated" | "blocked";
-type RcRow = StudentRecord & { rc: RcState };
 const RC: Record<RcState, [string, BadgeTone, IconName]> = { pending: ["Pendiente", "pending", "clock"], generated: ["Generado", "verified", "check"], blocked: ["Bloqueado · paz y salvo", "review", "lock"] };
 
-/** Previsualiza y genera boletines; los estudiantes sin paz y salvo quedan bloqueados. */
+/** Previsualiza y genera boletines; los estudiantes sin paz y salvo quedan bloqueados. El PDF sale de la impresión. */
 export function ReportCardManager() {
   const [course, setCourse] = useState("7A");
   const [period, setPeriod] = useState("Periodo 3");
@@ -34,25 +34,51 @@ export function ReportCardManager() {
   const [showToast, toastNode] = useToast();
   const [confirmAll, setConfirmAll] = useState(false);
   const [gen, setGen] = useState<Record<string, true>>({});
-  const rows: RcRow[] = ALL_STUDENTS.filter((s) => s.course === course && s.status !== "retired").map((s) => {
-    const blocked = !(s.library && s.fees && s.documents);
-    return { ...s, rc: (blocked ? "blocked" : gen[s.id] ? "generated" : "pending") as RcState };
-  }).filter((s) => status === "all" || s.rc === status);
+  const [printing, setPrinting] = useState<RcRow[] | null>(null);
+  const q = useReportCards({ course, period });
+  const mark = useMarkGenerated();
+  const d = q.data;
+  // Modo normal: al llegar los datos, el curso y el periodo se ajustan a los que existen (el abierto por defecto).
+  useEffect(() => {
+    if (DEMO || !d) return;
+    if (d.courses.length && !d.courses.some((c) => c.id === course)) setCourse(d.courses[0].id);
+    if (d.periods.length && !d.periods.includes(period)) setPeriod(d.periods[d.periods.length - 1]);
+  }, [d]);
+  const rows: RcRow[] = (d?.rows ?? []).map((r) => (r.rc === "pending" && gen[r.id] ? { ...r, rc: "generated" as RcState } : r)).filter((s) => status === "all" || s.rc === status);
+  const gradeOf = (c: string) => (DEMO ? c.charAt(0) : d?.courses.find((x) => x.id === c)?.gradeId ?? "");
+  const grades = DEMO ? ["6", "7", "8"].map((g) => ({ value: g, label: GRADE_NAME[g] }))
+    : (d?.courses ?? []).filter((c, i, all) => all.findIndex((x) => x.gradeId === c.gradeId) === i).map((c) => ({ value: c.gradeId, label: c.gradeName }));
+  const courseIds = DEMO ? COURSES : (d?.courses ?? []).map((c) => c.id);
   function generate(list: RcRow[]) {
-    const o = { ...gen };
-    let n = 0;
-    list.forEach((s) => { if (s.rc !== "blocked") { o[s.id] = true; n++; } });
-    setGen(o);
-    showToast({ tone: "success", title: n + (n === 1 ? " boletín generado" : " boletines generados"), message: "PDF listos para descargar · " + period });
+    const ok = list.filter((s) => s.rc !== "blocked");
+    if (DEMO) {
+      const o = { ...gen };
+      ok.forEach((s) => { o[s.id] = true; });
+      setGen(o);
+      showToast({ tone: "success", title: ok.length + (ok.length === 1 ? " boletín generado" : " boletines generados"), message: "PDF listos para descargar · " + period });
+      return;
+    }
+    if (!ok.length) { showToast({ tone: "info", title: "Nada que generar", message: "Los estudiantes seleccionados tienen el paz y salvo bloqueado." }); return; }
+    setPrinting(ok);
+  }
+  function afterPrint() {
+    const ok = printing ?? [];
+    setPrinting(null);
+    mark.mutateAsync({ ids: ok.map((r) => r.id), period }).then(
+      () => showToast({ tone: "success", title: ok.length + (ok.length === 1 ? " boletín generado" : " boletines generados"), message: "Si elegiste «Guardar como PDF», el archivo quedó donde lo guardaste · " + period }),
+      () => showToast({ tone: "error", title: "No pudimos marcar los boletines como generados", message: "La impresión se hizo; vuelve a intentarlo para registrar el estado." }),
+    );
   }
   return (
     <>
       <DataGrid<RcRow>
-        caption="Boletines por estudiante" rows={rows} selectable pageSize={12} density="compact" resetKey={course + status}
+        caption="Boletines por estudiante" rows={rows} selectable pageSize={12} density="compact" resetKey={course + status + period}
+        loading={q.isPending && !d} error={q.isError && !d ? "No pudimos cargar los boletines." : undefined} onRetry={() => q.refetch()}
+        emptyTitle={d?.rows.length ? "No hay boletines con este estado." : "No hay estudiantes activos en este curso."} emptyIcon="book"
         toolbar={<>
-          <FilterGroup as="select" label="Grado" value={course.charAt(0)} onChange={(g) => setCourse(g + "A")} options={["6", "7", "8"].map((g) => ({ value: g, label: GRADE_NAME[g] }))} />
-          <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={COURSES.filter((c) => c.charAt(0) === course.charAt(0)).map((c) => ({ value: c, label: c }))} />
-          <FilterGroup as="select" label="Periodo" value={period} onChange={setPeriod} options={PERIODS.map((p) => ({ value: p, label: p }))} />
+          <FilterGroup as="select" label="Grado" value={gradeOf(course)} onChange={(g) => setCourse(DEMO ? g + "A" : courseIds.find((c) => gradeOf(c) === g) ?? course)} options={grades} />
+          <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={courseIds.filter((c) => gradeOf(c) === gradeOf(course)).map((c) => ({ value: c, label: c }))} />
+          <FilterGroup as="select" label="Periodo" value={period} onChange={setPeriod} options={(d?.periods ?? PERIODS).map((p) => ({ value: p, label: p }))} />
           <FilterGroup label="Estado" value={status} onChange={setStatus} options={[{ value: "all", label: "Todos" }, { value: "pending", label: "Pendiente" }, { value: "generated", label: "Generado" }, { value: "blocked", label: "Bloqueado" }]} />
         </>}
         bulkActions={(sel, clear) => <Button size="sm" icon="book" onClick={() => { generate(sel); clear(); }}>Generar selección</Button>}
@@ -68,7 +94,8 @@ export function ReportCardManager() {
         ]}
       />
       <ConfirmAction open={confirmAll} icon="book" onCancel={() => setConfirmAll(false)} title={"¿Generar todos los boletines de " + course + "?"}
-        description="Los estudiantes con paz y salvo bloqueado se omiten automáticamente." confirmLabel="Generar todos" onConfirm={() => { setConfirmAll(false); generate(rows); }} />
+        description={DEMO ? "Los estudiantes con paz y salvo bloqueado se omiten automáticamente." : "Se abrirá la impresión con un boletín por página: elige «Guardar como PDF». Los estudiantes con paz y salvo bloqueado se omiten."}
+        confirmLabel="Generar todos" onConfirm={() => { setConfirmAll(false); generate(rows); }} />
       <Modal
         open={!!preview} onClose={() => setPreview(null)} size="doc" title="Vista previa del boletín" description={preview ? preview.name + " · " + period : ""}
         actions={[
@@ -78,9 +105,10 @@ export function ReportCardManager() {
             : <Badge key="b" tone="review" icon="lock">Bloqueado por paz y salvo</Badge>,
         ]}
       >
-        {preview ? <div className="ns-paper-scroll"><ReportCardDocument student={preview} period={period} /></div> : null}
+        {preview ? <div className="ns-paper-scroll"><ReportCardView data={cardOf(preview, period)} /></div> : null}
       </Modal>
-      <div className="ns-sticky-cta"><Button size="lg" icon="book" onClick={() => setConfirmAll(true)}>Generar todos</Button></div>
+      <div className="ns-sticky-cta"><Button size="lg" icon="book" disabled={!rows.some((r) => r.rc !== "blocked")} onClick={() => setConfirmAll(true)}>Generar todos</Button></div>
+      {printing ? <PrintDocuments docs={printing.map((r) => cardOf(r, period))} onDone={afterPrint} /> : null}
       {toastNode}
     </>
   );

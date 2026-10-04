@@ -24,6 +24,8 @@ const SCREENS = [
   { hash: "#/admin/dashboard", name: "Inicio de Secretaría", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar el resumen.", emptyTitle: "No hay matrículas pendientes." },
   { hash: "#/admin/clearances", name: "Paz y salvos", errorTitle: "No pudimos cargar los paz y salvos.", emptyTitle: "No hay estudiantes activos." },
   { hash: "#/admin/ranking", name: "Ranking académico", errorTitle: "No pudimos cargar el ranking.", emptyTitle: "Aún no hay notas verificadas para este filtro." },
+  // 6b.3c · Boletines.
+  { hash: "#/admin/reportcards", name: "Boletines", errorTitle: "No pudimos cargar los boletines.", emptyTitle: "No hay estudiantes activos en este curso." },
   // 6b.2b · Docente: inicio, estudiantes, evaluaciones y recuperaciones.
   { hash: "#/teacher/dashboard", name: "Inicio del docente", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar tu resumen.", emptyTitle: "No hay evaluaciones en curso." },
   { hash: "#/teacher/students", name: "Estudiantes (Docente)", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar tus estudiantes.", emptyTitle: "No tienes estudiantes en tus cursos." },

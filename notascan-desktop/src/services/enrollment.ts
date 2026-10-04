@@ -144,10 +144,30 @@ export function validateRows(rows: ImportRow[], courses: string[], existingDocs:
   return issues;
 }
 
-/** Lee el archivo, valida contra los cursos y los documentos que ya existen en la base. */
+/** Celda de Excel → texto: las fechas como dd/mm/aaaa (Excel las guarda en UTC) y los números sin decimales de más. */
+function cellText(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date) return String(v.getUTCDate()).padStart(2, "0") + "/" + String(v.getUTCMonth() + 1).padStart(2, "0") + "/" + v.getUTCFullYear();
+  return String(v).trim();
+}
+
+/** Primera hoja de un .xlsx como tabla de textos (lector cargado solo cuando hace falta). */
+async function readXlsx(file: File): Promise<string[][]> {
+  const { readSheet } = await import("read-excel-file/browser");
+  const rows = (await readSheet(file)) as unknown[][];
+  return rows.map((r) => r.map(cellText)).filter((r) => r.some((c) => c));
+}
+
+/** Lee el archivo (.xlsx o CSV), valida contra los cursos y los documentos que ya existen en la base. */
 export async function readImportFile(file: File): Promise<ImportResult> {
-  if (!/\.csv$/i.test(file.name)) throw new Error("Por ahora la importación lee archivos CSV. En Excel: Archivo → Guardar como → «CSV UTF-8».");
-  const table = parseCsv(await file.text());
+  if (/\.xls$/i.test(file.name)) throw new Error("Los archivos .xls antiguos no se pueden leer. En Excel: Archivo → Guardar como → «Libro de Excel (.xlsx)» o «CSV UTF-8».");
+  if (!/\.(xlsx|csv)$/i.test(file.name)) throw new Error("Solo se aceptan archivos Excel (.xlsx) o CSV.");
+  let table: string[][];
+  try {
+    table = /\.xlsx$/i.test(file.name) ? await readXlsx(file) : parseCsv(await file.text());
+  } catch {
+    throw new Error("No pudimos leer el archivo. Revisa que sea un .xlsx o CSV válido y que no esté protegido con contraseña.");
+  }
   if (table.length < 2) throw new Error("El archivo no tiene filas de estudiantes debajo del encabezado.");
   const rows: ImportRow[] = table.slice(1).map((c, i) => ({
     row: i + 2, first: c[0] ?? "", last: c[1] ?? "", docType: c[2] || "Tarjeta de identidad", doc: c[3] ?? "", birth: c[4] ?? "", course: (c[5] ?? "").toUpperCase(),

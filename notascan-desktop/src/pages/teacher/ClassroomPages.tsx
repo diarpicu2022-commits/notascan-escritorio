@@ -22,6 +22,7 @@ import {
   useMyStudents, useObservations, useSaveAttendance, useSaveConcepts, useSaveGradeCell, weekdayDate,
 } from "../../services/teacher";
 import { useRecoveries, useSaveRecovery } from "../../services/teacherOverview";
+import { draftDirectorMessage, useDirectorGroup, useSaveDirectorMessages } from "../../services/reportCards";
 import { NO_STUDENTS, assignmentsState, courseOption, queryState, useAssignmentPick } from "./states";
 
 /* Productividad docente: planilla, conceptos, recuperaciones, asistencia y comportamiento.
@@ -59,14 +60,46 @@ export function ConceptsPage() {
   const { aq, list, current, setKey } = useAssignmentPick();
   const q = useConcepts(current);
   const save = useSaveConcepts();
+  // Mensaje del director (6b.3c): solo si el docente dirige un grupo. En demostración, la pantalla del sistema.
+  const dq = useDirectorGroup();
+  const saveMsg = useSaveDirectorMessages();
+  const [view, setView] = useState("subject");
+  const director = !DEMO && !!dq.data?.rows.length;
+  const group = [...new Set(dq.data?.rows.map((r) => r.course) ?? [])].join(", ");
+  const showDirector = director && view === "director";
   const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando los conceptos", "No pudimos cargar los conceptos.")
     ?? (!q.data?.length ? NO_STUDENTS : undefined);
   // Con más de un curso, el selector va en el encabezado (en demostración el sistema muestra solo 7A).
-  const picker = !DEMO && list.length > 1 ? <FilterGroup as="select" label="Curso" value={current?.key} onChange={setKey} options={list.map(courseOption)} /> : undefined;
+  const picker = !showDirector && !DEMO && list.length > 1 ? <FilterGroup as="select" label="Curso" value={current?.key} onChange={setKey} options={list.map(courseOption)} /> : undefined;
+  const byId = new Map((dq.data?.rows ?? []).map((r) => [r.id, r]));
+  const period = dq.data?.period;
   return (
     <PageShell active="concepts">
-      <Header eyebrow={current ? current.subject + " · " + current.courseId + " · " + current.periodName : "Conceptos"} title="Conceptos del periodo" highlight="Conceptos" description="El concepto que acompaña la nota de cada estudiante en el boletín. La IA te ayuda con el primer borrador." actions={picker} />
-      {state ?? (current && q.data ? (
+      <Header
+        eyebrow={showDirector ? "Director de grupo · " + group + " · " + (period?.name ?? "") : current ? current.subject + " · " + current.courseId + " · " + current.periodName : "Conceptos"}
+        title={showDirector ? "Mensajes del director" : "Conceptos del periodo"} highlight={showDirector ? "director" : "Conceptos"}
+        description={showDirector ? "El mensaje que firmas al final del boletín de cada estudiante de tu grupo. La IA te ayuda con el primer borrador." : "El concepto que acompaña la nota de cada estudiante en el boletín. La IA te ayuda con el primer borrador."}
+        actions={picker} />
+      {director ? (
+        <SegmentedTabs label="Qué escribir" value={view} onChange={setView}
+          tabs={[{ value: "subject", label: "Conceptos de mi materia", icon: "book" }, { value: "director", label: "Mensajes de director · " + group, icon: "students" }]} />
+      ) : null}
+      {showDirector && period ? (
+        <ConceptEditor
+          key={"dir:" + dq.dataUpdatedAt} subject="" course={group} period={period.name}
+          data={dq.data!.rows.map((r) => ({ id: r.id, name: r.name, grade: r.avg, prev: NaN, absences: r.absences, text: r.text, state: r.state }))}
+          draft={(r) => draftDirectorMessage(byId.get(r.id)!)}
+          copy={{
+            banner: "Lo redacta a partir del promedio del periodo, sus mejores y más bajas materias y las faltas. Ningún mensaje llega al boletín sin tu revisión.",
+            noun: ["mensaje", "mensajes"],
+            meta: (r) => { const d = byId.get(r.id); return (d && d.subjects.length ? d.subjects.length + " materias con nota" : "Sin notas verificadas") + " · Faltas: " + r.absences; },
+            sentTitle: "Mensajes enviados",
+            sentMessage: (n) => n + " mensajes del grupo " + group + " quedaron en los boletines del " + period.name + ".",
+            allReady: (n) => "Aparecerán al final del boletín del " + period.name + " de tus " + n + " estudiantes, con tu firma.",
+          }}
+          onSave={(rows) => saveMsg.mutateAsync({ period: period.id, rows })}
+        />
+      ) : state ?? (current && q.data ? (
         <ConceptEditor
           key={current.key + ":" + q.dataUpdatedAt} subject={current.subject} course={current.courseId} period={current.periodName} prevPeriod={prevPeriod(current.periodName)}
           data={q.data} onSave={(rows) => save.mutateAsync({ assignment: current, rows })}

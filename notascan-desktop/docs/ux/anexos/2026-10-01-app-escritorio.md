@@ -531,3 +531,42 @@ suspendió la red durante la prueba); repetida sola: 123/123.
 6b.3b aprobado por Diego el 2026-10-03. Migración de matrícula aplicada en el proyecto real ese día (SQL Editor, una
 transacción, contenido cotejado): `enroll_student` y `enroll_students` con security invoker, sin ejecución para anon.
 Las tres decisiones de 6b.3b (xlsx, PDF y mensaje del director, CSV del ranking) siguen abiertas para 6b.3c.
+
+### Paso 6b.3c · Boletines, mensaje del director y Excel (2026-10-03)
+
+Decisiones de Diego (2026-10-03): **el PDF sale del diálogo de impresión** (también para Reportes), **el mensaje del
+director lo escribe el director de grupo** con la IA como borrador, y se agrega **`read-excel-file`** (MIT, 9.3.10;
+`npm audit` sin vulnerabilidades) para importar .xlsx.
+
+- **Boletines**: la vista previa y el documento impreso usan la misma pieza del sistema (`ReportCardView`, separada de
+  sus datos; en demostración dibuja lo mismo que antes). Solo entra lo que una persona confirmó: notas verificadas por
+  materia y periodo, acumulado con el peso de cada periodo, conceptos escritos o revisados por el docente y el mensaje
+  escrito o revisado por el director (sin mensaje, la sección no aparece). El puesto en el curso se calcula con los
+  promedios del periodo. Rector y director salen del directorio. «Generar» abre la impresión con un boletín por página
+  (`print.css`: solo se imprime el documento, A4) y marca el boletín como generado en la base (quién y cuándo los pone
+  la base). Los bloqueados por paz y salvo se omiten.
+- **Faltas por materia**: la asistencia se toma por curso, no por materia; la columna muestra «—» y el total va en
+  el pie y en «Asistencia».
+- **Mensaje del director** (Docente → Conceptos): si el docente dirige un grupo aparece la pestaña «Mensajes de
+  director · 6A» con el mismo editor de conceptos (borrador de IA, aprobar, enviar). El resumen del grupo (materias,
+  promedio y faltas del periodo) llega por `director_overview`, que comprueba que es el director sin abrirle las tablas
+  de notas de otras materias.
+- **Excel**: la importación lee la primera hoja de un .xlsx (fechas de celda y documentos numéricos) o un CSV; los .xls
+  antiguos se rechazan con instrucciones. La zona de carga vuelve a ser la del sistema.
+
+Migración `20261003230000_boletines.sql`: `director_messages` con RLS (escribe el director; leen Secretaría, Rectoría
+y el director), `directs_student`, `director_overview`, firmas de mensaje y de boletín generado.
+
+**Pendiente que debe decidir Diego**: el encabezado del boletín lleva nombre, ciudad, resolución y DANE del colegio de
+demostración («Colegio Los Andes · Resolución 0123 de 2015 · DANE 152001000000»). Antes de imprimir boletines reales
+hace falta guardar los datos de la institución (propuesta: una pantalla pequeña en Secretaría → Configuración).
+
+Verificación: `verify:admin-data` 36/36 (boletín con datos reales, impresión de 1 boletín y «Generar todos» solo con
+los habilitados, marca de generado; .xlsx real generado con openpyxl en `scripts/fixtures/matricula.xlsx`),
+`verify:teacher-data` 33/33 (pestaña del director, borrador con notas reales, guardado sin firma, sin notas no hay
+borrador), `verify:db` 86/86, `verify:states` con Boletines. Regresión:
+auth 20/20, data 8/8, teacher-data 33/33, admin-data 36/36, tokens 26/26, card 51/51, shell 62/62, components 121/121,
+admin 102/102, principal 76/76, teacher 123/123, states 77/77, db 86/86.
+Fallos propios corregidos: la prueba de Excel navegaba a la misma URL en la que estaba (la pantalla no se volvía a
+montar); el efecto de impresión dependía de la función de cierre y habría abierto el diálogo en cada render (se fijó
+con una referencia antes de probarlo).

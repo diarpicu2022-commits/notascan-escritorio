@@ -1,0 +1,12 @@
+/* Impresión de boletines (paso 6b.3c, decisión de Diego: el PDF sale del diálogo de impresión).
+   Solo se imprime .ns-print-root; cada boletín (.ns-paper del sistema) va en su propia página. Sin colores nuevos:
+   el documento usa los tokens del sistema. */
+.ns-print-root { display: none; }
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body > *:not(.ns-print-root) { display: none !important; }
+  .ns-print-root { display: block; }
+  .ns-print-root .ns-paper { break-after: page; box-shadow: none; margin: 0 auto; max-width: none; }
+  .ns-print-root .ns-paper:last-child { break-after: auto; }
+}
