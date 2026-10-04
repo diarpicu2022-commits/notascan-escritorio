@@ -1,7 +1,7 @@
 import type { IconName } from "../components/atoms/Icon";
 
-/** Roles de escritorio y su navegación, tal como los define notascan-ui (ROLES). */
-export type DesktopRole = "admin" | "principal" | "teacher";
+/** Roles de escritorio y su navegación, tal como los define notascan-ui (ROLES), más la Plataforma (paso 7). */
+export type DesktopRole = "admin" | "principal" | "teacher" | "platform";
 
 export interface RoleConfig {
   label: string;
@@ -25,10 +25,15 @@ export const ROLES: Record<DesktopRole, RoleConfig> = {
     label: "Docente", user: { name: "Ana Lucía Rosero", role: "Docente · Matemáticas" }, courseLabel: "Periodo 3 · 2026", course: "Matemáticas · 7A", density: "dense",
     nav: [["dashboard", "Dashboard", "dashboard"], ["grades", "Calificaciones", "grade"], ["gradebook", "Planilla", "evaluations"], ["concepts", "Conceptos", "ai"], ["recoveries", "Recuperaciones", "refresh"], ["attendance", "Asistencia", "calendar"], ["behavior", "Comportamiento", "heart"], ["students", "Estudiantes", "students"], ["reports", "Reportes", "reports"]],
   },
+  // Dueño de la plataforma (paso 7): colegios, su identidad y su uso. Sin bloque de curso ni búsqueda de estudiantes.
+  platform: {
+    label: "Plataforma", user: { name: "Equipo NotaScan", role: "Plataforma NotaScan" }, courseLabel: "", course: "", density: "balanced",
+    nav: [["dashboard", "Colegios", "building"]],
+  },
 };
 
 export function isDesktopRole(r: string | undefined): r is DesktopRole {
-  return r === "admin" || r === "principal" || r === "teacher";
+  return r === "admin" || r === "principal" || r === "teacher" || r === "platform";
 }
 
 export interface NavItem { id: string; label: string; icon: IconName; count?: number; disabled?: boolean }

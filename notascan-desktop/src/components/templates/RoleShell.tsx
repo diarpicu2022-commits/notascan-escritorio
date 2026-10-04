@@ -28,7 +28,7 @@ export function RoleShell({ role, active, counts, overlay, user, school, onNavig
   const tools = (
     <>
       <span className="ns-role-chip"><Icon name="shield" size={14} />{r.label}</span>
-      <GlobalSearch onOpenStudent={(s, tab) => onNavigate?.("profile", { id: s.id, tab })} />
+      {role === "platform" ? null : <GlobalSearch onOpenStudent={(s, tab) => onNavigate?.("profile", { id: s.id, tab })} />}
       {role === "teacher" ? (
         <ConnectivityStatus
           status={sync.status} lastSync={sync.last} pending={sync.pending} onSync={onSync}

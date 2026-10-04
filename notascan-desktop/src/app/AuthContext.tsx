@@ -10,12 +10,13 @@ export interface LoginError { field: "email" | "password" | "role" | "form"; mes
 interface AuthState {
   status: "loading" | "signed-out" | "signed-in";
   profile: Profile | null;
-  signIn: (email: string, password: string, role: DesktopRole, remember: boolean) => Promise<LoginError | null>;
+  /** Devuelve el error para el formulario o el rol con el que entró (la plataforma no está en el selector). */
+  signIn: (email: string, password: string, role: DesktopRole, remember: boolean) => Promise<{ error: LoginError | null; role: DesktopRole }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<LoginError | null>;
 }
 
-const ROLE_NAME: Record<DesktopRole, string> = { teacher: "Docente", admin: "Secretaría", principal: "Rectoría" };
+const ROLE_NAME: Record<DesktopRole, string> = { teacher: "Docente", admin: "Secretaría", principal: "Rectoría", platform: "Plataforma" };
 
 const AuthContext = createContext<AuthState | null>(null);
 
@@ -72,27 +73,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const doSignIn = async (email: string, password: string, role: DesktopRole): Promise<LoginError | null> => {
+  const doSignIn = async (email: string, password: string, role: DesktopRole): Promise<{ error: LoginError | null; role: DesktopRole }> => {
+    const fail = (error: LoginError) => ({ error, role });
     const sb = supabase();
     const { error } = await sb.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
     if (error) {
-      if (/invalid login credentials/i.test(error.message)) return { field: "password", message: "Correo o contraseña incorrectos." };
-      if (/email not confirmed/i.test(error.message)) return { field: "email", message: "Confirma tu correo antes de entrar." };
-      return { field: "form", message: "No pudimos conectar con NotaScan. Revisa tu conexión e inténtalo de nuevo." };
+      if (/invalid login credentials/i.test(error.message)) return fail({ field: "password", message: "Correo o contraseña incorrectos." });
+      if (/email not confirmed/i.test(error.message)) return fail({ field: "email", message: "Confirma tu correo antes de entrar." });
+      return fail({ field: "form", message: "No pudimos conectar con NotaScan. Revisa tu conexión e inténtalo de nuevo." });
     }
     const p = await loadProfile().catch(() => null);
     if (!p) {
       await sb.auth.signOut();
-      return { field: "email", message: "Tu cuenta no tiene acceso a la app de escritorio. Solicita acceso a tu coordinación." };
+      return fail({ field: "email", message: "Tu cuenta no tiene acceso a la app de escritorio. Solicita acceso a tu coordinación." });
     }
-    if (p.role !== role) {
+    // La plataforma no está entre las opciones de «Entrar como»: entra con cualquiera.
+    if (p.role !== role && p.role !== "platform") {
       await sb.auth.signOut();
-      return { field: "role", message: "Tu cuenta está registrada como " + ROLE_NAME[p.role] + "." };
+      return fail({ field: "role", message: "Tu cuenta está registrada como " + ROLE_NAME[p.role] + "." });
     }
     setProfile(p);
     setStatus("signed-in");
     touchLastSeen();
-    return null;
+    return { error: null, role: p.role };
   };
 
   const signOut = useCallback(async () => {

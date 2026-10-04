@@ -31,7 +31,7 @@ export function AppShell({ items, active, user, course, courseLabel, school, den
     <div className="ns ns-app ns-canvas" style={style}>
       <div className={cx("ns-app-side", drawer && "is-open")}>
         <Sidebar
-          active={active} course={course || "Matemáticas · 7A"} courseLabel={courseLabel} school={school} user={user} onLogout={onLogout} items={items}
+          active={active} course={course ?? "Matemáticas · 7A"} courseLabel={courseLabel} school={school} user={user} onLogout={onLogout} items={items}
           onNavigate={(id) => { setDrawer(false); onNavigate?.(id); }}
           onClose={drawer ? () => setDrawer(false) : undefined}
         />

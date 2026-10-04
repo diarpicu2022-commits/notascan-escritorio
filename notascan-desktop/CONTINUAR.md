@@ -79,7 +79,10 @@ Lo primero que se lee al retomar.
   - **7b (hecho y aprobado 2026-10-04, con la enmienda 4a):** identidad del colegio (escudo con logo o iniciales, encabezado del
     boletín, colegio en el menú, editor con vista previa en vivo en `#/dev/identity`). `verify:identity` 25/25 con la
     enmienda 4a (iniciales del escudo en dorado, 4.91:1).
-  - Siguientes: 7c marco del rol Plataforma, 7d pantallas.
+  - **7c (hecho 2026-10-04, esperando visto bueno):** marco del rol Plataforma (menú «Colegios», sin búsqueda de
+    estudiantes, entrada con cualquier opción del selector) y esqueleto de lista y detalle. `verify:platform` 11/11,
+    `verify:platform-auth` 5/5.
+  - Siguientes: 7d pantallas (lista de colegios con datos, detalle, alta e identidad con subida del logo) y estados.
   - Después: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
     6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;

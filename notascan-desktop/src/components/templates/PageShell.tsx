@@ -22,7 +22,7 @@ export function PageShell({ active, counts, overlay, children }: PageShellProps)
   const { profile } = useAuth();
   const user = profile ? { name: profile.fullName, role: ROLES[role].user.role } : undefined;
   // El colegio de la sesión va en el marco (en demostración, el marco del sistema sin cambios).
-  const school = useMyInstitution().data;
+  const school = useMyInstitution(role !== "platform").data;
   return (
     <RoleShell role={role} active={ALIAS[active] || active} counts={counts} overlay={overlay} user={user} school={DEMO ? null : school} onNavigate={navigate} onLogout={logout}>
       {children}

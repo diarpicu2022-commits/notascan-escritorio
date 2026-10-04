@@ -16,6 +16,7 @@ import { DashboardPage } from "../pages/teacher/DashboardPage";
 import { GradeReviewDashboard, UploadPage } from "../pages/teacher/GradingPages";
 import { ReportsPage } from "../pages/teacher/ListPages";
 import { EvaluationsPage, StudentsPage } from "../pages/teacher/RosterPages";
+import { PlatformSchoolPage, PlatformSchoolsPage } from "../pages/platform/PlatformPages";
 import type { SyncStatus } from "../types/domain";
 import { hrefFor, parseHash, type Route } from "./router";
 import { ShellContext } from "./ShellContext";
@@ -45,6 +46,7 @@ const PAGES: Record<DesktopRole, Record<string, ComponentType<{ tab?: string; id
     dashboard: PrincipalDashboardPage, analytics: AnalyticsPage, teachers: TeacherMonitoringPage, requests: RequestsPage,
     students: StudentsAdminPage, observer: ObserverPage, reports: ReportsPage,
   },
+  platform: { dashboard: PlatformSchoolsPage, school: PlatformSchoolPage },
 };
 
 /** Cambia la ruta después de pintar (nunca durante el render). */
@@ -88,9 +90,9 @@ export function App() {
       ? <LoginPage onLogin={(role) => { window.location.hash = hrefFor(role, "dashboard"); }} />
       : <LoginPage
           onSubmit={async ({ email, password, role, remember }) => {
-            const err = await auth.signIn(email, password, role, remember);
-            if (!err) window.location.hash = hrefFor(role, "dashboard");
-            return err;
+            const r = await auth.signIn(email, password, role, remember);
+            if (!r.error) window.location.hash = hrefFor(r.role, "dashboard");
+            return r.error;
           }}
           onForgot={auth.resetPassword}
         />;

@@ -154,3 +154,26 @@ un dato real; la vista previa del menú arrastraba la línea superior del pie.
 - API: las consultas de la app con relaciones (`subjects`, `academic_periods!inner`, `teaching_assignments`, `students`,
   `profiles`, `grade_levels`) responden «permiso denegado» sin sesión, y una relación inexistente de control responde
   `PGRST200`: PostgREST resuelve las llaves compuestas.
+
+## 9. Paso 7c · Esqueleto: marco del rol Plataforma (2026-10-04)
+
+- Rol `platform` en la app (`DesktopRole`): menú con un solo ítem, «Colegios» (icono del sistema `building`); chip
+  «Plataforma»; **sin búsqueda de estudiantes** (no ve datos personales); sin bloque de curso (el marco ya no inventa
+  «Matemáticas · 7A» cuando un rol no tiene curso) y sin colegio en el menú.
+- Entrada: la Plataforma **no aparece en «Entrar como»** (lo ven todos los colegios). La cuenta registrada en
+  `platform_admins` entra con cualquier opción y la app la lleva a `#/platform/dashboard`; `signIn` devuelve el rol con
+  el que entró.
+- Rutas: `#/platform/dashboard` (lista) y `#/platform/school/<id>` (detalle). Esqueleto con las regiones del contrato en
+  su orden: lista = pestañas de estado (Activos, Implementación, Suspendidos) + tabla, una sola acción primaria «Dar de
+  alta un colegio» (deshabilitada hasta 7d); detalle = «Requiere atención» → Uso → Identidad, con «Todos los colegios» y
+  «Guardar identidad».
+- «Sin permiso» funciona en ambos sentidos: la plataforma no entra a pantallas de un colegio y un colegio no entra a la
+  consola (la base también lo impide).
+
+Verificación: `verify:platform` 11/11 (demo: menú, chip, sin búsqueda ni curso, pestañas, acción única, región anunciada
+a lectores de pantalla, orden de regiones del detalle, volver a la lista, sin desbordamiento a 1440/1024/768, consola) y
+`verify:platform-auth` 5/5 (modo normal: la cuenta de Diego entra eligiendo «Docente» y llega a su consola con su nombre;
+«Sin permiso» en `#/admin/students` y para un docente en `#/platform/dashboard`). Regresión completa en verde (db 108/108).
+
+Fallo propio de la prueba, corregido: las primeras capturas salieron a mitad de la animación de entrada del sistema; ahora
+se toman con las animaciones congeladas.

@@ -58,11 +58,11 @@ export function headerLine(i: Institution): string {
 }
 
 /** Colegio de la persona con sesión (el RLS solo deja leer el propio). */
-export function useMyInstitution() {
+export function useMyInstitution(enabled = true) {
   const profile = useAuth().profile;
   return useQuery({
     queryKey: ["my-institution", profile?.id],
-    enabled: DEMO || !!profile,
+    enabled: enabled && (DEMO || !!profile),
     initialData: DEMO ? DEMO_INSTITUTION : undefined,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<Institution | null> => {
