@@ -57,8 +57,13 @@ export function ObserverTimeline({ items: source, showStudent, hideFilter, compa
 
 const CAL_LABEL: Record<string, [string, IconName | null]> = { present: ["Presente", "check"], absent: ["Inasistencia", "close"], late: ["Tarde", "clock"], off: ["Sin clase", null] };
 
-/** Calendario de asistencia del mes, con forma e icono por estado además del color. */
-export function AttendanceCalendar({ attendance }: { attendance?: number }) {
+const MONTH_NAMES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+export interface CalendarMonth { year: number; month: number; days: Record<number, "present" | "absent" | "late" | "excused"> }
+
+/** Calendario de asistencia del mes, con forma e icono por estado además del color. Sin `month`, el del sistema. */
+export function AttendanceCalendar({ attendance, month }: { attendance?: number; month?: CalendarMonth }) {
+  if (month) return <RealCalendar attendance={attendance} m={month} />;
   const days: { d: number; st: string; wd: number }[] = [];
   for (let d = 1; d <= 30; d++) {
     const wd = (d + 1) % 7;
@@ -80,6 +85,45 @@ export function AttendanceCalendar({ attendance }: { attendance?: number }) {
           return (
             <span key={x.d} role="gridcell" className={"ns-cal-day ns-cal-day--" + x.st} aria-label={x.d + " de septiembre: " + l[0]} title={l[0]}>
               {x.d}{l[1] ? <Icon name={l[1]} size={10} strokeWidth={3} /> : null}
+            </span>
+          );
+        })}
+      </div>
+      <div className="ns-cal-legend">
+        {["present", "late", "absent"].map((k) => (
+          <span key={k} className={"ns-cal-day ns-cal-day--" + k + " ns-cal-day--legend"}><Icon name={CAL_LABEL[k][1]!} size={10} strokeWidth={3} />{CAL_LABEL[k][0]}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Mes real: los días con registro llevan su estado; la excusa se pinta como asistencia (cuenta como asistida en el
+   porcentaje) y lo dice en su etiqueta; un día hábil sin registro va como «Sin registro». */
+function RealCalendar({ attendance, m }: { attendance?: number; m: CalendarMonth }) {
+  const name = MONTH_NAMES[m.month];
+  const total = new Date(m.year, m.month + 1, 0).getDate();
+  const pad = (new Date(m.year, m.month, 1).getDay() + 6) % 7;
+  const days = Array.from({ length: total }, (_, i) => {
+    const d = i + 1, wd = new Date(m.year, m.month, d).getDay(), rec = m.days[d];
+    const st = rec === "excused" ? "present" : rec ?? "off";
+    const label = rec === "excused" ? "Excusa" : rec ? CAL_LABEL[rec][0] : wd === 0 || wd === 6 ? "Sin clase" : "Sin registro";
+    return { d, st, label };
+  });
+  return (
+    <div className="ns-cal">
+      <div className="ns-row" style={{ justifyContent: "space-between" }}>
+        <strong className="ns-serif" style={{ fontSize: 20 }}>{name + " " + m.year}</strong>
+        <span className="ns-caption">{attendance === undefined || isNaN(attendance) ? "Sin registros de asistencia" : attendance + "% de asistencia"}</span>
+      </div>
+      <div className="ns-cal-grid" role="grid" aria-label={"Asistencia de " + name.toLowerCase()}>
+        {["L", "M", "M", "J", "V", "S", "D"].map((x, i) => <span key={"h" + i} className="ns-cal-h" aria-hidden>{x}</span>)}
+        {Array.from({ length: pad }, (_, i) => <span key={"p" + i} className="ns-cal-pad" aria-hidden />)}
+        {days.map((x) => {
+          const icon = CAL_LABEL[x.st][1];
+          return (
+            <span key={x.d} role="gridcell" className={"ns-cal-day ns-cal-day--" + x.st} aria-label={x.d + " de " + name.toLowerCase() + ": " + x.label} title={x.label}>
+              {x.d}{icon ? <Icon name={icon} size={10} strokeWidth={3} /> : null}
             </span>
           );
         })}

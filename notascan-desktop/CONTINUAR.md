@@ -114,7 +114,11 @@ Lo primero que se lee al retomar.
     - **Pendiente de Diego — migraciones en orden:** `20261005090000_solicitudes.sql` (cargada en el SQL Editor,
       SHA-1 LF `c400c9cc…`), `20261005120000_rectoria_lectura.sql` (`f872f7b0…`), `20261005150000_meta_institucional.sql` (`c4efe715…`),
       `20261005180000_recordatorios.sql` (`2b3359da…`). El clasificador de permisos no me deja ejecutar SQL en producción.
-  - **6b.4c (siguiente):** perfil del estudiante con datos reales (Rectoría y compartido).
+  - **6b.4c (hecho 2026-10-05):** perfil del estudiante con datos reales en sus seis pestañas (los tres roles) y
+    tarjeta de contexto del menú con datos reales. `verify:principal-data` 37/37, `verify:teacher-data` 40/40,
+    `verify:admin-data` 39/39. Sin migración nueva.
+- **Siguiente:** Reportes del Docente (con «Exportar informe» de Analítica) y Subir fotografías con el servicio de
+  visión A (modelo multimodal). Después: cola sin conexión real, página de restablecimiento, legal, compilar Tauri, cierre.
   - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.

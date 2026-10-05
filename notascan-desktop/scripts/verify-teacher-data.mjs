@@ -42,8 +42,13 @@ async function mockApi(page) {
   await page.route("**/rest/v1/**", (r) => r.fulfill({ json: [] }));
   await page.route("**/auth/v1/token**", (r) => r.fulfill({ json: { access_token: jwt, token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: "r", user } }));
   await page.route("**/auth/v1/user**", (r) => r.fulfill({ json: user }));
-  await page.route("**/rest/v1/profiles**", (r) => r.fulfill({ json: { id: UID, email: user.email, full_name: "Ana Lucía Rosero", role: "teacher", status: "active" } }));
+  // El perfil de la sesión es una fila (id=eq.); una lista de perfiles es una lista, como en la base.
+  await page.route("**/rest/v1/profiles**", (r) => r.fulfill({ json: decodeURIComponent(r.request().url()).includes("id=eq.")
+    ? { id: UID, email: user.email, full_name: "Ana Lucía Rosero", role: "teacher", status: "active" }
+    : [{ email: user.email, full_name: "Ana Lucía Rosero" }] }));
   await page.route("**/rest/v1/teaching_assignments**", (r) => r.fulfill({ json: ASSIGNMENTS }));
+  // 6b.4c: perfil visto por el docente (la vista no trae datos del acudiente al docente).
+  await page.route("**/rest/v1/student_overview**", (r) => r.fulfill({ json: [{ id: "20261175", first_names: "María Fernanda", last_names: "López Rosero", full_name: "María Fernanda López Rosero", doc_type: "Tarjeta de identidad", document: "TI 1084000175", course_id: "7A", grade_level_id: "7", status: "active", enrolled_on: "2026-01-12", library_ok: true, fees_ok: true, documents_ok: true, guardian_name: null, guardian_rel: null, guardian_phone: null, avg_grade: 4.0, attendance_pct: null }] }));
   // Recordatorio de Rectoría (6b.4b): uno sin ver hasta que se marca con «Entendido».
   await page.route("**/rest/v1/teacher_reminders**", (r) => r.fulfill({ json: reminderSeen ? [] : [{ id: 7, message: "Tienes 2 evaluaciones con notas sin verificar en el Periodo 3 (82 % registrado). Ponte al día, por favor.", created_at: new Date().toISOString(), sender: { full_name: "Hernando Villota" } }] }));
   await page.route("**/rest/v1/rpc/mark_reminder_seen**", (r) => { seenCalls.push(r.request().postDataJSON()); reminderSeen = true; r.fulfill({ status: 204, body: "" }); });
@@ -79,6 +84,7 @@ async function mockApi(page) {
     if (req.method() === "POST") { writes.attendance.push({ url: decodeURIComponent(req.url()), body: req.postDataJSON() }); return r.fulfill({ status: 201, body: "" }); }
     const u = decodeURIComponent(req.url());
     if (u.includes("state=eq.absent")) return r.fulfill({ json: [{ student_id: "20261182" }, { student_id: "20261182" }] });
+    if (u.includes("student_id=eq.")) return r.fulfill({ json: [] }); // perfil (6b.4c): sin asistencia registrada
     return r.fulfill({ json: [{ student_id: "20261182", state: "absent", note: null }] });
   });
   await page.route("**/rest/v1/observations**", (r) => {
@@ -90,7 +96,7 @@ async function mockApi(page) {
     if (r.request().method() === "POST") { writes.recoveries.push({ url: decodeURIComponent(r.request().url()), body: r.request().postDataJSON() }); return r.fulfill({ status: 201, body: "" }); }
     return r.fulfill({ json: [] });
   });
-  await page.route("**/rest/v1/academic_periods**", (r) => r.fulfill({ json: [{ id: "2026-p3", name: "Periodo 3" }] }));
+  await page.route("**/rest/v1/academic_periods**", (r) => r.fulfill({ json: [{ id: "2026-p3", name: "Periodo 3", year: 2026, status: "open" }] }));
   await page.route("**/rest/v1/director_messages**", (r) => { writes.director_messages.push({ url: decodeURIComponent(r.request().url()), body: r.request().postDataJSON() }); return r.fulfill({ status: 201, body: "" }); });
   await page.route("**/rest/v1/rpc/director_overview**", (r) => r.fulfill({ json: [
     { student_id: "20261175", full_name: STUDENTS[0].full_name, course_id: "7A", subjects: [{ subject: "Física", grade: 3.4 }, { subject: "Matemáticas", grade: 4.6 }], absences: 1, message: null, message_state: null },
@@ -294,6 +300,23 @@ try {
   const rw = writes.recoveries[0];
   report.check("Recuperaciones: guarda original y recuperación; el resultado y la firma los pone la base",
     rw && rw.url.includes("on_conflict=student_id,assignment_id") && rw.body.student_id === "20261189" && rw.body.assignment_id === 11 && rw.body.original === 2 && rw.body.recovery === 3.5 && !signed(rw.body), JSON.stringify(rw));
+
+  // ---------- Menú: tarjeta de contexto con datos reales (6b.4c) ----------
+  await page.goto(URL_BASE + "#/teacher/dashboard");
+  await page.locator(".ns-sidebar-course").waitFor({ timeout: 10000 });
+  report.check("Menú (docente): periodo abierto y sus materias y cursos de la base", (await page.locator(".ns-sidebar-course").textContent()) === "Periodo 3 · 2026Matemáticas · 7A, 7B", await page.locator(".ns-sidebar-course").textContent());
+
+  // ---------- Perfil del estudiante visto por el docente (6b.4c) ----------
+  await page.goto(URL_BASE + "#/teacher/profile/20261175");
+  await page.locator(".ns-profile-head h1").waitFor({ timeout: 10000 });
+  const ptabs = await page.getByRole("tab").allTextContents();
+  report.check("Perfil (docente): sin la pestaña Información", ptabs.length === 5 && !ptabs.includes("Información"), ptabs.join("|"));
+  await page.getByRole("tab", { name: "Calificaciones" }).click();
+  report.check("Perfil (docente): avisa que solo ve las notas de sus materias", (await page.locator("p.ns-caption").first().textContent()) === "Ves las notas de las materias que dictas; el resto las consultan Secretaría y Rectoría.");
+  await page.getByRole("tab", { name: "Boletines" }).click();
+  report.check("Perfil (docente): el boletín completo queda para Secretaría y Rectoría", (await page.locator(".ns-empty-title").textContent()) === "El boletín completo lo consultan Secretaría y Rectoría.");
+  await page.getByRole("tab", { name: "Asistencia" }).click();
+  report.check("Perfil (docente): sin asistencia registrada lo dice", (await page.locator(".ns-empty-title").textContent()) === "Aún no hay asistencia registrada.");
 
   const real = cons.filter((m) => !/status of (400|403|500)/.test(m));
   report.check("Consola: solo los errores de red simulados", real.length === 0, real.join(" | "));

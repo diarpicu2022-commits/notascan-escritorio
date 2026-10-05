@@ -14,14 +14,24 @@ import { AttendanceCalendar, ObserverTimeline } from "../components/organisms/Ob
 import { ReportCardDocument } from "../components/organisms/ReportCardDocument";
 import { PageShell } from "../components/templates/PageShell";
 import { OBS, PERF, subjectGrades } from "../data/academic";
-import { findStudent } from "../data/students";
+import { findStudent, type StudentRecord } from "../data/students";
+import { DEMO } from "../lib/supabase";
+import { ErrorState, LoadingBlocks } from "../components/organisms/QueryState";
+import { ReportCardView } from "../components/organisms/ReportCardDocument";
+import { cardOf, useReportCards } from "../services/reportCards";
+import { useStudentProfile, type ProfileData } from "../services/studentProfile";
 
 /* Enmienda 2026-10-01 (anexo): notascan-ui pintaba este texto con un color propio fuera de
    tokens.json. Diego eligió pasarlo a un token; --ivory-deep es el más cercano al original. */
 const PROFILE_MUTED_ON_NAVY = "var(--ivory-deep)";
 
 /** Perfil completo del estudiante; las pestañas y los datos sensibles dependen del rol. */
-export function StudentProfilePage({ studentId, tab: initialTab }: { studentId?: string; tab?: string }) {
+export function StudentProfilePage(props: { studentId?: string; tab?: string }) {
+  return DEMO ? <DemoProfile {...props} /> : <RealProfile {...props} />;
+}
+
+/** El perfil del sistema con sus datos de demostración (sin cambios). */
+function DemoProfile({ studentId, tab: initialTab }: { studentId?: string; tab?: string }) {
   const { role, navigate } = useShell();
   const s = findStudent(studentId);
   const canInfo = role === "admin" || role === "principal";
@@ -102,4 +112,125 @@ export function StudentProfilePage({ studentId, tab: initialTab }: { studentId?:
       {body}
     </PageShell>
   );
+}
+
+const TAB_ALIAS: Record<string, string> = { profile: "summary", history: "grades" };
+
+/** Encabezado del perfil (nombre, curso, ID y estado de matrícula). */
+function ProfileHead({ s, onBack }: { s: StudentRecord; onBack: () => void }) {
+  return (
+    <div className="ns-profile-head">
+      <Button variant="ghost" size="sm" icon="chevleft" onClick={onBack}>Estudiantes</Button>
+      <div className="ns-profile-id">
+        <Avatar name={s.name} size="lg" />
+        <div>
+          <h1 className="ns-header-title" style={{ fontSize: 40 }}>{s.name}</h1>
+          <div className="ns-row" style={{ gap: 8 }}><span className="ns-course-tag">{s.course}</span><span className="ns-caption">{"ID " + s.id}</span><EnrollBadge status={s.status} /></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Perfil con datos de la base (paso 6b.4c): lo que el RLS de quien consulta le deja ver, con carga, error y «no encontrado». */
+function RealProfile({ studentId, tab: initialTab }: { studentId?: string; tab?: string }) {
+  const { role, navigate } = useShell();
+  const q = useStudentProfile(studentId);
+  const [tab, setTab] = useState((initialTab && TAB_ALIAS[initialTab]) || initialTab || "summary");
+  const back = () => navigate("students");
+  let content: ReactNode;
+  if (q.isPending && !q.data) content = <LoadingBlocks rows={4} height={96} label="Cargando el perfil del estudiante" />;
+  else if (q.isError && !q.data) content = <ErrorState title="No pudimos cargar el perfil." onRetry={() => q.refetch()} />;
+  else if (!q.data) content = <EmptyState icon="students" title="No encontramos a este estudiante." message="Puede que no esté en tus cursos o que el enlace ya no sea válido." action={<Button variant="secondary" icon="chevleft" onClick={back}>Volver a Estudiantes</Button>} />;
+  else content = <RealProfileBody d={q.data} role={role} tab={tab} setTab={setTab} onBack={back} />;
+  return <PageShell active="students" counts={null}>{content}</PageShell>;
+}
+
+function RealProfileBody({ d, role, tab, setTab, onBack }: { d: ProfileData; role: string; tab: string; setTab: (t: string) => void; onBack: () => void }) {
+  const s = d.student;
+  const canInfo = role === "admin" || role === "principal";
+  const TABS: Array<[string, string]> = [["summary", "Resumen"], ["grades", "Calificaciones"], ["attendance", "Asistencia"], ["observer", "Observador"], ["reportcards", "Boletines"], ...(canInfo ? [["info", "Información"] as [string, string]] : [])];
+  const t = TABS.some((x) => x[0] === tab) ? tab : "summary";
+  const clear = s.library && s.fees && s.documents;
+  const periodName = d.period?.name ?? "Periodo";
+  const mark = (ok: boolean) => (ok ? "✓" : "×");
+
+  let body: ReactNode;
+  if (t === "summary") {
+    body = (
+      <div className="ns-profile-grid">
+        <Block tone="navy">
+          <span className="ns-overline" style={{ color: "var(--gold)" }}>{"Promedio · " + periodName}</span>
+          <strong className="ns-big-ivory">{formatGrade(d.avg)}</strong>
+          <span style={{ color: PROFILE_MUTED_ON_NAVY, fontWeight: 600 }}>{d.graded ? PERF(d.avg) + " · " + d.passed + " de " + d.graded + (d.graded === 1 ? " materia aprobada" : " materias aprobadas") : "Sin notas verificadas en el periodo"}</span>
+        </Block>
+        <Block tone="sage"><span className="ns-overline">Asistencia</span><strong className="ns-big">{isNaN(s.attendance) ? "—" : s.attendance + "%"}</strong><ProgressBar value={isNaN(s.attendance) ? 0 : s.attendance} total={100} tone="sage" label="Asistencia" /></Block>
+        <Block tone={clear ? "paper" : "burgundy"}>
+          <span className="ns-overline">Paz y salvo</span>
+          <strong className="ns-big">{clear ? "Al día" : "Pendiente"}</strong>
+          <span className="ns-caption">{"Biblioteca " + mark(s.library) + " · Pensiones " + mark(s.fees) + " · Documentos " + mark(s.documents)}</span>
+        </Block>
+        <Block className="ns-span-3">
+          {d.evol.length ? (
+            <LineChart title="Evolución del promedio" subtitle={"Periodos de " + (d.period?.year ?? "") + " con notas verificadas"} labels={d.evol.map((x) => x.label)} min={1} max={5} ticks={[1, 3, 5]} threshold={3} thresholdLabel="Mínimo 3.0" height={200}
+              series={[{ name: "Promedio", points: d.evol.map((x) => x.value) }]} format={(v) => v.toFixed(1)} />
+          ) : <EmptyState icon="reports" title="Aún no hay notas verificadas." message="La evolución aparece cuando el estudiante tenga notas verificadas en algún periodo." />}
+        </Block>
+      </div>
+    );
+  } else if (t === "grades") {
+    body = (
+      <>
+        {role === "teacher" ? <p className="ns-caption" style={{ margin: 0 }}>Ves las notas de las materias que dictas; el resto las consultan Secretaría y Rectoría.</p> : null}
+        {d.subjects.length ? (
+          <DataTable
+            caption={"Calificaciones por materia · " + periodName} rows={d.subjects.map((r, i) => ({ id: i, ...r }))}
+            columns={[
+              { key: "subject", label: "Materia" }, { key: "teacher", label: "Docente" },
+              { key: "grade", label: "Nota", numeric: true, render: (r) => <span className="ns-table-grade">{formatGrade(r.grade)}</span> },
+              { key: "perf", label: "Desempeño", render: (r) => (isNaN(r.grade) ? <span className="ns-caption">Sin notas</span> : <span className={"ns-perf ns-perf--" + PERF(r.grade).toLowerCase()}>{PERF(r.grade)}</span>) },
+            ]}
+          />
+        ) : <EmptyState icon="reports" title="El curso no tiene materias en el periodo." message="Secretaría arma la malla curricular de cada curso." />}
+      </>
+    );
+  } else if (t === "attendance") {
+    body = <Block>{d.month ? <AttendanceCalendar attendance={s.attendance} month={d.month} /> : <EmptyState icon="calendar" title="Aún no hay asistencia registrada." message="Aparecerá cuando los docentes tomen asistencia en el curso." />}</Block>;
+  } else if (t === "observer") {
+    body = <Block>{d.observations.length ? <ObserverTimeline items={d.observations} /> : <EmptyState icon="eye" title="Aún no hay anotaciones." message="Las observaciones de los docentes aparecerán aquí en orden cronológico." />}</Block>;
+  } else if (t === "reportcards") {
+    body = !clear ? <EmptyState tone="error" icon="lock" title="Boletines bloqueados" message="El estudiante tiene obligaciones pendientes en Paz y Salvos." />
+      : role === "teacher" ? <EmptyState icon="file" title="El boletín completo lo consultan Secretaría y Rectoría." message="Incluye las notas de todas las materias; tú ves las de tus materias en Calificaciones." />
+        : d.period ? <ProfileReportCard studentId={s.id} course={s.course} period={d.period.name} /> : <EmptyState icon="file" title="Aún no hay periodos." message="Secretaría configura los periodos del año." />;
+  } else {
+    const m = d.medical;
+    const parts = m ? [m.allergies ? "alergias: " + m.allergies : "sin alergias registradas", m.conditions ? "condiciones: " + m.conditions : "", m.notes, m.emergency ? "contacto de emergencia: " + m.emergency : ""].filter(Boolean) : ["sin información registrada"];
+    body = (
+      <Block>
+        <dl className="ns-dl ns-dl--2">
+          {[["Documento", s.document], ["Fecha de matrícula", s.enrolled], ["Acudiente", s.guardian ? s.guardian + (s.guardianRel ? " (" + s.guardianRel + ")" : "") : "Sin registrar"], ["Teléfono del acudiente", s.guardianPhone || "Sin registrar"]].map((x) => (
+            <Fragment key={x[0]}><dt>{x[0]}</dt><dd>{x[1]}</dd></Fragment>
+          ))}
+        </dl>
+        <p className="ns-sensitive"><Icon name="lock" size={16} />{"Información médica: " + parts.join(" · ") + ". Visible solo para Secretaría y Rectoría."}</p>
+      </Block>
+    );
+  }
+  return (
+    <>
+      <ProfileHead s={s} onBack={onBack} />
+      <SegmentedTabs label="Secciones del perfil" value={t} onChange={setTab} tabs={TABS.map((x) => ({ value: x[0], label: x[1] }))} />
+      {body}
+    </>
+  );
+}
+
+/** Boletín del periodo con las mismas reglas de Secretaría (solo lo confirmado por una persona). */
+function ProfileReportCard({ studentId, course, period }: { studentId: string; course: string; period: string }) {
+  const q = useReportCards({ course, period });
+  if (q.isPending && !q.data) return <LoadingBlocks rows={3} height={120} label="Cargando el boletín" />;
+  if (q.isError && !q.data) return <ErrorState title="No pudimos cargar el boletín." onRetry={() => q.refetch()} />;
+  const row = q.data?.rows.find((r) => r.id === studentId);
+  if (!row) return <EmptyState icon="file" title="Aún no hay boletín para este periodo." message="Aparece cuando el estudiante tenga notas verificadas." />;
+  return <Block><div className="ns-paper-scroll"><ReportCardView data={cardOf(row, period)} compact /></div></Block>;
 }

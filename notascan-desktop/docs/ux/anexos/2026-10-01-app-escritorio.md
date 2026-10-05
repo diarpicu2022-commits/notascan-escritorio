@@ -719,3 +719,41 @@ Verificación: `verify:db` 141/141 (Rectoría envía; un docente no; no a quien 
 firma; cada docente ve los suyos; solo su docente lo marca como visto y una vez; nadie edita la tabla; sin sesión no se
 lee), `verify:principal-data` 27/27 (envío con el texto y el aviso), `verify:teacher-data` 35/35 (aparece primero,
 «Entendido» llama a `mark_reminder_seen` y desaparece).
+
+### Paso 6b.4c · Perfil del estudiante con datos reales (2026-10-05)
+
+Diego aprueba lo propuesto y «lo que sigue», y pide ir subiendo los commits a GitHub. Sin dirección nueva: el perfil
+del sistema (Paso 5) en sus seis pestañas, ahora con la base en la app conectada; en demostración no cambia
+(`verify:admin` 105/105, `verify:principal` 76/76 y `verify:teacher` 123/123 comparan el perfil con el sistema).
+
+- **Resumen:** promedio del periodo abierto con la regla del Ranking (materias con notas verificadas), «Alto · 1 de 1
+  materia aprobada», asistencia de la vista, paz y salvo, y evolución con los periodos del año que tienen notas
+  (sin notas, el bloque lo dice).
+- **Calificaciones:** las materias del curso en el periodo con su docente; sin notas, «—» y «Sin notas». La columna
+  «Faltas» se quita: la asistencia se toma por curso, no por materia (misma decisión que el boletín). El docente ve
+  solo las notas de sus materias (RLS) y la pantalla lo dice.
+- **Asistencia:** el calendario del sistema recibe el mes real (el del último registro), con el día de la semana
+  correcto. Con varias clases el mismo día manda la más grave; la excusa se pinta como asistencia (así cuenta en el
+  porcentaje) con la etiqueta «Excusa»; día hábil sin registro: «Sin registro».
+- **Observador:** las anotaciones del estudiante. **Boletines:** el del periodo abierto con las reglas de Secretaría
+  (6b.3c); bloqueado si no está a paz y salvo; el docente no ve el boletín completo (tiene notas de todas las materias)
+  y la pantalla se lo explica.
+- **Información** (Secretaría y Rectoría): acudiente y salud reales (alergias, condiciones, notas y contacto de
+  emergencia), marcados como sensibles; sin registro, «Sin registrar».
+- **Estados:** carga, error con «Reintentar» y «No encontramos a este estudiante.» (no existe o el RLS no lo deja ver)
+  con «Volver a Estudiantes».
+
+**Hallazgo corregido (venía de pasos anteriores):** la tarjeta de contexto del menú mostraba en la app conectada los
+textos fijos de demostración: Rectoría veía «Institución · Colegio Los Andes» sea cual fuera su colegio (y duplicado
+con el escudo del colegio), Secretaría «2026 · Calendario A» y el docente «Matemáticas · 7A». Ahora: Rectoría sin esa
+tarjeta (el colegio ya va con su escudo), Secretaría «Año lectivo · 2026 · Periodo 3» y el docente el periodo abierto
+con sus materias y cursos («Periodo 3 · 2026 · Matemáticas · 7A, 7B»). En demostración, la del sistema.
+
+Verificación: `verify:principal-data` 37/37 (resumen 4.5 y evolución P2 3.0 → P3 4.5; materias con «Sin notas»;
+calendario de septiembre con inasistencia, tarde, excusa, sin clase y sin registro, un día de relleno; observador;
+boletín «Periodo 3 de 4»; salud y acudiente; no encontrado; error con reintento; menú sin «Institución»),
+`verify:teacher-data` 40/40 (sin pestaña Información, aviso de sus materias, boletín para Secretaría y Rectoría,
+asistencia vacía, menú con sus cursos), `verify:admin-data` 39/39 (menú con el año y el periodo abierto).
+Fallos propios en las pruebas: los datos simulados no imitaban la base (periodos sin `position`, asistencia sin
+fecha, `profiles` devolviendo una fila donde la base devuelve una lista) y un selector confundía el escudo del colegio
+con la tarjeta de contexto; capturas tomadas durante la entrada escalonada (se espera 1,2 s).

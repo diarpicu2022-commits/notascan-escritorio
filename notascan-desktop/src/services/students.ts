@@ -10,7 +10,7 @@ import { demoData, demoInitial, forcedState, allRows } from "./client";
 const key = () => ["students", forcedState()] as const;
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
-interface OverviewRow {
+export interface OverviewRow {
   id: string; first_names: string; last_names: string; full_name: string; doc_type: string; document: string;
   course_id: string | null; grade_level_id: string | null; status: EnrollmentStatus; enrolled_on: string;
   library_ok: boolean; fees_ok: boolean; documents_ok: boolean;
@@ -19,7 +19,7 @@ interface OverviewRow {
 }
 
 /** Fila de la base → forma que usan los componentes del sistema. Sin dato: NaN (se muestra «—»). */
-function toRecord(r: OverviewRow): StudentRecord {
+export function toRecord(r: OverviewRow): StudentRecord {
   const [y, m, d] = r.enrolled_on.split("-").map(Number);
   return {
     id: r.id, name: r.full_name, first: r.first_names, last: r.last_names, document: r.document, docType: r.doc_type,

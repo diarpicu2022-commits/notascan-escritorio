@@ -311,6 +311,12 @@ try {
     rk.length === 2 && rk[0].includes("Ana Bravo Paz") && rk[0].includes("4.5") && rk[0].includes("1 / 1") && rk[1].includes("Luis Mora Ortiz") && rk[1].includes("0 / 1") && rk[1].includes("En riesgo"), rk.join(" / "));
   await page.screenshot({ path: join(OUT, "paso6b3b-ranking.png") });
 
+  // ---------- Menú: año lectivo y periodo abierto de la base (6b.4c) ----------
+  await page.goto(URL_BASE + "#/admin/dashboard");
+  await page.locator(".ns-sidebar-course").waitFor({ timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector(".ns-sidebar-course")?.textContent?.includes("Periodo"), null, { timeout: 8000 }).catch(() => {});
+  report.check("Menú (Secretaría): año lectivo con el periodo abierto de la base", (await page.locator(".ns-sidebar-course").textContent()) === "Año lectivo2026 · Periodo 3", await page.locator(".ns-sidebar-course").textContent());
+
   // ---------- Meta institucional (6b.4b, enmienda 5) ----------
   await page.goto(URL_BASE + "#/admin/periods");
   const goalBlock = page.locator("[aria-label='Meta institucional']");

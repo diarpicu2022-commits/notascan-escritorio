@@ -37,16 +37,28 @@ const hoyA = (h, m) => { const d = new Date(); d.setHours(h, m, 0, 0); return d.
 const haceDias = (n) => new Date(Date.now() - n * 86_400_000).toISOString();
 const A = {
   academic_periods: [
-    { id: "2026-p1", name: "Periodo 1", final_weight: 25, status: "closed", year: 2026, open_date: "2026-01-19", close_date: "2026-03-27" },
-    { id: "2026-p2", name: "Periodo 2", final_weight: 25, status: "closed", year: 2026, open_date: "2026-04-06", close_date: "2026-06-19" },
-    { id: "2026-p3", name: "Periodo 3", final_weight: 25, status: "open", year: 2026, open_date: "2026-07-13", close_date: "2026-10-15" },
-    { id: "2026-p4", name: "Periodo 4", final_weight: 25, status: "draft", year: 2026, open_date: "2026-10-19", close_date: "2026-11-27" },
+    { id: "2026-p1", name: "Periodo 1", position: 1, final_weight: 25, status: "closed", year: 2026, open_date: "2026-01-19", close_date: "2026-03-27" },
+    { id: "2026-p2", name: "Periodo 2", position: 2, final_weight: 25, status: "closed", year: 2026, open_date: "2026-04-06", close_date: "2026-06-19" },
+    { id: "2026-p3", name: "Periodo 3", position: 3, final_weight: 25, status: "open", year: 2026, open_date: "2026-07-13", close_date: "2026-10-15" },
+    { id: "2026-p4", name: "Periodo 4", position: 4, final_weight: 25, status: "draft", year: 2026, open_date: "2026-10-19", close_date: "2026-11-27" },
   ],
   teaching_assignments: [
     { id: 1, teacher_email: "ana.lucia@losandes.edu.co", subject_id: "mat", course_id: "6A", period_id: "2026-p3", subject: { name: "Matemáticas" } },
     { id: 2, teacher_email: "carlos.perez@losandes.edu.co", subject_id: "fis", course_id: "8A", period_id: "2026-p3", subject: { name: "Física" } },
     { id: 3, teacher_email: "ana.lucia@losandes.edu.co", subject_id: "mat", course_id: "6A", period_id: "2026-p2", subject: { name: "Matemáticas" } },
+    // 6b.4c: Física en 6A sin evaluaciones (en el perfil sale «Sin notas»; en el seguimiento no cambia el avance).
+    { id: 4, teacher_email: "carlos.perez@losandes.edu.co", subject_id: "fis", course_id: "6A", period_id: "2026-p3", subject: { name: "Física" } },
   ],
+  // 6b.4c · perfil de s1: Matemáticas 4.5 en P3 y 3.0 en P2; asistencia de septiembre (y un día de agosto que no se muestra).
+  student_overview: [{ id: "s1", first_names: "Ana", last_names: "Bravo Paz", full_name: "Ana Bravo Paz", doc_type: "Tarjeta de identidad", document: "TI 1084000001", course_id: "6A", grade_level_id: "6", status: "active", enrolled_on: "2026-01-12", library_ok: true, fees_ok: true, documents_ok: true, guardian_name: "Rosa Paz", guardian_rel: "Madre", guardian_phone: "3120000000", avg_grade: 4.0, attendance_pct: 90 }],
+  attendance: [
+    { id: 1, student_id: "s1", class_date: "2026-08-28", state: "present" },
+    { id: 2, student_id: "s1", class_date: "2026-09-01", state: "present" },
+    { id: 3, student_id: "s1", class_date: "2026-09-02", state: "absent" },
+    { id: 4, student_id: "s1", class_date: "2026-09-03", state: "late" },
+    { id: 5, student_id: "s1", class_date: "2026-09-04", state: "excused" },
+  ],
+  student_medical: [{ student_id: "s1", allergies: "Penicilina", conditions: null, notes: null, emergency_contact: "Rosa Paz", emergency_phone: "3120000000" }],
   subjects: [{ id: "fis", name: "Física" }, { id: "mat", name: "Matemáticas" }],
   evaluations: [
     { id: 11, assignment_id: 1, weight: 50, due_date: "2026-09-01" },
@@ -255,9 +267,63 @@ try {
   await page.waitForTimeout(1500);
   await page.screenshot({ path: join(OUT, "paso6b4b-seguimiento.png"), fullPage: true });
 
-  // El único error permitido es el 400 simulado de la aprobación de #244.
-  const real = cons.filter((m) => !/status of 400/.test(m));
-  report.check("Consola: solo el error de red simulado (1)", real.length === 0 && cons.length === 1, cons.join(" | "));
+  const side = await page.locator(".ns-sidebar").textContent();
+  report.check("Menú (Rectoría): sin la tarjeta «Institución» del sistema; el colegio de la base va en su escudo", !side.includes("Institución") && side.includes("PastoColegio Los Andes"), side.slice(-120));
+
+  // ---------- 7. Perfil del estudiante (6b.4c) ----------
+  await page.goto(URL_BASE + "#/principal/profile/s1");
+  await page.locator(".ns-profile-head h1").waitFor({ timeout: 10000 });
+  await page.waitForTimeout(1200);
+  const head = await page.locator(".ns-profile-head").textContent();
+  const summary = await page.locator(".ns-profile-grid").textContent();
+  report.check("Perfil · resumen: promedio del periodo abierto 4.5 (Alto · 1 de 1 materia aprobada), asistencia 90 %, paz y salvo al día",
+    head.includes("Ana Bravo Paz") && head.includes("6A") && summary.includes("Promedio · Periodo 3") && summary.includes("4.5") && summary.includes("Alto · 1 de 1 materia aprobada") && summary.includes("90%") && summary.includes("Al día"), summary.slice(0, 200));
+  const evol = await page.locator(".ns-profile-grid svg[role=img]").getAttribute("aria-label");
+  report.check("Perfil · evolución: solo los periodos con notas (P2 3.0, P3 4.5)", evol?.includes("P2 3.0") && evol.includes("P3 4.5") && !evol.includes("P1"), evol);
+  await page.screenshot({ path: join(OUT, "paso6b4c-perfil-resumen.png") });
+
+  await page.getByRole("tab", { name: "Calificaciones" }).click();
+  const grows = await page.locator("tbody tr").allTextContents();
+  report.check("Perfil · calificaciones: materias del curso en el periodo con su docente; sin notas lo dice",
+    grows.length === 2 && grows[0].includes("Física") && grows[0].includes("Carlos Pérez") && grows[0].includes("Sin notas") && grows[1].includes("Matemáticas") && grows[1].includes("Ana Lucía Rosero") && grows[1].includes("4.5") && grows[1].includes("Alto"), grows.join(" / "));
+
+  await page.getByRole("tab", { name: "Asistencia" }).click();
+  const cal = page.locator(".ns-cal");
+  const lab = async (d) => cal.getByRole("gridcell", { name: new RegExp("^" + d + " de septiembre") }).getAttribute("aria-label");
+  report.check("Perfil · asistencia: mes del último registro con el estado de cada día (excusa, sin clase, sin registro)",
+    (await cal.textContent()).includes("Septiembre 2026") && (await cal.textContent()).includes("90% de asistencia")
+      && (await lab(2)) === "2 de septiembre: Inasistencia" && (await lab(3)) === "3 de septiembre: Tarde" && (await lab(4)) === "4 de septiembre: Excusa"
+      && (await lab(5)) === "5 de septiembre: Sin clase" && (await lab(7)) === "7 de septiembre: Sin registro" && (await cal.locator(".ns-cal-pad").count()) === 1,
+    [await lab(2), await lab(4), await lab(5), await lab(7)].join(" | "));
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: join(OUT, "paso6b4c-perfil-asistencia.png") });
+
+  await page.getByRole("tab", { name: "Observador" }).click();
+  report.check("Perfil · observador: las anotaciones de la base", (await page.locator(".ns-tl-item").count()) === 2);
+
+  await page.getByRole("tab", { name: "Boletines" }).click();
+  await page.locator(".ns-paper-scroll").waitFor({ timeout: 10000 }).catch(() => {});
+  const paper = (await page.locator(".ns-paper-scroll").textContent().catch(() => "")) ?? "";
+  report.check("Perfil · boletín: el del periodo abierto con las reglas de Secretaría", paper.includes("Ana Bravo Paz") && paper.includes("Periodo 3 de 4") && paper.includes("Matemáticas"), paper.slice(0, 600));
+  await page.screenshot({ path: join(OUT, "paso6b4c-perfil-boletin.png") });
+
+  await page.getByRole("tab", { name: "Información" }).click();
+  const info = await page.locator(".ns-block").last().textContent();
+  report.check("Perfil · información: acudiente y salud reales (alergia y contacto de emergencia), marcados como sensibles",
+    info.includes("TI 1084000001") && info.includes("Rosa Paz (Madre)") && info.includes("alergias: Penicilina") && info.includes("contacto de emergencia: Rosa Paz · 3120000000") && info.includes("Visible solo para Secretaría y Rectoría"), info);
+
+  await page.goto(URL_BASE + "#/principal/profile/nadie");
+  await page.locator(".ns-empty-title").waitFor({ timeout: 10000 });
+  report.check("Perfil: un estudiante que no existe (o que no se puede ver) lo dice y ofrece volver", (await page.locator(".ns-empty-title").textContent()) === "No encontramos a este estudiante." && (await page.getByRole("button", { name: "Volver a Estudiantes" }).count()) === 1);
+
+  await page.route("**/rest/v1/student_overview?*id=eq.falla*", (r) => r.fulfill({ status: 500, json: { message: "caída simulada" } }));
+  await page.goto(URL_BASE + "#/principal/profile/falla");
+  await page.locator(".ns-empty--error").waitFor({ timeout: 30000 });
+  report.check("Perfil: si la base falla, lo dice y ofrece reintentar", (await page.locator(".ns-empty-title").textContent()) === "No pudimos cargar el perfil." && (await page.getByRole("button", { name: "Reintentar" }).count()) === 1);
+
+  // Errores permitidos: el 400 simulado de la aprobación de #244 y los 500 simulados del perfil (con sus reintentos).
+  const real = cons.filter((m) => !/status of (400|500)/.test(m));
+  report.check("Consola: solo los errores de red simulados", real.length === 0 && cons.filter((m) => /status of 400/.test(m)).length === 1, cons.join(" | "));
 } catch (e) {
   report.check("El script terminó sin excepciones", false, String(e).split(/\r?\n/)[0]);
 } finally {

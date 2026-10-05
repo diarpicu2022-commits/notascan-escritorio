@@ -15,6 +15,8 @@ export interface RoleShellProps {
   /** Persona con sesión (perfil real). Sin ella se muestra la persona de ejemplo del rol. */
   user?: { name: string; role: string };
   school?: Institution | null;
+  /** Tarjeta de contexto del menú con datos reales; `null` la oculta; sin ella, la del sistema. */
+  context?: { label: string; value: string } | null;
   onNavigate?: (page: string, params?: { id?: string; tab?: string }) => void;
   onLogout?: () => void;
   style?: CSSProperties;
@@ -22,7 +24,7 @@ export interface RoleShellProps {
 }
 
 /** AppShell + navegación del rol + herramientas: chip de rol, búsqueda global y, para el docente, conexión. */
-export function RoleShell({ role, active, counts, overlay, user, school, onNavigate, onLogout, style, children }: RoleShellProps) {
+export function RoleShell({ role, active, counts, overlay, user, school, context, onNavigate, onLogout, style, children }: RoleShellProps) {
   const r = ROLES[role];
   const { sync, setSync, onSync } = useSync();
   const tools = (
@@ -42,7 +44,7 @@ export function RoleShell({ role, active, counts, overlay, user, school, onNavig
   return (
     <AppShell
       active={active} onNavigate={onNavigate} onLogout={onLogout} style={style} overlay={overlay}
-      items={roleNav(role, navCounts)} user={user || r.user} school={school} course={r.course} courseLabel={r.courseLabel} density={r.density} topbar={tools}
+      items={roleNav(role, navCounts)} user={user || r.user} school={school} course={context === undefined ? r.course : context?.value ?? ""} courseLabel={context === undefined ? r.courseLabel : context?.label ?? ""} density={r.density} topbar={tools}
     >
       {children}
     </AppShell>

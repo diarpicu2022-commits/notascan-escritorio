@@ -89,3 +89,33 @@ export function useSaveGoal() {
     onSuccess: () => { if (!DEMO) qc.invalidateQueries({ queryKey: ["my-institution"] }); },
   });
 }
+
+/**
+ * Tarjeta de contexto del menú con datos de la base: Secretaría ve el año y el periodo abierto; el docente, el periodo
+ * y sus materias y cursos; Rectoría no la lleva (el colegio ya va en el menú). En demostración: la del sistema.
+ */
+export function useMenuContext(role: string): { label: string; value: string } | null | undefined {
+  const profile = useAuth().profile;
+  const q = useQuery({
+    queryKey: ["menu-context", role, profile?.id],
+    enabled: !DEMO && !!profile && (role === "admin" || role === "teacher"),
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<{ label: string; value: string } | null> => {
+      const sb = supabase();
+      const p = await sb.from("academic_periods").select("id, name, year").eq("status", "open").limit(1);
+      if (p.error) throw p.error;
+      const open = (p.data ?? [])[0] as { id: string; name: string; year: number } | undefined;
+      if (role === "admin") return { label: "Año lectivo", value: open ? open.year + " · " + open.name : "Sin periodo abierto" };
+      if (!open) return { label: "Periodo", value: "Sin periodo abierto" };
+      const a = await sb.from("teaching_assignments").select("course_id, subject:subjects(name)").eq("period_id", open.id).eq("teacher_email", profile!.email);
+      if (a.error) throw a.error;
+      const rows = (a.data ?? []) as unknown as Array<{ course_id: string; subject: { name: string } | null }>;
+      const subjects = [...new Set(rows.map((x) => x.subject?.name ?? ""))].filter(Boolean);
+      const courses = [...new Set(rows.map((x) => x.course_id))].sort();
+      return { label: open.name + " · " + open.year, value: rows.length ? subjects.join(", ") + " · " + courses.join(", ") : "Sin cursos asignados" };
+    },
+  });
+  if (DEMO) return undefined;
+  if (role === "principal" || role === "platform") return null;
+  return q.data ?? null;
+}
