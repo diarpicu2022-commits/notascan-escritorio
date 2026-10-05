@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { cx } from "../../../lib/cx";
 import { formatGrade } from "../../../lib/grade";
 import { TEACHERS } from "../../../data/academic";
@@ -19,6 +19,7 @@ import { EmptyState } from "../EmptyState";
 import { Block } from "../Layout";
 import { Modal } from "../Overlays";
 import { useToast } from "../Toast";
+import { historyDate } from "../../../services/principal";
 
 /** Verde, amarillo o rojo con forma y palabra, nunca solo color. */
 export function TeacherStatus({ status }: { status: TeacherState }) {
@@ -95,20 +96,43 @@ export function TeacherMonitoringPanel() {
 }
 
 /** Bandeja de solicitudes de cambio de nota: aprobar o rechazar con motivo; la nota original queda en el historial. */
-export function AuthorizationInbox() {
-  const [items, setItems] = useState<GradeRequest[]>(() => REQUESTS.map((r) => ({ ...r })));
+interface AuthorizationInboxProps {
+  /** Solicitudes leídas de la base; sin ellas, las del sistema. */
+  source?: GradeRequest[];
+  /** Quién decide, para el historial. */
+  decider?: string;
+  /** Guarda la decisión; si falla, la bandeja no cambia y se muestra el mensaje. */
+  onDecide?: (id: number, kind: Exclude<RequestStatus, "pending">, note: string) => Promise<void>;
+  errorMessage?: (e: unknown) => string;
+}
+
+export function AuthorizationInbox({ source, decider = "Hernando Villota", onDecide, errorMessage }: AuthorizationInboxProps = {}) {
+  const [items, setItems] = useState<GradeRequest[]>(() => (source ?? REQUESTS).map((r) => ({ ...r })));
+  const lastSource = useRef(source);
+  useEffect(() => { if (source && lastSource.current !== source) { lastSource.current = source; setItems(source.map((r) => ({ ...r }))); } }, [source]);
   const [tab, setTab] = useState<RequestStatus>("pending");
-  const [sel, setSel] = useState(245);
+  const [sel, setSel] = useState(() => (source ? source.find((r) => r.status === "pending")?.id ?? 0 : 245));
+  const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState<RequestStatus | null>(null);
   const [note, setNote] = useState("");
   const [showToast, toastNode] = useToast();
   const list = items.filter((r) => r.status === tab);
   let cur = items.find((r) => r.id === sel);
-  if (cur && cur.status !== tab) cur = list[0];
+  if (!cur || cur.status !== tab) cur = list[0];
 
-  function decide(kind: RequestStatus) {
-    const r = cur!, now = "1 oct, " + new Date().toTimeString().slice(0, 5);
-    setItems(items.map((x) => (x.id === r.id ? { ...x, status: kind, history: x.history.concat([[(kind === "approved" ? "Aprobada" : "Rechazada") + " por Hernando Villota" + (note ? ": " + note : ""), now]]) } : x)));
+  async function decide(kind: RequestStatus) {
+    const r = cur!, now = source ? historyDate(new Date().toISOString()) : "1 oct, " + new Date().toTimeString().slice(0, 5);
+    if (onDecide) {
+      setSaving(true);
+      try { await onDecide(r.id, kind as Exclude<RequestStatus, "pending">, note); } catch (e) {
+        setSaving(false);
+        setConfirm(null);
+        showToast({ tone: "error", title: "No se guardó la decisión", message: errorMessage ? errorMessage(e) : "Inténtalo de nuevo." });
+        return;
+      }
+      setSaving(false);
+    }
+    setItems(items.map((x) => (x.id === r.id ? { ...x, status: kind, history: x.history.concat([[(kind === "approved" ? "Aprobada" : "Rechazada") + " por " + decider + (note.trim() ? ": " + note.trim() : ""), now]]) } : x)));
     setConfirm(null);
     setNote("");
     showToast({ tone: "success", title: "Solicitud #" + r.id + (kind === "approved" ? " aprobada" : " rechazada"), message: kind === "approved" ? "La nota de " + r.student.split(" ")[0] + " cambió a " + formatGrade(r.to) + "." : "Se notificó a " + r.teacher + "." });
@@ -168,7 +192,7 @@ export function AuthorizationInbox() {
         description={cur ? cur.student + " · " + cur.subject + ": " + formatGrade(cur.from) + " → " + formatGrade(cur.to) + (confirm === "approved" ? ". La nota original queda en el historial." : ". El docente recibirá tu motivo.") : ""}
         actions={[
           <Button key="c" variant="secondary" onClick={() => setConfirm(null)} data-autofocus>Cancelar</Button>,
-          <Button key="o" variant={confirm === "approved" ? "primary" : "danger"} icon={confirm === "approved" ? "check" : "close"} disabled={confirm === "rejected" && !note.trim()} onClick={() => decide(confirm!)}>
+          <Button key="o" variant={confirm === "approved" ? "primary" : "danger"} icon={confirm === "approved" ? "check" : "close"} disabled={confirm === "rejected" && !note.trim()} loading={saving} loadingText="Guardando…" onClick={() => decide(confirm!)}>
             {confirm === "approved" ? "Aprobar" : "Rechazar"}
           </Button>,
         ]}

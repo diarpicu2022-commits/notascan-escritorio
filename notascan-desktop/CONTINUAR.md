@@ -87,16 +87,26 @@ Lo primero que se lee al retomar.
     114/114. Región «Servicio» añadida al contrato: espera visto bueno.
     - **Pendiente de Diego:** crear su usuario (Authentication → Add user, su correo, Auto Confirm) y, para cada colegio
       nuevo, el acceso de su Secretaría (resuelto en 7e con invitaciones).
-  - **7e (hecho 2026-10-04, esperando visto bueno):** invitaciones por correo (función `invite-staff` desplegada,
+  - **7e (hecho y aprobado 2026-10-04):** invitaciones por correo (función `invite-staff` desplegada,
     migración `20261004160000_invitaciones.sql` aplicada) y activación con código en el login; también restablecer con
     código. `verify:invite` 14/14, regresión en verde.
     - **Pendiente de Diego:** pegar las plantillas de `supabase/templates/` en Authentication → Emails (o autorizarme), y
       configurar un SMTP propio: el correo por defecto solo entrega a miembros del equipo y 2 por hora.
-  - Después: Reportes del Docente y Subir fotografías (decisión del servicio de visión);
-    6b.4 Rectoría (panorama, analítica, seguimiento, solicitudes con decide_grade_request) y perfil.
+  - Servicio de visión decidido (2026-10-05): **A · modelo multimodal (GPT-4o / Claude con visión)** para Subir
+    fotografías. Implica declarar la transferencia a terceros en la política (las fotos son de menores).
+- **Paso 6b.4 · Rectoría** (en curso, por partes).
+  - **6b.4a (hecho 2026-10-05, esperando visto bueno):** Solicitudes con datos reales y cambio de nota real
+    (migración `20261005090000_solicitudes.sql`: `grade_id`, `request_fits_grade`, `decide_grade_request` aplica la
+    nota y no aplica a ciegas), «Esperan tu decisión» del panorama, número del menú desde la base y Observador.
+    `verify:db` 127/127, `verify:principal-data` 13/13, `verify:states` 90/90, `verify:principal` 76/76.
+    - **Pendiente de Diego:** ejecutar la migración: quedó cargada en el SQL Editor (pestaña «Untitled query»,
+      SHA-1 LF `c400c9cc…`); el clasificador de permisos no me dejó pulsar «Run» en producción.
+    - Dos decisiones en el anexo (Paso 6b.4a): formulario del docente para pedir el cambio y qué hacer con las 3
+      solicitudes de la semilla.
+  - **6b.4b (siguiente):** indicadores del panorama, Analítica, Seguimiento docente (recordatorio) y perfil.
+  - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.
-  - Hallazgo para 6b.4: `decide_grade_request` aprueba la solicitud pero no cambia la nota en `grades`.
 - Credencial de la base: la lectura de la contraseña desde el navegador fue bloqueada por permisos (bien). Diego la
   restablece en Settings → Database y aplica con `npx supabase db push --db-url "<cadena de conexión>"` o pega las migraciones en el SQL Editor.
 - Vistas de prueba: `#/dev/tokens`, `#/dev/card`, `#/dev/card-static`, `#/dev/components`. Verificación (tras `npm run build`): `verify:tokens`, `verify:card`, `verify:shell`, `verify:components`, `verify:teacher`, `verify:admin`, `verify:principal`.

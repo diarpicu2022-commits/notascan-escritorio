@@ -575,3 +575,57 @@ con una referencia antes de probarlo).
 contenido cotejado). Sobre los datos de la institución, Diego pide un **modo administrador de la plataforma**: él da de
 alta los colegios clientes, carga su logo, resolución y DANE (que aparecen en el colegio, en boletines y en
 estudiantes) y ve uso y estadísticas por colegio. Se diseña como Paso 7.
+
+### Paso 6b.4a · Rectoría: solicitudes con cambio de nota real y observador (2026-10-05)
+
+Diego aprueba 7e y decide el servicio de visión (**A · modelo multimodal tipo GPT-4o / Claude con visión**, para el
+paso de Subir fotografías). Pide arrancar 6b.4 por Rectoría. Se entrega por partes: 6b.4a solicitudes y observador;
+6b.4b panorama (indicadores), analítica, seguimiento docente y perfil.
+
+Sin dirección nueva: pantallas del sistema (C3, Paso 5c) conectadas a la base. Registro **producto, lectura obligada**:
+el punto de entrada es la decisión, sin adornos.
+
+- **Hallazgo de 6b.2 corregido** (migración `20261005090000_solicitudes.sql`): la solicitud no decía qué nota
+  cambiar. Ahora lleva `grade_id`; `decide_grade_request` al aprobar cambia la nota en la misma transacción
+  (`grade_audit` guarda la original) y **no aplica a ciegas**: si la nota ya no es la «desde» de la solicitud, avisa
+  «La nota cambió desde la solicitud (ahora es 4.0). Recházala y pide una nueva.» y la deja pendiente. Las solicitudes
+  viejas sin nota enlazable se pueden rechazar, no aprobar. La política `requests_create` exige que la nota sea del
+  docente, del mismo estudiante, curso y materia, y que su valor actual sea el «desde» (`request_fits_grade`).
+  Efecto conocido: si la nota estaba verificada, la firma de verificación pasa a quien aprobó (disparador
+  `stamp_grade_verification`); la auditoría deja claro el cambio.
+- **Solicitudes**: bandeja con datos de la base (docente por su perfil, porque Rectoría no lee el directorio de personal),
+  historial «Creada por…» + eventos de la base, aprobar/rechazar por la función con «Guardando…», el error de la base
+  en el aviso y la bandeja sin cambios.
+- **Panorama · «Esperan tu decisión»** con las pendientes reales. Sus estados van sobre el bloque navy: el `EmptyState`
+  del sistema no tiene versión inversa (medido: 1.14:1), así que se usan piezas del sistema para fondo oscuro —
+  `ns-list--inverse` para vacío y error (título 12.86:1, mensaje 9.22:1) y «Reintentar» en el lugar del botón del bloque.
+- **Número del menú** «Solicitudes»: sale de la base en todas las páginas de Rectoría (antes, 3 fijo).
+- **Observador** de toda la institución con datos reales (el RLS ya lo permitía a Rectoría), con carga, error y vacío.
+
+Verificación: `verify:db` 127/127 (9 nuevas: crear sobre su nota, no a nombre de otro, «desde» = nota actual, sin nota
+no, no sobre notas ajenas, solicitud vieja no se aprueba, aprobar cambia 4.3 → 4.6 con auditoría, nota cambiada no se
+aplica, rechazar no toca la nota), `verify:principal-data` 13/13 (nuevo), `verify:states` 90/90 (Solicitudes, Panorama
+y Observador de Rectoría), `verify:principal` 76/76 (fidelidad intacta).
+Fallos propios: la etiqueta «0 solicitudes» se veía mientras cargaba (oculta hasta tener datos); los estados del bloque navy salieron ilegibles en la primera versión (1.14:1, encontrado por la
+comprobación); un comando de edición se quedó esperando entrada y la primera corrida de `verify:db` no tenía las pruebas
+nuevas; en la base, la prueba de «nota cambiada» intentó cambiar una nota con la evaluación cerrada y la base lo impidió
+(se reabre la evaluación en la prueba).
+
+**Migración pendiente de aplicar**: quedó cargada en el SQL Editor del proyecto real (cotejada por SHA-1
+`c400c9cc5da0fed088721fa62026f917f817a663`, finales de línea LF, dentro de `begin; … commit;`); el permiso de ejecutarla
+lo da Diego. Hasta aplicarla, aprobar en la app real no cambia la nota.
+
+**Decisiones para Diego (6b.4a)**:
+1. **Formulario del docente para pedir el cambio** de una nota cerrada: el sistema no lo trae (solo el mensaje «Solicita
+   el cambio de nota a Rectoría»). Propuesta: en la planilla, sobre la celda cerrada, un `Modal` del sistema con nota
+   nueva, motivo (lista corta) y detalle. Sin él, las solicitudes solo llegan por la semilla.
+2. **Las 3 solicitudes pendientes de la semilla** no tienen nota enlazable en la base real: solo se pueden rechazar.
+   Propuesta: dejarlas (sirven para probar el rechazo) o borrarlas al pasar a datos reales.
+
+Medios: 1024 y 1440 px (390/768 no aplican, ventana Tauri con `minWidth` 1024) sin desbordamiento en panorama
+(normal, vacío, cargando), solicitudes y observador; teclado: «Aprobar» a 4 tabulaciones desde la solicitud, foco visible
+(contorno sólido de 2 px más sombra), Enter abre la confirmación con el foco dentro y Escape la cierra
+(`scripts/verify-6b4a-viewports.mjs`, 14/14). Observado sin corregir, anterior a este paso: a 768 px el botón del
+encabezado y el primer indicador del panorama se salen 17 px (fuera del rango de la ventana). Regresión: auth 20/20,
+data 8/8, teacher-data 33/33, admin-data 37/37, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62,
+components 121/121, teacher 123/123, admin 102/102, principal 76/76, states 90/90, identity 25/25, platform 26/26.

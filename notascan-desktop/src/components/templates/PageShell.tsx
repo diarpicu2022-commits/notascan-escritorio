@@ -5,6 +5,7 @@ import { ROLES } from "../../data/roles";
 import { RoleShell } from "./RoleShell";
 import { DEMO } from "../../lib/supabase";
 import { useMyInstitution } from "../../services/institution";
+import { usePendingCount } from "../../services/principal";
 
 /* Ítems que se iluminan en el menú cuando la página no tiene uno propio (ALIAS del sistema). */
 const ALIAS: Record<string, string> = { grade: "grades", review: "grades", evaluations: "grades" };
@@ -23,8 +24,11 @@ export function PageShell({ active, counts, overlay, children }: PageShellProps)
   const user = profile ? { name: profile.fullName, role: ROLES[role].user.role } : undefined;
   // El colegio de la sesión va en el marco (en demostración, el marco del sistema sin cambios).
   const school = useMyInstitution(role !== "platform").data;
+  // Rectoría: el número de solicitudes pendientes del menú sale de la base en todas sus páginas.
+  const pending = usePendingCount(role === "principal");
+  const navCounts = role === "principal" && !counts ? { requests: pending } : counts;
   return (
-    <RoleShell role={role} active={ALIAS[active] || active} counts={counts} overlay={overlay} user={user} school={DEMO ? null : school} onNavigate={navigate} onLogout={logout}>
+    <RoleShell role={role} active={ALIAS[active] || active} counts={navCounts} overlay={overlay} user={user} school={DEMO ? null : school} onNavigate={navigate} onLogout={logout}>
       {children}
     </RoleShell>
   );

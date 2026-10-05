@@ -87,7 +87,7 @@ export function StudentProfilePage({ studentId, tab: initialTab }: { studentId?:
   }
 
   return (
-    <PageShell active="students" counts={role === "principal" ? { requests: 3 } : null}>
+    <PageShell active="students" counts={null}>
       <div className="ns-profile-head">
         <Button variant="ghost" size="sm" icon="chevleft" onClick={() => navigate("students")}>Estudiantes</Button>
         <div className="ns-profile-id">

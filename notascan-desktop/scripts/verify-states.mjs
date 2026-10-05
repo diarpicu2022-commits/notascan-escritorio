@@ -31,6 +31,10 @@ const SCREENS = [
   { hash: "#/teacher/students", name: "Estudiantes (Docente)", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar tus estudiantes.", emptyTitle: "No tienes estudiantes en tus cursos." },
   { hash: "#/teacher/evaluations", name: "Evaluaciones", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las evaluaciones.", emptyTitle: "Este curso aún no tiene evaluaciones." },
   { hash: "#/teacher/recoveries", name: "Recuperaciones", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las recuperaciones.", emptyTitle: "No hay estudiantes en recuperación." },
+  // 6b.4a · Rectoría: solicitudes (bandeja y bloque del panorama) y observador.
+  { hash: "#/principal/requests", name: "Solicitudes (Rectoría)", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las solicitudes.", emptyTitle: "No hay solicitudes pendientes." },
+  { hash: "#/principal/dashboard", name: "Panorama · Esperan tu decisión", inverse: ".ns-decide", loading: ".ns-decide [aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las solicitudes.", emptyTitle: "No hay solicitudes pendientes." },
+  { hash: "#/principal/observer", name: "Observador (Rectoría)", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las anotaciones.", emptyTitle: "Aún no hay anotaciones." },
 ];
 
 const { browser, close } = await startPreview();
@@ -52,6 +56,23 @@ try {
     }
     await page.screenshot({ path: join(OUT, `paso6b-${slug}-cargando.png`) });
 
+    if (s.inverse) {
+      // Bloque navy: los estados son una fila de la lista inversa del sistema, con contraste medido sobre el render.
+      const row = page.locator(s.inverse + " .ns-list--inverse .ns-list-item strong");
+      await page.goto(URL_BASE + s.hash + "?estado=error", { waitUntil: "networkidle" });
+      await row.first().waitFor({ timeout: 8000 });
+      report.check(`${s.name} · error: «${s.errorTitle}» con «Reintentar»`, (await row.first().textContent()) === s.errorTitle && (await page.locator(s.inverse).getByRole("button", { name: "Reintentar" }).count()) === 1);
+      for (const [what, loc] of [["título", row.first()], ["mensaje", page.locator(s.inverse + " .ns-list--inverse .ns-caption").first()]]) {
+        const c = await sampleTextContrast(page, loc);
+        report.check(`${s.name} · error: contraste del ${what} ≥ 4.5:1`, c.ratio >= 4.5, c.ratio.toFixed(2) + ":1");
+      }
+      await page.screenshot({ path: join(OUT, `paso6b-${slug}-error.png`) });
+      await page.goto(URL_BASE + s.hash + "?estado=vacio", { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      report.check(`${s.name} · vacío: «${s.emptyTitle}»`, (await row.first().textContent()) === s.emptyTitle);
+      await page.screenshot({ path: join(OUT, `paso6b-${slug}-vacio.png`) });
+      continue;
+    }
     // Error: EmptyState de error con salida «Reintentar».
     await page.goto(URL_BASE + s.hash + "?estado=error", { waitUntil: "networkidle" });
     await page.locator(".ns-empty--error").waitFor({ timeout: 8000 });

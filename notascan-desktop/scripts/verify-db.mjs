@@ -118,10 +118,19 @@ try {
   check("Secretaría sí puede matricular", !adminAddStudent, adminAddStudent || "");
 
   // ---------- 5. Solicitudes: el docente pide, Rectoría decide ----------
-  const reqErr = await as(ana, () => errorOf("insert into public.grade_change_requests (teacher_email, student_id, subject_id, course_id, from_value, to_value, reason) values ('ana.lucia@losandes.edu.co', $1, 'mat', '7A', 3.0, 3.5, 'Corrección de evaluación')", [anaStudent]));
-  check("El docente crea una solicitud de cambio de nota", !reqErr, reqErr || "");
-  const fake = await as(ana, () => errorOf("insert into public.grade_change_requests (teacher_email, student_id, subject_id, course_id, from_value, to_value, reason) values ('carlos.perez@losandes.edu.co', $1, 'mat', '7A', 3.0, 3.5, 'Suplantación')", [anaStudent]));
+  // La solicitud apunta a la nota (grade_id) de la evaluación cerrada de la sección 4 (vale 4.3).
+  const ins = (email, grade, from, to) => errorOf("insert into public.grade_change_requests (teacher_email, student_id, subject_id, course_id, from_value, to_value, reason, grade_id) values ($1, $2, 'mat', '7A', $3, $4, 'Corrección de evaluación', $5)", [email, g.student_id, from, to, grade]);
+  const reqErr = await as(ana, () => ins("ana.lucia@losandes.edu.co", g.id, 4.3, 4.6));
+  check("El docente crea una solicitud de cambio de nota sobre su nota", !reqErr, reqErr || "");
+  const fake = await as(ana, () => ins("carlos.perez@losandes.edu.co", g.id, 4.3, 4.6));
   check("No puede crearla a nombre de otro docente", fake?.includes("row-level security"), fake || "se creó");
+  const wrongFrom = await as(ana, () => ins("ana.lucia@losandes.edu.co", g.id, 3.1, 4.6));
+  check("La nota «desde» tiene que ser la nota actual", wrongFrom?.includes("row-level security"), wrongFrom || "se creó");
+  const noGrade = await as(ana, () => ins("ana.lucia@losandes.edu.co", null, 4.3, 4.6));
+  check("Una solicitud nueva sin nota no se crea", noGrade?.includes("row-level security"), noGrade || "se creó");
+  const otherGrade = await as(carlos, () => ins("carlos.perez@losandes.edu.co", g.id, 4.3, 4.6));
+  check("Un docente no pide cambios sobre notas de otro", otherGrade?.includes("row-level security"), otherGrade || "se creó");
+  const anaReq = (await one("select id from public.grade_change_requests where grade_id = $1", [g.id])).id;
   const pendingId = (await one("select id from public.grade_change_requests where status = 'pending' order by id limit 1")).id;
   // Hallazgo del Security Advisor: sin sesión el rol es NULL y no debe poder decidir ni llamar funciones.
   const anonDecides = await as(null, () => errorOf("select public.decide_grade_request($1, 'approved')", [pendingId]));
@@ -137,9 +146,31 @@ try {
   check("Un docente no puede decidir solicitudes", teacherDecides?.includes("Solo Rectoría"), teacherDecides || "decidió");
   const rejectNoReason = await as(hernando, () => errorOf("select public.decide_grade_request($1, 'rejected', '')", [pendingId]));
   check("Rechazar sin motivo no se permite", rejectNoReason?.includes("rejection_needs_reason"), rejectNoReason || "se rechazó");
-  const approve = await as(hernando, () => errorOf("select public.decide_grade_request($1, 'approved', 'Procede')", [pendingId]));
-  const after = await one("select status, decided_by is not null d, (select description from public.request_events where request_id = $1) e from public.grade_change_requests where id = $1", [pendingId]);
+  const legacy = await as(hernando, () => errorOf("select public.decide_grade_request($1, 'approved', 'Procede')", [pendingId]));
+  check("Una solicitud anterior sin nota no se aprueba a ciegas", legacy?.includes("no indica qué nota"), legacy || "se aprobó");
+  const approve = await as(hernando, () => errorOf("select public.decide_grade_request($1, 'approved', 'Procede')", [anaReq]));
+  const after = await one("select status, decided_by is not null d, (select description from public.request_events where request_id = $1) e from public.grade_change_requests where id = $1", [anaReq]);
   check("Rectoría aprueba y la decisión queda en el historial", !approve && after.status === "approved" && after.d && after.e === "Aprobada por Hernando Villota: Procede", approve || JSON.stringify(after));
+  const applied = await one("select value::text v, (select old_value::text || '>' || new_value::text from public.grade_audit where grade_id = $1 order by id desc limit 1) a from public.grades where id = $1", [g.id]);
+  check("Aprobar cambia la nota (4.3 → 4.6) y la original queda en grade_audit", applied.v === "4.6" && applied.a === "4.3>4.6", JSON.stringify(applied));
+  await as(ana, () => ins("ana.lucia@losandes.edu.co", g.id, 4.6, 4.9));
+  const staleReq = (await one("select id from public.grade_change_requests where grade_id = $1 and status = 'pending'", [g.id])).id;
+  // La nota cambia por otro camino (se reabre la evaluación, el docente corrige y se vuelve a cerrar).
+  await db.query("update public.evaluations set status = 'en-revision' where id = (select evaluation_id from public.grades where id = $1)", [g.id]);
+  await as(ana, () => db.query("update public.grades set value = 4.0 where id = $1", [g.id]));
+  await db.query("update public.evaluations set status = 'cerrada' where id = (select evaluation_id from public.grades where id = $1)", [g.id]);
+  const stale = await as(hernando, () => errorOf("select public.decide_grade_request($1, 'approved')", [staleReq]));
+  const keep = await one("select value::text v, (select status::text from public.grade_change_requests where id = $2) s from public.grades where id = $1", [g.id, staleReq]);
+  check("Si la nota cambió desde la solicitud, no se aplica y la solicitud sigue pendiente", stale?.includes("La nota cambió desde la solicitud (ahora es 4.0)") && keep.v === "4.0" && keep.s === "pending", stale || JSON.stringify(keep));
+  const reject = await as(hernando, () => errorOf("select public.decide_grade_request($1, 'rejected', 'Falta el soporte')", [staleReq]));
+  const rej = await one("select status::text s, decision_note n, (select value::text from public.grades where id = $2) v from public.grade_change_requests where id = $1", [staleReq, g.id]);
+  check("Rechazar no toca la nota y guarda el motivo", !reject && rej.s === "rejected" && rej.n === "Falta el soporte" && rej.v === "4.0", reject || JSON.stringify(rej));
+  // Deja la nota como la espera el resto del script (4.3 verificada).
+  await db.query("update public.evaluations set status = 'en-revision' where id = (select evaluation_id from public.grades where id = $1)", [g.id]);
+  await as(ana, () => db.query("update public.grades set value = 4.3 where id = $1", [g.id]));
+  await db.query("update public.evaluations set status = 'cerrada' where id = (select evaluation_id from public.grades where id = $1)", [g.id]);
+  const fitsAnon = await as(null, () => errorOf("select public.request_fits_grade(1, 'x', 'x', 'x', 1)"));
+  check("Sin sesión no se llama a request_fits_grade", fitsAnon?.includes("permission denied"), fitsAnon || "se llamó");
   const directUpdate = await as(hernando, () => db.query("update public.grade_change_requests set status = 'approved' where status = 'pending'").then((r) => r.affectedRows));
   check("Ni Rectoría cambia el estado por fuera de la función (sin política de update)", directUpdate === 0, String(directUpdate));
 
