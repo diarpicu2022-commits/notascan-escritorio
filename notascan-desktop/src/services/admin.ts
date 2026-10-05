@@ -18,7 +18,7 @@ const codeOf = (e: unknown) => (e && typeof e === "object" && "code" in e ? Stri
 /** Mensaje para la persona: las reglas de la base se muestran tal cual; lo demás, genérico. */
 export function adminMessage(e: unknown): string {
   const m = msgOf(e);
-  if (/Cambia el docente|Solo Secretaría|debe sumar 100|no existe/.test(m)) return m;
+  if (/Cambia el docente|Solo Secretaría|debe sumar 100|no existe|La meta debe/.test(m)) return m;
   if (/academic_periods_one_open/.test(m)) return "Ya hay un periodo abierto. Ciérralo antes de abrir otro.";
   if (codeOf(e) === "23505") return "Ya existe un registro con ese nombre o código.";
   return "No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.";

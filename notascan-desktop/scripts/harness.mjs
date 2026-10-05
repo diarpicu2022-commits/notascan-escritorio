@@ -216,13 +216,15 @@ export function pixelDiff(page, a, b) {
 }
 
 /** Compara una ruta de la app con la misma ruta del sistema: DOM del contenido y del menú, y píxeles del contenido. */
-export async function compareRoute(browser, report, hash, label, shotPrefix) {
+/** `omit`: selector de bloques añadidos por una enmienda aprobada (no existen en el sistema); se quitan antes de comparar. */
+export async function compareRoute(browser, report, hash, label, shotPrefix, omit = null) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
   const { page: ref, cons: rc } = await openReference(ctx, hash);
   const mine = await ctx.newPage();
   const mc = watchConsole(mine);
   await mine.goto(URL_BASE + hash, { waitUntil: "networkidle" });
   await Promise.all([ref.waitForTimeout(1200), mine.waitForTimeout(1200)]);
+  if (omit) await mine.evaluate((s) => document.querySelectorAll(s).forEach((n) => n.remove()), omit);
   for (const [sel, part] of [[".ns-app-main", "contenido"], [".ns-sidebar", "menú"]]) {
     const [r, m] = await Promise.all([normalizeDom(ref.locator(sel)), normalizeDom(mine.locator(sel))]);
     let at = 0;

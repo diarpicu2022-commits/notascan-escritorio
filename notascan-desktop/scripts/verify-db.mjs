@@ -440,6 +440,21 @@ try {
   const absAnon = await as(null, () => errorOf("select * from public.attendance_by_grade('2026-01-01', '2026-12-31')"));
   check("Sin sesión no se llama a attendance_by_grade", absAnon?.includes("permission denied"), absAnon || "se llamó");
 
+  // ---------- 12c. Meta institucional: la configura Secretaría ----------
+  const goalDefault = await as(hernando, () => one("select performance_goal::text g from public.institutions"));
+  const goalTeacher = await as(ana, () => errorOf("select public.set_performance_goal(4.0)"));
+  const goalRector = await as(hernando, () => errorOf("select public.set_performance_goal(4.0)"));
+  const goalOut = await as(patricia, () => errorOf("select public.set_performance_goal(5.5)"));
+  const goalOk = await as(patricia, () => errorOf("select public.set_performance_goal(3.84)"));
+  const goalNow = await as(hernando, () => one("select performance_goal::text g from public.institutions"));
+  check("Meta institucional: 3.5 por defecto; solo Secretaría la cambia, entre 1.0 y 5.0, con un decimal",
+    goalDefault.g === "3.5" && goalTeacher?.includes("Solo Secretaría") && goalRector?.includes("Solo Secretaría") && goalOut?.includes("entre 1.0 y 5.0") && !goalOk && goalNow.g === "3.8",
+    JSON.stringify({ goalDefault, goalTeacher, goalRector, goalOut, goalOk, goalNow }));
+  const goalDirect = await as(patricia, () => db.query("update public.institutions set performance_goal = 2.0").then((r) => r.affectedRows));
+  check("Secretaría no escribe la tabla de colegios directamente (0 filas)", goalDirect === 0, String(goalDirect));
+  const goalAnon = await as(null, () => errorOf("select public.set_performance_goal(4.0)"));
+  check("Sin sesión no se llama a set_performance_goal", goalAnon?.includes("permission denied"), goalAnon || "se llamó");
+
   // ---------- 13. «supabase db reset»: todas las migraciones y después la semilla ----------
   {
     const fresh = new PGlite();

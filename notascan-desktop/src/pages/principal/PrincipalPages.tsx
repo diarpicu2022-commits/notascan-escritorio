@@ -16,6 +16,7 @@ import { useAuth } from "../../app/AuthContext";
 import { DEMO } from "../../lib/supabase";
 import { decideMessage, useAnalytics, useDecideRequest, useMonitoring, usePendingCount, useRequests } from "../../services/principal";
 import { useObservations } from "../../services/teacher";
+import { useMyInstitution } from "../../services/institution";
 import { forcedState } from "../../services/client";
 import { queryState } from "../teacher/states";
 
@@ -24,13 +25,13 @@ import { queryState } from "../teacher/states";
 type Analytics = ReturnType<typeof useAnalytics>;
 
 /** Indicadores y gráficos: los del sistema en demostración; los de la base, con carga, error y vacío. */
-function analyticsBody(an: Analytics, hideFilters: boolean, onPeriod?: (p: string) => void): ReactNode {
+function analyticsBody(an: Analytics, goal: number | undefined, hideFilters: boolean, onPeriod?: (p: string) => void): ReactNode {
   const q = an.academic;
   if (q.data?.demo) return <InstitutionalAnalytics hideFilters={hideFilters} />;
   if (q.isPending && !q.data) return <LoadingBlocks rows={4} height={120} label="Cargando la analítica" />;
   if (q.isError && !q.data) return <ErrorState title="No pudimos cargar la analítica." onRetry={() => q.refetch()} />;
   if (!an.data) return <EmptyState icon="reports" title="Aún no hay notas verificadas." message="Los indicadores aparecen cuando los docentes verifiquen las primeras notas del periodo." />;
-  return <InstitutionalAnalytics hideFilters={hideFilters} data={an.data} onPeriod={onPeriod} />;
+  return <InstitutionalAnalytics hideFilters={hideFilters} data={an.data} goal={goal} onPeriod={onPeriod} />;
 }
 
 /** «Periodo 3 · 2026» del periodo que se muestra (en demostración, el del sistema). */
@@ -45,6 +46,7 @@ export function PrincipalDashboardPage() {
   const pend = (rq.data ?? []).filter((r) => r.status === "pending");
   const mq = useMonitoring();
   const an = useAnalytics();
+  const goal = useMyInstitution().data?.goal;
   const attention = (mq.data ?? []).filter((t) => t.status !== "ok");
   const teachers = queryState(mq, "Cargando el seguimiento docente", "No pudimos cargar el seguimiento docente.")
     ?? (!attention.length ? <EmptyState icon="check" title={mq.data?.length ? "Todos los docentes están al día." : "Aún no hay asignaciones en el periodo abierto."} message="Aquí aparecen los docentes con calificaciones atrasadas." /> : null);
@@ -87,7 +89,7 @@ export function PrincipalDashboardPage() {
           </ul>}
         </Block>
       </div>
-      {analyticsBody(an, true)}
+      {analyticsBody(an, goal, true)}
     </PageShell>
   );
 }
@@ -96,11 +98,12 @@ export function AnalyticsPage() {
   const pending = usePendingCount();
   const [period, setPeriod] = useState<string | undefined>();
   const an = useAnalytics(period);
+  const goal = useMyInstitution().data?.goal;
   return (
     <PageShell active="analytics" counts={{ requests: pending }}>
       <Header eyebrow="Analítica" title="Rendimiento institucional" highlight="institucional" description="Cada gráfico responde una pregunta. Pasa el cursor sobre las barras y puntos para ver el detalle."
         actions={<Button variant="secondary" icon="download">Exportar informe</Button>} />
-      {analyticsBody(an, false, setPeriod)}
+      {analyticsBody(an, goal, false, setPeriod)}
     </PageShell>
   );
 }

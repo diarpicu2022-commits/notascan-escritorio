@@ -12,6 +12,7 @@ import { Block, BlockTitle } from "../Layout";
 import { EmptyState } from "../EmptyState";
 import { ErrorState, LoadingBlocks } from "../QueryState";
 import { useToast } from "../Toast";
+import { useMyInstitution, useSaveGoal } from "../../../services/institution";
 
 export type { WeightItem };
 
@@ -64,6 +65,30 @@ const PST: Record<PeriodStatus, [string, BadgeTone, IconName]> = { closed: ["Cer
 /** Periodo que se abre al entrar: el primer borrador (el que se está preparando), si no el abierto. */
 const initialSel = (list: Period[]) => (list.find((x) => x.status === "draft") ?? list.find((x) => x.status === "open") ?? list[list.length - 1])?.id ?? "";
 const weightsOf = (list: Period[]) => (DEMO ? PERIOD_SETUP.names.map((n, i) => ({ name: n, weight: PERIOD_SETUP.weights[i] })) : list.map((x) => ({ name: x.name, weight: x.finalWeight })));
+
+/** Meta institucional: el promedio que el colegio espera de cada grado; Rectoría la ve como línea en la analítica. */
+function InstitutionGoal({ onSaved }: { onSaved: (ok: boolean, text: string) => void }) {
+  const stored = useMyInstitution().data?.goal ?? 3.5;
+  const save = useSaveGoal();
+  const [v, setV] = useState(stored.toFixed(1));
+  useEffect(() => { setV(stored.toFixed(1)); }, [stored]);
+  const n = Number(v.replace(",", "."));
+  const bad = !v.trim() || isNaN(n) || n < 1 || n > 5;
+  return (
+    <Block label="Meta institucional">
+      <BlockTitle action={
+        <Button size="sm" icon="check" disabled={bad || Math.round(n * 10) / 10 === stored} loading={save.isPending} onClick={() => {
+          const goal = Math.round(n * 10) / 10;
+          save.mutateAsync(goal).then(() => onSaved(true, "Rectoría verá " + goal.toFixed(1) + " como referencia en la analítica."), (e) => onSaved(false, adminMessage(e)));
+        }}>Guardar meta</Button>
+      }>Meta institucional</BlockTitle>
+      <div className="ns-form-grid">
+        <Input label="Promedio esperado por grado" type="number" inputMode="decimal" min={1} max={5} step={0.1} value={v} onChange={(e) => setV(e.target.value)}
+          hint="Entre 1.0 y 5.0. Los grados por debajo se resaltan en la analítica de Rectoría." error={bad ? "Escribe un valor entre 1.0 y 5.0." : null} />
+      </div>
+    </Block>
+  );
+}
 
 /** Periodos del año, su peso en la nota final y cómo se compone la nota de cada uno. */
 export function PeriodConfigurator() {
@@ -146,6 +171,7 @@ export function PeriodConfigurator() {
           )}
         </Block>
       </div>
+      <InstitutionGoal onSaved={(ok, text) => showToast(ok ? { tone: "success", title: "Meta institucional guardada", message: text } : { tone: "error", title: "No pudimos guardar la meta", message: text })} />
       {toastNode}
     </>
   );

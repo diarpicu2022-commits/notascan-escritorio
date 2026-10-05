@@ -107,8 +107,11 @@ Lo primero que se lee al retomar.
     datos reales (mismo modelo de notas que el Ranking), Seguimiento docente real, lecturas paginadas de 1000 en 1000 en
     toda la app (hallazgo: el API corta en 1000 filas). Migración `20261005120000_rectoria_lectura.sql` (directorio de
     personal para Rectoría, `attendance_by_grade`). `verify:principal-data` 25/25, `verify:db` 132/132, `verify:states` 98/98.
-    - **Pendiente de Diego:** ejecutar también esta migración (después de la de solicitudes), SHA-1 LF `f872f7b0…`.
-    - Tres decisiones en el anexo (Paso 6b.4b): recordatorio, exportar informe, meta 3.5.
+    - Decisiones de Diego (2026-10-05): **meta institucional la configura Secretaría** (enmienda 5: bloque en
+      Periodos, migración `20261005150000_meta_institucional.sql`); **cambio de nota sin formulario**, el docente lo
+      gestiona en persona. Siguen abiertas: recordatorio y «Exportar informe» (con Reportes).
+    - **Pendiente de Diego — migraciones en orden:** `20261005090000_solicitudes.sql` (cargada en el SQL Editor,
+      SHA-1 LF `c400c9cc…`), `20261005120000_rectoria_lectura.sql` (`f872f7b0…`), `20261005150000_meta_institucional.sql` (`c4efe715…`).
   - **6b.4c (siguiente):** perfil del estudiante con datos reales (Rectoría y compartido).
   - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../app/AuthContext";
 import { DEMO, supabase } from "../lib/supabase";
 
@@ -20,17 +20,19 @@ export interface Institution {
   /** URL pública del logo (bucket institution-logos) o, en una vista previa, la del archivo elegido. */
   logoUrl: string | null;
   status: InstitutionStatus;
+  /** Meta institucional: promedio esperado por grado (la configura Secretaría; Rectoría la ve en la analítica). */
+  goal: number;
 }
 
 /** El colegio de demostración del sistema (mismos textos que el boletín original). */
 export const DEMO_INSTITUTION: Institution = {
   id: "00000000-0000-4000-8000-000000000001", name: "Colegio Los Andes", shortName: "LA", city: "Pasto", department: "Nariño",
-  resolution: "Resolución 0123 de 2015", dane: "152001000000", logoUrl: null, status: "active",
+  resolution: "Resolución 0123 de 2015", dane: "152001000000", logoUrl: null, status: "active", goal: 3.5,
 };
 
 export interface InstitutionRow {
   id: string; name: string; short_name: string; city: string; department: string; resolution: string; dane: string;
-  logo_path: string | null; status: InstitutionStatus;
+  logo_path: string | null; status: InstitutionStatus; performance_goal?: number;
 }
 
 /** URL pública de un logo guardado en el bucket. */
@@ -41,7 +43,7 @@ export function logoUrlOf(path: string | null): string | null {
 
 export const toInstitution = (r: InstitutionRow): Institution => ({
   id: r.id, name: r.name, shortName: r.short_name, city: r.city, department: r.department, resolution: r.resolution, dane: r.dane,
-  logoUrl: logoUrlOf(r.logo_path), status: r.status,
+  logoUrl: logoUrlOf(r.logo_path), status: r.status, goal: r.performance_goal === undefined ? 3.5 : Number(r.performance_goal),
 });
 
 /** Iniciales para el escudo cuando no hay logo: las del colegio o, si faltan, las de su nombre sin «Colegio», «Institución»… */
@@ -67,10 +69,23 @@ export function useMyInstitution(enabled = true) {
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<Institution | null> => {
       if (DEMO) return DEMO_INSTITUTION;
-      const r = await supabase().from("institutions").select("id, name, short_name, city, department, resolution, dane, logo_path, status").limit(1);
+      const r = await supabase().from("institutions").select("id, name, short_name, city, department, resolution, dane, logo_path, status, performance_goal").limit(1);
       if (r.error) throw r.error;
       const row = (r.data ?? [])[0] as InstitutionRow | undefined;
       return row ? toInstitution(row) : null;
     },
+  });
+}
+
+/** Secretaría cambia la meta institucional (función de la base: solo Secretaría, entre 1.0 y 5.0). */
+export function useSaveGoal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (goal: number) => {
+      if (DEMO) return;
+      const r = await supabase().rpc("set_performance_goal", { p_goal: goal });
+      if (r.error) throw r.error;
+    },
+    onSuccess: () => { if (!DEMO) qc.invalidateQueries({ queryKey: ["my-institution"] }); },
   });
 }

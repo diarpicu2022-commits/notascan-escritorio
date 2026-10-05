@@ -68,6 +68,7 @@ const A = {
   ],
   courses: [{ id: "6A", grade_level_id: "6" }, { id: "8A", grade_level_id: "8" }],
   grade_levels: [{ id: "6", name: "Sexto" }, { id: "8", name: "Octavo" }],
+  institutions: [{ id: "00000000-0000-4000-8000-000000000001", name: "Colegio Los Andes", short_name: "LA", city: "Pasto", department: "Nariño", resolution: "", dane: "", logo_path: null, status: "active", performance_goal: 3.3 }],
   staff_directory: [{ email: "ana.lucia@losandes.edu.co", full_name: "Ana Lucía Rosero" }, { email: "carlos.perez@losandes.edu.co", full_name: "Carlos Pérez" }],
 };
 const ATT = [{ grade_level_id: "6", records: 40, absences: 2 }, { grade_level_id: "8", records: 20, absences: 3 }];
@@ -213,6 +214,9 @@ try {
     return { o, top: Math.round(r.top), h: Math.round(r.height), hit: document.elementFromPoint(r.left + 10, r.top + 10)?.closest(".ns-kpi--lead") !== null };
   });
   report.check("Panorama: los indicadores se ven (opacidad efectiva 1 y en primer plano)", vis.o === 1 && vis.h > 0, JSON.stringify(vis));
+  const legend = await page.locator(".ns-chart-block").first().textContent();
+  report.check("Panorama: la línea de meta es la que configuró Secretaría (3.3); Sexto en 3.3 no queda resaltado, Octavo tampoco",
+    legend.includes("Meta 3.3") && (await page.locator(".ns-chart-block").first().locator(".is-low, .ns-bar--low").count()) === 0, legend.slice(0, 120));
   await page.screenshot({ path: join(OUT, "paso6b4b-panorama.png"), fullPage: true });
 
   // ---------- 5. Analítica: cambiar de periodo ----------

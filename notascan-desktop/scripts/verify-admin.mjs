@@ -12,7 +12,9 @@ const ROUTES = ["dashboard", "students", "enrollment", "users", "structure", "cu
 const { browser, close } = await startPreview();
 try {
   // ---------- 1. Fidelidad ----------
-  for (const hash of ROUTES) await compareRoute(browser, report, hash, hash.replace("#/admin/", ""), "paso5-secretaria");
+  // Enmienda 5 (2026-10-05, decisión de Diego): bloque «Meta institucional» en Periodos; se compara el resto.
+  const OMIT = { "#/admin/periods": "[aria-label='Meta institucional']" };
+  for (const hash of ROUTES) await compareRoute(browser, report, hash, hash.replace("#/admin/", ""), "paso5-secretaria", OMIT[hash] ?? null);
 
   // ---------- 2. Flujos ----------
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -20,6 +22,18 @@ try {
   const cons = watchConsole(page);
   const go = async (p) => { await page.goto(URL_BASE + "#/admin/" + p, { waitUntil: "networkidle" }); await page.waitForTimeout(300); };
   const toast = () => page.locator(".ns-toast-title").last().textContent();
+
+  // Meta institucional (enmienda 5): valor por defecto, validación y guardado.
+  await go("periods");
+  const goalBlock = page.locator("[aria-label='Meta institucional']");
+  const goalInput = goalBlock.getByLabel("Promedio esperado por grado");
+  const goalSave = goalBlock.getByRole("button", { name: "Guardar meta" });
+  report.check("Meta institucional: 3.5 por defecto y «Guardar meta» deshabilitado sin cambios", (await goalInput.inputValue()) === "3.5" && (await goalSave.isDisabled()));
+  await goalInput.fill("6");
+  report.check("Meta fuera de 1.0–5.0: error en el campo y sin guardar", (await goalBlock.locator(".ns-field-error").textContent()) === "Escribe un valor entre 1.0 y 5.0." && (await goalSave.isDisabled()));
+  await goalInput.fill("3.8");
+  await goalSave.click();
+  report.check("Guardar la meta avisa qué verá Rectoría", (await toast()) === "Meta institucional guardada" && (await page.locator(".ns-toast-text").last().textContent()) === "Rectoría verá 3.8 como referencia en la analítica.");
 
   // Estudiantes: búsqueda, lote, archivar, vista rápida y perfil.
   await go("students");

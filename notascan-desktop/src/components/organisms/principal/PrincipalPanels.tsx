@@ -31,9 +31,9 @@ const one = (v: number) => (Math.round(v * 10) / 10).toFixed(1);
 const signed = (v: number, unit: string) => (v > 0 ? "+" : "−") + Math.abs(v) + unit;
 
 /** Indicadores y cuatro gráficos; cada uno responde una pregunta. Sin `data`, las cifras del sistema. */
-export function InstitutionalAnalytics({ hideFilters, data, onPeriod }: { hideFilters?: boolean; data?: AnalyticsData; onPeriod?: (p: string) => void }) {
+export function InstitutionalAnalytics({ hideFilters, data, goal = 3.5, onPeriod }: { hideFilters?: boolean; data?: AnalyticsData; goal?: number; onPeriod?: (p: string) => void }) {
   const [period, setPeriod] = useState("Periodo 3");
-  if (data) return <RealAnalytics hideFilters={hideFilters} d={data} onPeriod={onPeriod} />;
+  if (data) return <RealAnalytics hideFilters={hideFilters} d={data} goal={goal} onPeriod={onPeriod} />;
   return (
     <div className="ns-col" style={{ gap: 24 }}>
       {hideFilters ? null : (
@@ -58,7 +58,7 @@ export function InstitutionalAnalytics({ hideFilters, data, onPeriod }: { hideFi
 }
 
 /** Las mismas piezas con las cifras de la base; lo que aún no tiene datos lo dice en su lugar. */
-function RealAnalytics({ hideFilters, d, onPeriod }: { hideFilters?: boolean; d: AnalyticsData; onPeriod?: (p: string) => void }) {
+function RealAnalytics({ hideFilters, d, goal, onPeriod }: { hideFilters?: boolean; d: AnalyticsData; goal: number; onPeriod?: (p: string) => void }) {
   const pts = d.evol.now.concat(d.evol.prev ?? []).filter((v) => !isNaN(v));
   const lo = Math.max(1, Math.floor((Math.min(...pts) - 0.3) * 5) / 5), hi = Math.min(5, Math.ceil((Math.max(...pts) + 0.3) * 5) / 5);
   const absMax = Math.max(12, Math.ceil(Math.max(0, ...d.absence.map((x) => x.value)) / 4) * 4);
@@ -79,7 +79,7 @@ function RealAnalytics({ hideFilters, d, onPeriod }: { hideFilters?: boolean; d:
         <div className="ns-kpi"><span className="ns-overline">Tasa de inasistencia</span><strong>{d.absenceRate === null ? "—" : <CountUp value={d.absenceRate + "%"} />}</strong><span>{d.absenceRate === null ? "Sin asistencia registrada" : d.worstAbsence ? <><Icon name="warning" size={14} />{d.worstAbsence + " concentra la mayor tasa"}</> : "Sin inasistencias"}</span></div>
       </section>
       <div className="ns-charts">
-        <Block className="ns-chart-block"><BarChart title="Promedio por grado" subtitle="¿Qué grados están por debajo de la meta institucional?" data={d.gradeAvg} max={5} ticks={[0, 2.5, 5]} target={3.5} targetLabel="Meta" seriesLabel="Promedio" lowBelow={3.5} format={one} /></Block>
+        <Block className="ns-chart-block"><BarChart title="Promedio por grado" subtitle="¿Qué grados están por debajo de la meta institucional?" data={d.gradeAvg} max={5} ticks={[0, 2.5, 5]} target={goal} targetLabel="Meta" seriesLabel="Promedio" lowBelow={goal} format={one} /></Block>
         <Block className="ns-chart-block"><LineChart title="Evolución del rendimiento" subtitle="¿Mejoramos frente al año pasado?" labels={d.evol.labels} min={lo} max={hi} ticks={[lo, Math.round(((lo + hi) / 2) * 10) / 10, hi]}
           series={[{ name: String(d.evol.year), points: d.evol.now }, ...(d.evol.prev ? [{ name: String(d.evol.prevYear), points: d.evol.prev, tone: "gold" as const, dashed: true }] : [])]} format={(v) => v.toFixed(1)} /></Block>
         <Block className="ns-chart-block"><DonutChart title="Índice de reprobación" subtitle="¿Cuántos estudiantes pierden al menos una materia?" centerValue={d.failPct + "%"} centerLabel="reprueban" data={[{ label: "Aprueban todas", value: d.students - d.failCount, tone: "navy" }, { label: "Reprueban 1 o más", value: d.failCount, tone: "gold" }]} /></Block>

@@ -681,3 +681,21 @@ retardo escalonado se mantiene, así que los bloques aparecen con unas décimas 
    Propuesta: tabla de recordatorios que el docente ve como aviso en su Inicio; o correo cuando haya SMTP propio.
 2. **«Exportar informe»** de Analítica no hace nada (tampoco en el sistema): se resuelve con Reportes.
 3. **Meta institucional 3.5** (línea del gráfico) viene del sistema: ¿es la del colegio o la configura Secretaría?
+
+#### Paso 6b.4b · decisiones de Diego y enmienda 5 (2026-10-05)
+
+- **Cambio de nota de una evaluación cerrada:** sin formulario en la app; el docente lo gestiona **personalmente** con
+  Rectoría. Se mantiene el mensaje de la planilla («Solicita el cambio de nota a Rectoría.») y la bandeja de
+  Solicitudes con su corrección de 6b.4a (sirve para las que existan). Las 3 solicitudes pendientes de la semilla
+  quedan como están (sin respuesta de Diego sobre ellas).
+- **Meta institucional: la configura Secretaría** → **enmienda 5** al contrato: bloque «Meta institucional» al final de
+  Secretaría → Periodos (configuración académica), solo con piezas del sistema (`Block`, `BlockTitle` con botón como
+  «Guardar pesos», `Input` con ayuda y error). 3.5 por defecto (el valor del sistema), entre 1.0 y 5.0, un decimal.
+  Rectoría la ve como línea «Meta» del promedio por grado y los grados por debajo se resaltan con ella.
+  Migración `20261005150000_meta_institucional.sql`: `institutions.performance_goal` y `set_performance_goal` (solo
+  Secretaría, la tabla de colegios sigue siendo de la plataforma). La comprobación de fidelidad de Periodos compara la
+  pantalla sin ese bloque (`compareRoute` con `omit`) y el bloque tiene sus propias comprobaciones.
+  Verificación: `verify:db` 136/136 (por defecto 3.5; ni docente ni Rectoría la cambian; fuera de rango no; 3.84 → 3.8;
+  Secretaría no escribe la tabla de colegios; sin sesión no), `verify:admin` 105/105, `verify:admin-data` 38/38
+  (envía 3.8 a `set_performance_goal`), `verify:principal-data` 26/26 (línea «Meta 3.3» con la meta de la base).
+  Fallo propio en la prueba: intentaba escribir «3,84» en un campo numérico, que el navegador no admite; se prueba 3.84.

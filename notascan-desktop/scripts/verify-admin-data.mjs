@@ -311,6 +311,16 @@ try {
     rk.length === 2 && rk[0].includes("Ana Bravo Paz") && rk[0].includes("4.5") && rk[0].includes("1 / 1") && rk[1].includes("Luis Mora Ortiz") && rk[1].includes("0 / 1") && rk[1].includes("En riesgo"), rk.join(" / "));
   await page.screenshot({ path: join(OUT, "paso6b3b-ranking.png") });
 
+  // ---------- Meta institucional (6b.4b, enmienda 5) ----------
+  await page.goto(URL_BASE + "#/admin/periods");
+  const goalBlock = page.locator("[aria-label='Meta institucional']");
+  await goalBlock.waitFor({ timeout: 10000 });
+  await goalBlock.getByLabel("Promedio esperado por grado").fill("3.84");
+  await goalBlock.getByRole("button", { name: "Guardar meta" }).click();
+  await toastTitle(page, "Meta institucional guardada");
+  const goalRpc = writes.filter((w) => w.url.includes("/rpc/set_performance_goal")).pop();
+  report.check("Meta: redondea a un decimal (3.84 → 3.8) y la guarda por set_performance_goal", JSON.stringify(goalRpc?.body) === JSON.stringify({ p_goal: 3.8 }), JSON.stringify(goalRpc?.body));
+
   const real = cons.filter((m) => !/status of (400|403|500)/.test(m));
   report.check("Consola: solo los errores de red simulados", real.length === 0, real.join(" | "));
 } catch (e) {
