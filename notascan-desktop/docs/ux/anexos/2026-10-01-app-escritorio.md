@@ -757,3 +757,46 @@ asistencia vacía, menú con sus cursos), `verify:admin-data` 39/39 (menú con e
 Fallos propios en las pruebas: los datos simulados no imitaban la base (periodos sin `position`, asistencia sin
 fecha, `profiles` devolviendo una fila donde la base devuelve una lista) y un selector confundía el escudo del colegio
 con la tarjeta de contexto; capturas tomadas durante la entrada escalonada (se espera 1,2 s).
+
+### Paso 6c · Reportes en PDF, Excel y CSV, y «Exportar informe» (2026-10-05)
+
+Diego decide: los reportes salen **en PDF y en Excel** (el CSV del sistema se conserva), y autoriza que ejecute las
+migraciones en Supabase. Sin dirección nueva: la pantalla Reportes del sistema (tres tipos, formato, curso y periodo,
+recientes) con datos reales; en demostración no cambia (`verify:teacher` 123/123).
+
+**Migraciones aplicadas en producción** el 2026-10-05 por mí, con autorización expresa de Diego (SQL Editor, cada una en
+su transacción, cotejada por SHA-1 antes de ejecutar y comprobada después en el catálogo): `20261005090000_solicitudes`
+(Supabase la marcó «destructiva» por reemplazar la política `requests_create` y rellenar `grade_id`; confirmado),
+`20261005120000_rectoria_lectura`, `20261005150000_meta_institucional`, `20261005180000_recordatorios` y
+`20261005210000_reportes` (`389d9c79…`).
+
+- **Consolidado por curso:** estudiantes × materias del periodo (promedio ponderado de notas verificadas), promedio,
+  desempeño, fila de promedios y ficha (estudiantes, materias, promedio del curso, cuántos con alguna materia bajo 3.0).
+  El docente obtiene solo sus materias y el documento lo dice; Rectoría, todas.
+- **Por estudiante:** materias × periodos del año con el acumulado ponderado por los pesos de Secretaría y el
+  observador. Se elige el estudiante en un `Modal` del sistema con `Select`.
+- **Por evaluación:** ficha (verificadas, promedio, mínima y máxima, confianza promedio de la IA, corregidas por el
+  docente), distribución por desempeño y la tabla nota leída por la IA / confianza / nota final / estado.
+- **Informe de Analítica** («Exportar informe» de Rectoría): indicadores, promedio por grado frente a la meta, evolución
+  e inasistencia por grado; `Modal` con el formato.
+- **PDF:** la hoja del boletín del sistema (`.ns-paper`, encabezado con el escudo, ficha, `.ns-paper-table`) impresa con
+  el mismo mecanismo que los boletines; el encabezado del boletín acepta ahora el tipo de informe (sin cambiar el del
+  boletín). **Excel:** `write-excel-file` (MIT, del mismo autor que `read-excel-file`): ficha, tablas con encabezado en
+  negrita y notas como **números con un decimal** (se pueden ordenar y promediar). **CSV:** BOM y punto y coma.
+- **Recientes:** tabla `generated_reports` (tipo, formato, título y parámetros; no el archivo). «Descargar» vuelve a
+  generarlo con los datos del momento, para que un reporte nunca muestre notas que ya no son las vigentes. Cada persona
+  ve los suyos.
+
+Verificación: `verify:db` 144/144 (historial: guardan docente y Rectoría; nadie a nombre de otro; tipo válido; cada
+quien ve los suyos; sin sesión no), `verify:teacher-data` 47/47 (Excel abierto con `read-excel-file`: «Consolidado 7A ·
+Periodo 3.xlsx» con 4 como número y «Alto»; PDF impreso con colegio, estudiantes, autor y la nota de «solo sus
+materias»; CSV de la evaluación con BOM y la lectura de la IA; Excel por estudiante; «Descargar» desde Recientes sin
+duplicar el historial), `verify:principal-data` 41/41 (Excel de Analítica con indicadores y meta; consolidado de
+Rectoría con todas las materias y notas «2.0»).
+Fallos propios: si el colegio no había cargado, «Generar» no hacía nada y en silencio (ahora lo avisa); las notas
+enteras salían «2» en vez de «2.0» (columnas de nota marcadas: un decimal en PDF, CSV y formato «0.0» en Excel); en las
+pruebas, variable duplicada, lectura del .xlsx (la librería devuelve hojas) y caché del historial (se recarga la página).
+
+Regresión completa en verde: auth 20/20, data 8/8, teacher-data 47/47, admin-data 39/39, principal-data 41/41,
+platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121, teacher 123/123,
+admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.

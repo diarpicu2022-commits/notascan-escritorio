@@ -18,13 +18,13 @@ export function SchoolCrest({ institution: i, size = "doc", className }: { insti
 }
 
 /** Encabezado del boletín: escudo, nombre y datos legales del colegio, y el título del informe. */
-export function InstitutionHeader({ institution: i, period, year, index, total }: { institution: Institution; period: string; year: number; index: number; total: number }) {
+export function InstitutionHeader({ institution: i, period, year, index, total, kind = "Informe académico", note }: { institution: Institution; period: string; year: number; index: number; total: number; kind?: string; note?: string }) {
   const line = headerLine(i);
   return (
     <header className="ns-paper-head">
       <SchoolCrest institution={i} />
       <div><strong className="ns-paper-school">{i.name || "Nombre del colegio"}</strong>{line ? <span>{line}</span> : null}</div>
-      <div className="ns-paper-title"><span>Informe académico</span><strong>{period + " · " + year}</strong><small>{"Periodo " + index + " de " + total}</small></div>
+      <div className="ns-paper-title"><span>{kind}</span><strong>{period + " · " + year}</strong><small>{note ?? "Periodo " + index + " de " + total}</small></div>
     </header>
   );
 }

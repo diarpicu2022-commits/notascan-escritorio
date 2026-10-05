@@ -26,6 +26,7 @@ const OBS = [
 
 const rpcs = [];
 const reminders = [];
+const reportsSaved = [];
 
 // ---------- 6b.4b · datos para analítica y seguimiento, calculados a mano ----------
 // Periodo 3 (abierto): s1 Matemáticas (4.0×50 + 5.0×50) = 4.5 · s2 Matemáticas 2.0 · s3 Física 3.4.
@@ -126,6 +127,7 @@ async function mockApi(page) {
   await page.route("**/rest/v1/grade_change_requests**", (r) => r.fulfill({ json: REQS }));
   await page.route("**/rest/v1/observations**", (r) => r.fulfill({ json: OBS }));
   await page.route("**/rest/v1/teacher_reminders**", (r) => { if (r.request().method() === "POST") reminders.push(r.request().postDataJSON()); r.fulfill({ status: 201, body: "" }); });
+  await page.route("**/rest/v1/generated_reports**", (r) => { if (r.request().method() === "POST") reportsSaved.push(r.request().postDataJSON()); return r.fulfill(r.request().method() === "POST" ? { status: 201, body: "" } : { json: [] }); });
   for (const [name, rows] of Object.entries(A)) {
     await page.route("**/rest/v1/" + name + "?**", (r) => r.fulfill({ json: filterRows(rows, r.request().url()) }));
   }
@@ -145,6 +147,10 @@ const { browser, close } = await startPreview();
 try {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
   const page = await ctx.newPage();
+  await page.addInitScript(() => {
+    window.__printed = [];
+    window.print = () => { window.__printed.push(document.querySelector(".ns-print-root")?.textContent ?? ""); window.dispatchEvent(new Event("afterprint")); };
+  });
   const cons = watchConsole(page);
   await mockApi(page);
 
@@ -320,6 +326,39 @@ try {
   await page.goto(URL_BASE + "#/principal/profile/falla");
   await page.locator(".ns-empty--error").waitFor({ timeout: 30000 });
   report.check("Perfil: si la base falla, lo dice y ofrece reintentar", (await page.locator(".ns-empty-title").textContent()) === "No pudimos cargar el perfil." && (await page.getByRole("button", { name: "Reintentar" }).count()) === 1);
+
+  // ---------- 8. Reportes de Rectoría (6c) ----------
+  const { default: readXlsx } = await import("read-excel-file/node");
+  const fs = await import("node:fs/promises");
+  await page.goto(URL_BASE + "#/principal/analytics");
+  await page.locator(".ns-kpi--lead").waitFor({ timeout: 10000 });
+  await page.getByRole("button", { name: "Exportar informe" }).click();
+  const exp = page.locator("[role=dialog], [role=alertdialog]");
+  await exp.getByRole("button", { name: "Excel" }).click();
+  const [an] = await Promise.all([page.waitForEvent("download"), exp.getByRole("button", { name: "Exportar Excel" }).click()]);
+  const arows = (await readXlsx(await fs.readFile(await an.path())))[0].data;
+  report.check("Exportar informe · Excel: indicadores y promedio por grado frente a la meta",
+    an.suggestedFilename() === "Rendimiento institucional · Periodo 3.xlsx" && arows.some((r) => r[0] === "Promedio institucional" && String(r[1]).startsWith("3.3 (+0.3"))
+      && arows.some((r) => r[0] === "Sexto" && r[1] === 3.3 && r[2] === "En la meta o por encima") && arows.some((r) => r[0] === "Meta institucional" && r[1] === "3.3"),
+    an.suggestedFilename() + " · " + JSON.stringify(arows.slice(0, 12)));
+  report.check("Exportar informe: queda en el historial de quien lo exporta", reportsSaved.at(-1)?.kind === "analytics" && reportsSaved.at(-1)?.format === "xlsx", JSON.stringify(reportsSaved.at(-1)));
+
+  await page.goto(URL_BASE + "#/principal/reports");
+  await page.locator(".ns-report-grid").waitFor({ timeout: 10000 });
+  report.check("Reportes (Rectoría): todos los cursos del colegio", (await page.getByLabel("Curso").locator("option").allTextContents()).join("|") === "6A|8A");
+  await page.locator(".ns-report-grid .ns-report").first().getByRole("button", { name: "Generar" }).click();
+  await page.waitForFunction(() => window.__printed.length > 0, null, { timeout: 8000 }).catch(() => {});
+  const pr = await page.evaluate(() => window.__printed.at(-1) ?? "");
+  report.check("Consolidado (Rectoría) · PDF: todas las materias del curso, notas con un decimal (2.0), sin la nota de «solo sus materias»",
+    pr.includes("Consolidado por curso") && pr.includes("Física") && pr.includes("Matemáticas") && pr.includes("Ana Bravo Paz") && !pr.includes("Incluye solo las materias") && pr.includes("Luis Mora Ortiz—2.02.0Bajo"), pr.slice(0, 260));
+
+  // Captura del PDF: el diálogo no se cierra y la página se ve como al imprimir.
+  await page.evaluate(() => { window.print = () => {}; });
+  await page.locator(".ns-report-grid .ns-report").first().getByRole("button", { name: "Generar" }).click();
+  await page.waitForTimeout(500);
+  await page.emulateMedia({ media: "print" });
+  await page.screenshot({ path: join(OUT, "paso6c-consolidado-pdf.png"), fullPage: true });
+  await page.emulateMedia({ media: "screen" });
 
   // Errores permitidos: el 400 simulado de la aprobación de #244 y los 500 simulados del perfil (con sus reintentos).
   const real = cons.filter((m) => !/status of (400|500)/.test(m));

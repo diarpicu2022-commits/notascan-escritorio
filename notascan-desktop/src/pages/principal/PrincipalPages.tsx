@@ -18,6 +18,11 @@ import { decideMessage, useAnalytics, useDecideRequest, useMonitoring, usePendin
 import { useObservations } from "../../services/teacher";
 import { useMyInstitution } from "../../services/institution";
 import { reminderText, useSendReminder } from "../../services/reminders";
+import { FORMAT_LABEL, buildAnalyticsReport, downloadCsv, downloadXlsx, useSaveReportHistory, type ReportFormat } from "../../services/reports";
+import { PrintReport, type ReportData } from "../../components/organisms/ReportDocument";
+import { Modal } from "../../components/organisms/Overlays";
+import { useToast } from "../../components/organisms/Toast";
+import { FilterGroup } from "../../components/molecules/Filters";
 import { forcedState } from "../../services/client";
 import { queryState } from "../teacher/states";
 
@@ -104,12 +109,46 @@ export function AnalyticsPage() {
   const pending = usePendingCount();
   const [period, setPeriod] = useState<string | undefined>();
   const an = useAnalytics(period);
-  const goal = useMyInstitution().data?.goal;
+  const school = useMyInstitution().data;
+  const goal = school?.goal;
+  const me = useAuth().profile;
+  const saveHistory = useSaveReportHistory();
+  const [exporting, setExporting] = useState(false);
+  const [fmt, setFmt] = useState<ReportFormat>("pdf");
+  const [printing, setPrinting] = useState<ReportData | null>(null);
+  const [showToast, toastNode] = useToast();
+  // «Exportar informe» (6c): el informe del periodo que se ve, en PDF, Excel o CSV; en demostración, el botón del sistema.
+  async function exportReport() {
+    if (!an.data || !school || !me) {
+      setExporting(false);
+      showToast({ tone: "error", title: "No pudimos exportar el informe", message: "Faltan los datos del colegio. Recarga la página e inténtalo de nuevo." });
+      return;
+    }
+    const d = buildAnalyticsReport({ school, me: me.fullName }, an.data, goal ?? 3.5);
+    setExporting(false);
+    try {
+      if (fmt === "pdf") setPrinting(d); else if (fmt === "xlsx") await downloadXlsx(d); else downloadCsv(d);
+      saveHistory.mutate({ kind: "analytics", format: fmt, title: d.title, params: { period: an.data.period } });
+      showToast({ tone: "success", title: "Informe listo", message: d.title + " · " + FORMAT_LABEL[fmt] + "." });
+    } catch {
+      showToast({ tone: "error", title: "No pudimos exportar el informe", message: "Inténtalo de nuevo." });
+    }
+  }
   return (
     <PageShell active="analytics" counts={{ requests: pending }}>
       <Header eyebrow="Analítica" title="Rendimiento institucional" highlight="institucional" description="Cada gráfico responde una pregunta. Pasa el cursor sobre las barras y puntos para ver el detalle."
-        actions={<Button variant="secondary" icon="download">Exportar informe</Button>} />
+        actions={<Button variant="secondary" icon="download" disabled={!DEMO && !an.data} onClick={() => { if (!DEMO) setExporting(true); }}>Exportar informe</Button>} />
       {analyticsBody(an, goal, false, setPeriod)}
+      <Modal open={exporting} onClose={() => setExporting(false)} icon="download" title="Exportar informe"
+        description={"Indicadores, promedio por grado, evolución e inasistencia de " + (an.data?.period ?? "") + "."}
+        actions={[
+          <Button key="c" variant="secondary" onClick={() => setExporting(false)}>Cancelar</Button>,
+          <Button key="g" icon="download" onClick={exportReport}>{"Exportar " + FORMAT_LABEL[fmt]}</Button>,
+        ]}>
+        <FilterGroup label="Formato" value={fmt} onChange={(v) => setFmt(v as ReportFormat)} options={[{ value: "pdf", label: "PDF" }, { value: "xlsx", label: "Excel" }, { value: "csv", label: "CSV" }]} />
+      </Modal>
+      {printing ? <PrintReport data={printing} onDone={() => setPrinting(null)} /> : null}
+      {toastNode}
     </PageShell>
   );
 }

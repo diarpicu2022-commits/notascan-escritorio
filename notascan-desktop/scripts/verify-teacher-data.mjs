@@ -9,9 +9,12 @@ const today = (() => { const d = new Date(); return d.getFullYear() + "-" + Stri
 
 const PERIOD = { name: "Periodo 3", status: "open", open_date: "2026-07-13", close_date: "2026-10-15" };
 const ASSIGNMENTS = [
-  { id: 11, course_id: "7A", subject: { name: "Matemáticas" }, period: PERIOD },
-  { id: 12, course_id: "7B", subject: { name: "Matemáticas" }, period: PERIOD },
+  { id: 11, course_id: "7A", subject_id: "mat", period_id: "2026-p3", teacher_email: "ana.lucia@losandes.edu.co", subject: { name: "Matemáticas" }, period: PERIOD },
+  { id: 12, course_id: "7B", subject_id: "mat", period_id: "2026-p3", teacher_email: "ana.lucia@losandes.edu.co", subject: { name: "Matemáticas" }, period: PERIOD },
 ];
+// 6c · reportes: lo que se guarda en el historial y lo que devuelve.
+const reportsSaved = [];
+let reportHistory = [];
 const STUDENTS = [
   { id: "20261175", full_name: "María Fernanda López Rosero", course_id: "7A" },
   { id: "20261182", full_name: "Juan Sebastián Martínez Paz", course_id: "7A" },
@@ -19,7 +22,7 @@ const STUDENTS = [
   { id: "20261201", full_name: "Mateo Burbano Paz", course_id: "7B" },
 ];
 const EVALS = [
-  { id: 101, assignment_id: 11, name: "Parcial 2", kind: "examen", weight: 25, status: "en-revision", due_date: "2026-09-28", assignment: { course_id: "7A", subject: { name: "Matemáticas" } } },
+  { id: 101, assignment_id: 11, name: "Parcial 2", kind: "examen", weight: 25, status: "en-revision", due_date: "2026-09-28", assignment: { course_id: "7A", period_id: "2026-p3", subject: { name: "Matemáticas" } } },
   { id: 102, assignment_id: 11, name: "Taller 3", kind: "taller", weight: 15, status: "borrador", due_date: "2026-10-05", assignment: { course_id: "7A", subject: { name: "Matemáticas" } } },
 ];
 const REVIEW = [
@@ -46,7 +49,16 @@ async function mockApi(page) {
   await page.route("**/rest/v1/profiles**", (r) => r.fulfill({ json: decodeURIComponent(r.request().url()).includes("id=eq.")
     ? { id: UID, email: user.email, full_name: "Ana Lucía Rosero", role: "teacher", status: "active" }
     : [{ email: user.email, full_name: "Ana Lucía Rosero" }] }));
-  await page.route("**/rest/v1/teaching_assignments**", (r) => r.fulfill({ json: ASSIGNMENTS }));
+  await page.route("**/rest/v1/teaching_assignments**", (r) => {
+    const m = decodeURIComponent(r.request().url()).match(/course_id=eq\.(\w+)/);
+    return r.fulfill({ json: m ? ASSIGNMENTS.filter((a) => a.course_id === m[1]) : ASSIGNMENTS });
+  });
+  await page.route("**/rest/v1/subjects**", (r) => r.fulfill({ json: [{ id: "mat", name: "Matemáticas" }] }));
+  await page.route("**/rest/v1/institutions**", (r) => r.fulfill({ json: [{ id: "00000000-0000-4000-8000-000000000001", name: "Colegio Los Andes", short_name: "LA", city: "Pasto", department: "Nariño", resolution: "Resolución 0123 de 2015", dane: "152001000000", logo_path: null, status: "active", performance_goal: 3.5 }] }));
+  await page.route("**/rest/v1/generated_reports**", (r) => {
+    if (r.request().method() === "POST") { reportsSaved.push(r.request().postDataJSON()); return r.fulfill({ status: 201, body: "" }); }
+    return r.fulfill({ json: reportHistory });
+  });
   // 6b.4c: perfil visto por el docente (la vista no trae datos del acudiente al docente).
   await page.route("**/rest/v1/student_overview**", (r) => r.fulfill({ json: [{ id: "20261175", first_names: "María Fernanda", last_names: "López Rosero", full_name: "María Fernanda López Rosero", doc_type: "Tarjeta de identidad", document: "TI 1084000175", course_id: "7A", grade_level_id: "7", status: "active", enrolled_on: "2026-01-12", library_ok: true, fees_ok: true, documents_ok: true, guardian_name: null, guardian_rel: null, guardian_phone: null, avg_grade: 4.0, attendance_pct: null }] }));
   // Recordatorio de Rectoría (6b.4b): uno sin ver hasta que se marca con «Entendido».
@@ -54,11 +66,15 @@ async function mockApi(page) {
   await page.route("**/rest/v1/rpc/mark_reminder_seen**", (r) => { seenCalls.push(r.request().postDataJSON()); reminderSeen = true; r.fulfill({ status: 204, body: "" }); });
   await page.route("**/rest/v1/students**", (r) => {
     const u = decodeURIComponent(r.request().url());
+    const one = u.match(/[?&]id=eq\.(\w+)/);
+    if (one) return r.fulfill({ json: STUDENTS.filter((s) => s.id === one[1]).map((s) => ({ ...s, document: "TI 1084000175" })) });
     return r.fulfill({ json: STUDENTS.filter((s) => u.includes(s.course_id)) });
   });
   await page.route("**/rest/v1/evaluations**", (r) => {
     if (r.request().method() === "POST") { writes.evaluations.push(r.request().postDataJSON()); return r.fulfill({ status: 201, body: "" }); }
     const u = decodeURIComponent(r.request().url());
+    const one = u.match(/[?&]id=eq\.(\d+)/);
+    if (one) return r.fulfill({ json: EVALS.filter((e) => e.id === Number(one[1])) });
     // 7B (asignación 12) aún no tiene evaluaciones.
     return r.fulfill({ json: u.includes("assignment_id=eq.12") ? [] : EVALS });
   });
@@ -96,7 +112,7 @@ async function mockApi(page) {
     if (r.request().method() === "POST") { writes.recoveries.push({ url: decodeURIComponent(r.request().url()), body: r.request().postDataJSON() }); return r.fulfill({ status: 201, body: "" }); }
     return r.fulfill({ json: [] });
   });
-  await page.route("**/rest/v1/academic_periods**", (r) => r.fulfill({ json: [{ id: "2026-p3", name: "Periodo 3", year: 2026, status: "open" }] }));
+  await page.route("**/rest/v1/academic_periods**", (r) => r.fulfill({ json: [{ id: "2026-p3", name: "Periodo 3", year: 2026, position: 3, final_weight: 25, status: "open" }] }));
   await page.route("**/rest/v1/director_messages**", (r) => { writes.director_messages.push({ url: decodeURIComponent(r.request().url()), body: r.request().postDataJSON() }); return r.fulfill({ status: 201, body: "" }); });
   await page.route("**/rest/v1/rpc/director_overview**", (r) => r.fulfill({ json: [
     { student_id: "20261175", full_name: STUDENTS[0].full_name, course_id: "7A", subjects: [{ subject: "Física", grade: 3.4 }, { subject: "Matemáticas", grade: 4.6 }], absences: 1, message: null, message_state: null },
@@ -122,6 +138,11 @@ const { browser, close } = await startPreview();
 try {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
   const page = await ctx.newPage();
+  // La impresión (PDF) se simula: se guarda el texto del documento que se imprimiría y se cierra el diálogo.
+  await page.addInitScript(() => {
+    window.__printed = [];
+    window.print = () => { window.__printed.push(document.querySelector(".ns-print-root")?.textContent ?? ""); window.dispatchEvent(new Event("afterprint")); };
+  });
   const cons = watchConsole(page);
   await mockApi(page);
 
@@ -301,10 +322,67 @@ try {
   report.check("Recuperaciones: guarda original y recuperación; el resultado y la firma los pone la base",
     rw && rw.url.includes("on_conflict=student_id,assignment_id") && rw.body.student_id === "20261189" && rw.body.assignment_id === 11 && rw.body.original === 2 && rw.body.recovery === 3.5 && !signed(rw.body), JSON.stringify(rw));
 
+  // ---------- Reportes (6c): consolidado, por evaluación y por estudiante en PDF, Excel y CSV ----------
+  const { default: readXlsx } = await import("read-excel-file/node");
+  const fs = await import("node:fs/promises");
+  await page.goto(URL_BASE + "#/teacher/reports");
+  await page.locator(".ns-report-grid").waitFor({ timeout: 10000 });
+  report.check("Reportes: cursos y periodos de la base (7A, 7B · Periodo 3 · 2026) y sin historial todavía",
+    (await page.getByLabel("Curso").locator("option").allTextContents()).join("|") === "7A|7B" && (await page.getByLabel("Periodo").inputValue()) === "2026-p3"
+      && (await page.locator(".ns-empty-title").last().textContent()) === "Aún no has generado reportes.");
+  const generate = (i) => page.locator(".ns-report-grid .ns-report").nth(i).getByRole("button", { name: "Generar" });
+
+  // Consolidado en Excel: el archivo trae la nota verificada de María (4.0) en Matemáticas.
+  await page.getByRole("radio", { name: "Excel" }).click().catch(async () => page.getByRole("button", { name: "Excel" }).click());
+  const [xlsx] = await Promise.all([page.waitForEvent("download"), generate(0).click()]);
+  const xrows = (await readXlsx(await fs.readFile(await xlsx.path())))[0].data;
+  const maria = xrows.find((r) => r[0] === "María Fernanda López Rosero");
+  report.check("Consolidado · Excel: «Consolidado 7A · Periodo 3.xlsx» con la nota verificada como número (4.0) y su desempeño",
+    xlsx.suggestedFilename() === "Consolidado 7A · Periodo 3.xlsx" && maria && maria[1] === 4 && maria[2] === 4 && maria[3] === "Alto" && xrows.some((r) => r[0] === "Matemáticas" || r[1] === "Matemáticas"),
+    JSON.stringify(maria) + " · " + xlsx.suggestedFilename());
+  report.check("Consolidado · Excel: queda en el historial con sus parámetros", JSON.stringify(reportsSaved.at(-1)) === JSON.stringify({ kind: "course", format: "xlsx", title: "Consolidado 7A · Periodo 3", params: { course: "7A", periodId: "2026-p3" } }), JSON.stringify(reportsSaved.at(-1)));
+
+  // Consolidado en PDF: se imprime la hoja del sistema con el consolidado.
+  await page.getByRole("radio", { name: "PDF" }).click().catch(async () => page.getByRole("button", { name: "PDF" }).click());
+  await generate(0).click();
+  await page.waitForFunction(() => window.__printed.length > 0, null, { timeout: 8000 }).catch(() => {});
+  const printed = await page.evaluate(() => window.__printed.at(-1) ?? "");
+  report.check("Consolidado · PDF: imprime la hoja con el colegio, «Consolidado por curso», los estudiantes y quién lo generó",
+    printed.includes("Consolidado por curso") && printed.includes("María Fernanda López Rosero") && printed.includes("Generado por Ana Lucía Rosero") && printed.includes("Incluye solo las materias que dicta"), printed.slice(0, 200));
+
+  // Por evaluación en CSV: se elige la evaluación en el diálogo.
+  await page.getByRole("radio", { name: "CSV" }).click().catch(async () => page.getByRole("button", { name: "CSV" }).click());
+  await generate(2).click();
+  const dlg = page.locator("[role=dialog], [role=alertdialog]");
+  await dlg.getByLabel(/Evaluación/).selectOption({ label: "Matemáticas · Parcial 2" });
+  const [csvDl] = await Promise.all([page.waitForEvent("download"), dlg.getByRole("button", { name: "Generar CSV" }).click()]);
+  const evCsv = await fs.readFile(await csvDl.path(), "utf8");
+  report.check("Por evaluación · CSV: lectura de la IA, confianza y estado por estudiante; con BOM y punto y coma",
+    evCsv.charCodeAt(0) === 0xfeff && evCsv.includes('"Leída por la IA";"Confianza";"Nota final";"Estado"') && evCsv.includes('"María Fernanda López Rosero";"4.5";"98 %";"4.5";"Por verificar"') && evCsv.includes('"Verificadas";"0 de 2"'), evCsv.slice(0, 300));
+
+  // Por estudiante en Excel: historial del año.
+  await page.getByRole("radio", { name: "Excel" }).click().catch(async () => page.getByRole("button", { name: "Excel" }).click());
+  await generate(1).click();
+  await dlg.getByLabel(/Estudiante/).selectOption({ label: "María Fernanda López Rosero" });
+  const [stDl] = await Promise.all([page.waitForEvent("download"), dlg.getByRole("button", { name: "Generar Excel" }).click()]);
+  const srows2 = (await readXlsx(await fs.readFile(await stDl.path())))[0].data;
+  report.check("Por estudiante · Excel: «María Fernanda López Rosero · 2026» con Matemáticas en P1 y el acumulado",
+    stDl.suggestedFilename() === "María Fernanda López Rosero · 2026.xlsx" && srows2.some((r) => r[0] === "Matemáticas" && r[1] === 4 && r[2] === 4), JSON.stringify(srows2.filter((r) => r[0] === "Matemáticas")));
+
+  // Recientes: «Descargar» vuelve a generar sin duplicar el historial.
+  reportHistory = [{ id: 9, kind: "course", format: "csv", title: "Consolidado 7A · Periodo 3", params: { course: "7A", periodId: "2026-p3" }, created_at: new Date().toISOString() }];
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Descargar Consolidado 7A · Periodo 3" }).waitFor({ timeout: 10000 });
+  const savedBefore = reportsSaved.length;
+  const [again] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Descargar Consolidado 7A · Periodo 3" }).click()]);
+  report.check("Recientes: «Descargar» lo genera de nuevo en su formato (CSV) sin otra fila en el historial", again.suggestedFilename() === "Consolidado 7A · Periodo 3.csv" && reportsSaved.length === savedBefore);
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: join(OUT, "paso6c-reportes-docente.png") });
+
   // ---------- Menú: tarjeta de contexto con datos reales (6b.4c) ----------
   await page.goto(URL_BASE + "#/teacher/dashboard");
-  await page.locator(".ns-sidebar-course").waitFor({ timeout: 10000 });
-  report.check("Menú (docente): periodo abierto y sus materias y cursos de la base", (await page.locator(".ns-sidebar-course").textContent()) === "Periodo 3 · 2026Matemáticas · 7A, 7B", await page.locator(".ns-sidebar-course").textContent());
+  await page.locator(".ns-sidebar-course:not(.ns-school)").waitFor({ timeout: 10000 });
+  report.check("Menú (docente): periodo abierto y sus materias y cursos de la base", (await page.locator(".ns-sidebar-course:not(.ns-school)").textContent()) === "Periodo 3 · 2026Matemáticas · 7A, 7B", await page.locator(".ns-sidebar-course:not(.ns-school)").textContent());
 
   // ---------- Perfil del estudiante visto por el docente (6b.4c) ----------
   await page.goto(URL_BASE + "#/teacher/profile/20261175");

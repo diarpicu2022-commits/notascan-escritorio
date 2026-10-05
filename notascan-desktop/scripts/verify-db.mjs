@@ -478,6 +478,18 @@ try {
   const remAnon = await as(null, () => errorOf("select * from public.teacher_reminders"));
   check("Sin sesión no se leen recordatorios", remAnon?.includes("permission denied"), remAnon || "leyó");
 
+  // ---------- 12e. Historial de reportes: cada quien guarda y ve los suyos ----------
+  const rep = (who, extra = "") => as(who, () => errorOf(`insert into public.generated_reports (kind, format, title, params${extra ? ", author_id" : ""}) values ('course', 'pdf', 'Consolidado 7A · Periodo 3', '{"course":"7A"}'${extra ? ", '" + extra + "'" : ""})`));
+  const repAna = await rep(ana), repHernando = await rep(hernando), repForged = await rep(carlos, ana);
+  const repBadKind = await as(ana, () => errorOf("insert into public.generated_reports (kind, format, title) values ('otro', 'pdf', 'X')"));
+  const seesAna = await as(ana, () => one("select count(*)::int n from public.generated_reports"));
+  const seesCarlos = await as(carlos, () => one("select count(*)::int n from public.generated_reports"));
+  check("Reportes: docente y Rectoría guardan el suyo; nadie a nombre de otro; tipo válido; cada quien ve solo los suyos",
+    !repAna && !repHernando && repForged?.includes("row-level security") && repBadKind?.includes("check") && seesAna.n === 1 && seesCarlos.n === 0,
+    JSON.stringify({ repAna, repHernando, repForged, repBadKind, seesAna, seesCarlos }));
+  const repAnon = await as(null, () => errorOf("select * from public.generated_reports"));
+  check("Sin sesión no se lee el historial de reportes", repAnon?.includes("permission denied"), repAnon || "leyó");
+
   // ---------- 13. «supabase db reset»: todas las migraciones y después la semilla ----------
   {
     const fresh = new PGlite();

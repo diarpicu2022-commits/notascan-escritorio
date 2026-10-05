@@ -113,12 +113,19 @@ Lo primero que se lee al retomar.
       `20261005180000_recordatorios.sql`) y «Exportar informe» junto con Reportes.
     - **Pendiente de Diego — migraciones en orden:** `20261005090000_solicitudes.sql` (cargada en el SQL Editor,
       SHA-1 LF `c400c9cc…`), `20261005120000_rectoria_lectura.sql` (`f872f7b0…`), `20261005150000_meta_institucional.sql` (`c4efe715…`),
-      `20261005180000_recordatorios.sql` (`2b3359da…`). El clasificador de permisos no me deja ejecutar SQL en producción.
+      `20261005180000_recordatorios.sql` (`2b3359da…`). **Aplicadas por mí el 2026-10-05** con autorización expresa
+      de Diego (SQL Editor, cada una en su transacción, cotejadas por SHA-1). Comprobado en el catálogo: `grade_id`
+      (0 solicitudes viejas enlazadas, como se esperaba), `request_fits_grade`, política de directorio para Rectoría,
+      `attendance_by_grade`, meta 3.5, `set_performance_goal`, `teacher_reminders` con RLS, `mark_reminder_seen` sin anon.
   - **6b.4c (hecho 2026-10-05):** perfil del estudiante con datos reales en sus seis pestañas (los tres roles) y
     tarjeta de contexto del menú con datos reales. `verify:principal-data` 37/37, `verify:teacher-data` 40/40,
     `verify:admin-data` 39/39. Sin migración nueva.
-- **Siguiente:** Reportes del Docente (con «Exportar informe» de Analítica) y Subir fotografías con el servicio de
-  visión A (modelo multimodal). Después: cola sin conexión real, página de restablecimiento, legal, compilar Tauri, cierre.
+- **Paso 6c · Reportes (hecho 2026-10-05, esperando visto bueno):** consolidado por curso, por estudiante y por
+  evaluación en PDF, Excel (`write-excel-file`) y CSV; «Exportar informe» de Analítica; historial `generated_reports`.
+  Migración `20261005210000_reportes.sql` **aplicada** (cotejada y comprobada). `verify:teacher-data` 47/47,
+  `verify:principal-data` 41/41, `verify:db` 144/144.
+- **Siguiente:** Subir fotografías con el servicio de visión A (modelo multimodal). Después: cola sin conexión real,
+  página de restablecimiento, legal, compilar Tauri, cierre.
   - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.
