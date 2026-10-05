@@ -103,15 +103,17 @@ Lo primero que se lee al retomar.
       SHA-1 LF `c400c9cc…`); el clasificador de permisos no me dejó pulsar «Run» en producción.
     - Dos decisiones en el anexo (Paso 6b.4a): formulario del docente para pedir el cambio y qué hacer con las 3
       solicitudes de la semilla.
-  - **6b.4b (hecho 2026-10-05, esperando visto bueno):** indicadores y gráficos del panorama y de Analítica con
+  - **6b.4b (hecho y aprobado 2026-10-05, con recordatorio real):** indicadores y gráficos del panorama y de Analítica con
     datos reales (mismo modelo de notas que el Ranking), Seguimiento docente real, lecturas paginadas de 1000 en 1000 en
     toda la app (hallazgo: el API corta en 1000 filas). Migración `20261005120000_rectoria_lectura.sql` (directorio de
     personal para Rectoría, `attendance_by_grade`). `verify:principal-data` 25/25, `verify:db` 132/132, `verify:states` 98/98.
     - Decisiones de Diego (2026-10-05): **meta institucional la configura Secretaría** (enmienda 5: bloque en
       Periodos, migración `20261005150000_meta_institucional.sql`); **cambio de nota sin formulario**, el docente lo
-      gestiona en persona. Siguen abiertas: recordatorio y «Exportar informe» (con Reportes).
+      gestiona en persona. Aprobadas: recordatorio que el docente ve en su Inicio (migración
+      `20261005180000_recordatorios.sql`) y «Exportar informe» junto con Reportes.
     - **Pendiente de Diego — migraciones en orden:** `20261005090000_solicitudes.sql` (cargada en el SQL Editor,
-      SHA-1 LF `c400c9cc…`), `20261005120000_rectoria_lectura.sql` (`f872f7b0…`), `20261005150000_meta_institucional.sql` (`c4efe715…`).
+      SHA-1 LF `c400c9cc…`), `20261005120000_rectoria_lectura.sql` (`f872f7b0…`), `20261005150000_meta_institucional.sql` (`c4efe715…`),
+      `20261005180000_recordatorios.sql` (`2b3359da…`). El clasificador de permisos no me deja ejecutar SQL en producción.
   - **6b.4c (siguiente):** perfil del estudiante con datos reales (Rectoría y compartido).
   - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
@@ -123,7 +125,8 @@ Lo primero que se lee al retomar.
 ## Repositorio
 
 - Privado: https://github.com/diarpicu2022-commits/notascan-escritorio (rama `main`), raíz en `App Escritorio/`.
-- Un commit por paso al cerrarlo, a nombre de Diego y sin firmas de herramientas.
+- Un commit por paso al cerrarlo, a nombre de Diego y sin firmas de herramientas. Desde 2026-10-05 Diego pide
+  subirlos a GitHub (`git push origin main`) a medida que se cierran.
 - Los pasos 1–5c se subieron el 2026-10-01 como un commit por paso, con cada archivo en su versión
   de ese día: los commits intermedios agrupan lo creado en cada paso, pero no compilan por separado.
 

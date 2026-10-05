@@ -25,6 +25,7 @@ const OBS = [
 ];
 
 const rpcs = [];
+const reminders = [];
 
 // ---------- 6b.4b · datos para analítica y seguimiento, calculados a mano ----------
 // Periodo 3 (abierto): s1 Matemáticas (4.0×50 + 5.0×50) = 4.5 · s2 Matemáticas 2.0 · s3 Física 3.4.
@@ -112,6 +113,7 @@ async function mockApi(page) {
   });
   await page.route("**/rest/v1/grade_change_requests**", (r) => r.fulfill({ json: REQS }));
   await page.route("**/rest/v1/observations**", (r) => r.fulfill({ json: OBS }));
+  await page.route("**/rest/v1/teacher_reminders**", (r) => { if (r.request().method() === "POST") reminders.push(r.request().postDataJSON()); r.fulfill({ status: 201, body: "" }); });
   for (const [name, rows] of Object.entries(A)) {
     await page.route("**/rest/v1/" + name + "?**", (r) => r.fulfill({ json: filterRows(rows, r.request().url()) }));
   }
@@ -244,7 +246,12 @@ try {
     trs.length === 2 && trs[0].includes("Carlos Pérez") && trs[0].includes("Física") && trs[0].includes("8A") && trs[0].includes("50") && trs[0].includes("Retraso") && trs[1].includes("Ana Lucía Rosero") && trs[1].includes("100") && trs[1].includes("Al día"), trs.join(" / "));
   const strip = (await page.locator(".ns-tstatus").allTextContents()).map((x) => x.replace(/\s+/g, ""));
   report.check("Seguimiento: resumen 1 verde, 0 amarillo, 1 rojo", strip[0]?.startsWith("1") && strip[1]?.startsWith("0") && strip[2]?.startsWith("1"), strip.join(" | "));
-  report.check("Seguimiento: sin «Enviar recordatorio» mientras no haya canal real", (await page.getByRole("button", { name: "Enviar recordatorio" }).count()) === 0);
+  report.check("Seguimiento: «Enviar recordatorio» solo para quien no está al día (Carlos)", (await page.getByRole("button", { name: "Enviar recordatorio" }).count()) === 1);
+  await page.getByRole("button", { name: "Enviar recordatorio" }).click();
+  const sent = await toastTitle(page, "Recordatorio enviado");
+  report.check("Recordatorio: se guarda para Carlos con su avance del periodo abierto y avisa dónde lo verá",
+    sent && JSON.stringify(reminders.at(-1)) === JSON.stringify({ teacher_email: "carlos.perez@losandes.edu.co", message: "Tienes 1 evaluación con notas sin verificar en el Periodo 3 (50 % registrado). Ponte al día, por favor." })
+      && (await page.locator(".ns-toast-text").last().textContent()) === "Carlos Pérez lo verá en su Inicio.", JSON.stringify(reminders.at(-1)));
   await page.waitForTimeout(1500);
   await page.screenshot({ path: join(OUT, "paso6b4b-seguimiento.png"), fullPage: true });
 

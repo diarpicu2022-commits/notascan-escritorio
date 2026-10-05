@@ -17,6 +17,7 @@ import { DEMO } from "../../lib/supabase";
 import { decideMessage, useAnalytics, useDecideRequest, useMonitoring, usePendingCount, useRequests } from "../../services/principal";
 import { useObservations } from "../../services/teacher";
 import { useMyInstitution } from "../../services/institution";
+import { reminderText, useSendReminder } from "../../services/reminders";
 import { forcedState } from "../../services/client";
 import { queryState } from "../teacher/states";
 
@@ -32,6 +33,11 @@ function analyticsBody(an: Analytics, goal: number | undefined, hideFilters: boo
   if (q.isError && !q.data) return <ErrorState title="No pudimos cargar la analítica." onRetry={() => q.refetch()} />;
   if (!an.data) return <EmptyState icon="reports" title="Aún no hay notas verificadas." message="Los indicadores aparecen cuando los docentes verifiquen las primeras notas del periodo." />;
   return <InstitutionalAnalytics hideFilters={hideFilters} data={an.data} goal={goal} onPeriod={onPeriod} />;
+}
+
+/** Periodo abierto (el que mide el seguimiento docente). */
+function openPeriodName(an: Analytics): string {
+  return DEMO ? "Periodo 3" : an.academic.data?.periods.find((x) => x.status === "open")?.name ?? "periodo abierto";
 }
 
 /** «Periodo 3 · 2026» del periodo que se muestra (en demostración, el del sistema). */
@@ -112,13 +118,15 @@ export function TeacherMonitoringPage() {
   const pending = usePendingCount();
   const mq = useMonitoring();
   const an = useAnalytics();
-  // El recordatorio aún no tiene canal real (decisión pendiente): solo se muestra en demostración.
+  const remind = useSendReminder();
   const body = queryState(mq, "Cargando el seguimiento docente", "No pudimos cargar el seguimiento docente.")
     ?? (!mq.data?.length ? <EmptyState icon="students" title="Aún no hay asignaciones en el periodo abierto." message="Secretaría arma la malla curricular; el avance de cada docente aparecerá aquí." />
-      : DEMO ? <TeacherMonitoringPanel /> : <TeacherMonitoringPanel rows={mq.data} remind={false} />);
+      : DEMO ? <TeacherMonitoringPanel /> : (
+        <TeacherMonitoringPanel rows={mq.data} onRemind={(t) => remind.mutateAsync({ email: t.id, message: reminderText(t.pending, t.pct, openPeriodName(an)) })} />
+      ));
   return (
     <PageShell active="teachers" counts={{ requests: pending }}>
-      <Header eyebrow={"Supervisión · " + periodLabel(an).split(" · ")[0]} title="Seguimiento Docente" highlight="Docente" description="Avance del registro de calificaciones por docente. Verde: al día · Amarillo: requiere atención · Rojo: retraso." />
+      <Header eyebrow={"Supervisión · " + openPeriodName(an)} title="Seguimiento Docente" highlight="Docente" description="Avance del registro de calificaciones por docente. Verde: al día · Amarillo: requiere atención · Rojo: retraso." />
       {body}
     </PageShell>
   );

@@ -699,3 +699,23 @@ retardo escalonado se mantiene, así que los bloques aparecen con unas décimas 
   Secretaría no escribe la tabla de colegios; sin sesión no), `verify:admin` 105/105, `verify:admin-data` 38/38
   (envía 3.8 a `set_performance_goal`), `verify:principal-data` 26/26 (línea «Meta 3.3» con la meta de la base).
   Fallo propio en la prueba: intentaba escribir «3,84» en un campo numérico, que el navegador no admite; se prueba 3.84.
+
+#### Paso 6b.4b · aprobado y recordatorio real (2026-10-05)
+
+Diego aprueba 6b.4b y las propuestas: **recordatorio** que el docente ve en su Inicio, y **«Exportar informe»** junto
+con Reportes. Pide subir los commits a GitHub a medida que se cierran los pasos.
+
+- **Recordatorio** (migración `20261005180000_recordatorios.sql`, tabla `teacher_reminders`): Rectoría lo envía desde
+  Seguimiento docente («Enviar recordatorio» vuelve a la app conectada) con el avance real del docente en el periodo
+  abierto: «Tienes 1 evaluación con notas sin verificar en el Periodo 3 (50 % registrado). Ponte al día, por favor.».
+  Aviso: «Carlos Pérez lo verá en su Inicio.». La base firma quién envía y solo deja enviar a docentes del directorio;
+  el docente solo ve los suyos y los marca con `mark_reminder_seen` (no hay política de edición).
+- **En el Inicio del docente** el recordatorio es el primer elemento de «Requieren tu atención» (fila de lista del
+  sistema con el avatar de quien lo envía y un botón «Entendido»); sin recordatorios, el bloque queda como antes y en
+  demostración no cambia nada.
+- De paso: «1 notas por verificar» del Inicio pasa a singular («1 nota por verificar»).
+
+Verificación: `verify:db` 141/141 (Rectoría envía; un docente no; no a quien no es docente; no a nombre de otro; la base
+firma; cada docente ve los suyos; solo su docente lo marca como visto y una vez; nadie edita la tabla; sin sesión no se
+lee), `verify:principal-data` 27/27 (envío con el texto y el aviso), `verify:teacher-data` 35/35 (aparece primero,
+«Entendido» llama a `mark_reminder_seen` y desaparece).

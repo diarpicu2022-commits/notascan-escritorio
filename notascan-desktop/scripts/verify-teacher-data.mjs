@@ -28,6 +28,8 @@ const REVIEW = [
 ];
 
 /** Registro de escrituras por tabla y respuesta configurable (ok o rechazo). */
+let reminderSeen = false;
+const seenCalls = [];
 const writes = { grades: [], attendance: [], observations: [], period_concepts: [], evaluations: [], recoveries: [], director_messages: [] };
 const reject = { grades: null };
 
@@ -42,6 +44,9 @@ async function mockApi(page) {
   await page.route("**/auth/v1/user**", (r) => r.fulfill({ json: user }));
   await page.route("**/rest/v1/profiles**", (r) => r.fulfill({ json: { id: UID, email: user.email, full_name: "Ana Lucía Rosero", role: "teacher", status: "active" } }));
   await page.route("**/rest/v1/teaching_assignments**", (r) => r.fulfill({ json: ASSIGNMENTS }));
+  // Recordatorio de Rectoría (6b.4b): uno sin ver hasta que se marca con «Entendido».
+  await page.route("**/rest/v1/teacher_reminders**", (r) => r.fulfill({ json: reminderSeen ? [] : [{ id: 7, message: "Tienes 2 evaluaciones con notas sin verificar en el Periodo 3 (82 % registrado). Ponte al día, por favor.", created_at: new Date().toISOString(), sender: { full_name: "Hernando Villota" } }] }));
+  await page.route("**/rest/v1/rpc/mark_reminder_seen**", (r) => { seenCalls.push(r.request().postDataJSON()); reminderSeen = true; r.fulfill({ status: 204, body: "" }); });
   await page.route("**/rest/v1/students**", (r) => {
     const u = decodeURIComponent(r.request().url());
     return r.fulfill({ json: STUDENTS.filter((s) => u.includes(s.course_id)) });
@@ -238,6 +243,15 @@ try {
   report.check("Inicio: 1 nota por verificar, 2 verificadas este mes, promedio 3.0 de Matemáticas 7A",
     stats.join("|") === "1|2|3.0" && (await page.locator(".ns-home-stat").nth(2).textContent()).includes("promedio de Matemáticas 7A"), stats.join("|"));
   report.check("Inicio: «Requieren tu atención» lista la lectura sin detección", (await page.locator(".ns-block--paper").textContent()).includes("Juan Sebastián Martínez PazSin detección · Parcial 2"));
+  const firstAttention = await page.locator(".ns-block--paper .ns-list-item").first().textContent();
+  report.check("Inicio: el recordatorio de Rectoría va primero en «Requieren tu atención» con quién lo envía",
+    firstAttention.includes("Recordatorio de Hernando Villota") && firstAttention.includes("Tienes 2 evaluaciones con notas sin verificar en el Periodo 3 (82 % registrado)."), firstAttention);
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: join(OUT, "paso6b4b-inicio-recordatorio.png") });
+  await page.getByRole("button", { name: "Marcar como visto el recordatorio de Hernando Villota" }).click();
+  await page.waitForTimeout(800);
+  report.check("Inicio: «Entendido» lo marca como visto en la base (mark_reminder_seen) y desaparece",
+    JSON.stringify(seenCalls.at(-1)) === JSON.stringify({ p_id: 7 }) && !(await page.locator(".ns-block--paper").textContent()).includes("Recordatorio de"), JSON.stringify(seenCalls));
   await page.screenshot({ path: join(OUT, "paso6b2b-inicio.png") });
 
   // ---------- 7. Estudiantes (6b.2b) ----------

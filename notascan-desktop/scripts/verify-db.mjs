@@ -455,6 +455,29 @@ try {
   const goalAnon = await as(null, () => errorOf("select public.set_performance_goal(4.0)"));
   check("Sin sesión no se llama a set_performance_goal", goalAnon?.includes("permission denied"), goalAnon || "se llamó");
 
+  // ---------- 12d. Recordatorios de Rectoría al docente ----------
+  const send = (who, email, extra = "") => as(who, () => errorOf(`insert into public.teacher_reminders (teacher_email, message${extra ? ", sent_by" : ""}) values ($1, 'Ponte al día con las notas del periodo.'${extra ? ", '" + extra + "'" : ""})`, [email]));
+  const remOk = await send(hernando, "ana.lucia@losandes.edu.co");
+  const remTeacher = await send(carlos, "ana.lucia@losandes.edu.co");
+  const remToAdmin = await send(hernando, "patricia@losandes.edu.co");
+  const remForged = await send(hernando, "ana.lucia@losandes.edu.co", patricia);
+  check("Recordatorio: Rectoría lo envía a un docente; un docente no envía; no a quien no es docente; no a nombre de otro",
+    !remOk && remTeacher?.includes("row-level security") && remToAdmin?.includes("row-level security") && remForged?.includes("row-level security"),
+    JSON.stringify({ remOk, remTeacher, remToAdmin, remForged }));
+  const remSender = await one("select sent_by = $1 ok from public.teacher_reminders order by id desc limit 1", [hernando]);
+  const remAna = await as(ana, () => one("select count(*)::int n, min(id) id from public.teacher_reminders where seen_at is null"));
+  const remCarlos = await as(carlos, () => one("select count(*)::int n from public.teacher_reminders"));
+  check("Recordatorio: la base firma quién lo envió; Ana ve el suyo, Carlos no ve el de Ana", remSender.ok && remAna.n === 1 && remCarlos.n === 0, JSON.stringify({ remSender, remAna, remCarlos }));
+  const seenOther = await as(carlos, () => errorOf("select public.mark_reminder_seen($1)", [remAna.id]));
+  const seenOwn = await as(ana, () => errorOf("select public.mark_reminder_seen($1)", [remAna.id]));
+  const seenTwice = await as(ana, () => errorOf("select public.mark_reminder_seen($1)", [remAna.id]));
+  const seenDirect = await as(ana, () => db.query("update public.teacher_reminders set seen_at = null").then((r) => r.affectedRows, (e) => e.message));
+  check("Recordatorio: solo su docente lo marca como visto, una vez, y nadie edita la tabla directamente",
+    seenOther?.includes("no existe") && !seenOwn && seenTwice?.includes("ya se marcó") && (seenDirect === 0 || String(seenDirect).includes("permission denied")),
+    JSON.stringify({ seenOther, seenOwn, seenTwice, seenDirect }));
+  const remAnon = await as(null, () => errorOf("select * from public.teacher_reminders"));
+  check("Sin sesión no se leen recordatorios", remAnon?.includes("permission denied"), remAnon || "leyó");
+
   // ---------- 13. «supabase db reset»: todas las migraciones y después la semilla ----------
   {
     const fresh = new PGlite();

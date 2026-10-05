@@ -12,6 +12,8 @@ import { Block, BlockTitle } from "../../components/organisms/Layout";
 import { PageShell } from "../../components/templates/PageShell";
 import { EVAL_STATUS, KIND } from "../../data/academic";
 import { useDashboard } from "../../services/teacherOverview";
+import { useMarkReminderSeen, useMyReminders } from "../../services/reminders";
+import { useToast } from "../../components/organisms/Toast";
 import { assignmentsState, queryState } from "./states";
 
 /** 01 · ¿Qué tengo pendiente hoy? Continuar la revisión es el punto de entrada. */
@@ -21,6 +23,10 @@ export function DashboardPage() {
   const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando tu resumen", "No pudimos cargar tu resumen.");
   const pct = d?.hero && d.hero.total ? Math.round((d.hero.verified / d.hero.total) * 100) : 0;
   const reviewOf = (id: string) => go("review", id ? { id } : undefined);
+  // Recordatorios de Rectoría: van primero en «Requieren tu atención» hasta que el docente los marca como vistos.
+  const reminders = useMyReminders().data ?? [];
+  const seen = useMarkReminderSeen();
+  const [showToast, toastNode] = useToast();
   return (
     <PageShell active="dashboard">
       <Header
@@ -63,7 +69,7 @@ export function DashboardPage() {
             </Block>
             <Block tone="gold" className="ns-home-stat">
               <span className="ns-bento-icon" aria-hidden><Icon name="clock" size={18} strokeWidth={2.5} /></span>
-              <span className="ns-bento-value"><CountUp value={String(d.toVerify)} /></span><span className="ns-bento-label">notas por verificar</span>
+              <span className="ns-bento-value"><CountUp value={String(d.toVerify)} /></span><span className="ns-bento-label">{d.toVerify === 1 ? "nota por verificar" : "notas por verificar"}</span>
             </Block>
             <Block tone="sage" className="ns-home-stat">
               <span className="ns-bento-icon" aria-hidden><Icon name="check" size={18} strokeWidth={2.5} /></span>
@@ -95,8 +101,17 @@ export function DashboardPage() {
             </Block>
             <Block tone="paper" label="Requieren tu atención">
               <BlockTitle>Requieren tu atención</BlockTitle>
-              {d.attention.length ? (
+              {d.attention.length || reminders.length ? (
                 <ul className="ns-list">
+                  {reminders.map((r) => (
+                    <li key={"r" + r.id} className="ns-list-item">
+                      <Avatar name={r.sender} size="sm" />
+                      <div className="ns-list-main"><strong>{"Recordatorio de " + r.sender}</strong><span className="ns-caption">{r.message}</span></div>
+                      <Button variant="secondary" size="sm" icon="check" loading={seen.isPending && seen.variables === r.id} loadingText="Guardando…"
+                        onClick={() => seen.mutateAsync(r.id).catch(() => showToast({ tone: "error", title: "No pudimos marcarlo como visto", message: "Revisa tu conexión e inténtalo de nuevo." }))}
+                        aria-label={"Marcar como visto el recordatorio de " + r.sender}>Entendido</Button>
+                    </li>
+                  ))}
                   {d.attention.map((s) => (
                     <li key={s.id} className="ns-list-item">
                       <Avatar name={s.name} size="sm" />
@@ -110,6 +125,7 @@ export function DashboardPage() {
           </div>
         </>
       ) : null)}
+      {toastNode}
     </PageShell>
   );
 }

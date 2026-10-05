@@ -92,7 +92,8 @@ function RealAnalytics({ hideFilters, d, goal, onPeriod }: { hideFilters?: boole
 type TeacherRow = MonitorRow;
 
 /** Avance del registro de notas por docente, con recordatorio a quien va atrasado. Sin `rows`, los del sistema. */
-export function TeacherMonitoringPanel({ rows, remind = true }: { rows?: MonitorRow[]; remind?: boolean } = {}) {
+export function TeacherMonitoringPanel({ rows, onRemind }: { rows?: MonitorRow[]; onRemind?: (t: MonitorRow) => Promise<void> } = {}) {
+  const [sending, setSending] = useState<string | null>(null);
   const [f, setF] = useState("all");
   const [showToast, toastNode] = useToast();
   const source = rows ?? (TEACHERS as unknown as MonitorRow[]);
@@ -122,8 +123,15 @@ export function TeacherMonitoringPanel({ rows, remind = true }: { rows?: Monitor
           { key: "last", label: "Última actualización" },
           { key: "status", label: "Estado", sortable: true, sortValue: (t) => ({ ok: 2, warn: 1, late: 0 })[t.status], render: (t) => <TeacherStatus status={t.status} /> },
         ]}
-        rowActions={(t) => (t.status === "ok" || !remind ? null : (
-          <Button size="sm" variant="secondary" icon="bell" onClick={() => showToast({ tone: "success", title: "Recordatorio enviado", message: "Se notificó a " + t.name + "." })}>Enviar recordatorio</Button>
+        rowActions={(t) => (t.status === "ok" ? null : (
+          <Button size="sm" variant="secondary" icon="bell" loading={sending === t.id} loadingText="Enviando…" onClick={() => {
+            if (!onRemind) { showToast({ tone: "success", title: "Recordatorio enviado", message: "Se notificó a " + t.name + "." }); return; }
+            setSending(t.id);
+            onRemind(t).then(
+              () => showToast({ tone: "success", title: "Recordatorio enviado", message: t.name + " lo verá en su Inicio." }),
+              () => showToast({ tone: "error", title: "No se envió el recordatorio", message: "Revisa tu conexión e inténtalo de nuevo." }),
+            ).finally(() => setSending(null));
+          }}>Enviar recordatorio</Button>
         ))}
       />
       {toastNode}
