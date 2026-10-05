@@ -1,4 +1,4 @@
-// Paso 6b.4a · Rectoría en 1024/1440 px (requiere `npm run build:demo`): sin desbordamiento horizontal,
+// Paso 6b.4 · Rectoría en 1024/1440 px (requiere `npm run build:demo`): sin desbordamiento horizontal,
 // estados del bloque navy y recorrido por teclado hasta «Aprobar».
 import { join } from "node:path";
 import { OUT, URL_BASE, createReport, startPreview, watchConsole } from "./harness.mjs";
@@ -11,12 +11,12 @@ try {
     const ctx = await browser.newContext({ viewport: { width: w, height: 900 }, reducedMotion: "reduce" });
     const page = await ctx.newPage();
     const cons = watchConsole(page);
-    for (const h of ["#/principal/dashboard", "#/principal/dashboard?estado=vacio", "#/principal/dashboard?estado=cargando", "#/principal/requests", "#/principal/observer"]) {
+    for (const h of ["#/principal/dashboard", "#/principal/dashboard?estado=vacio", "#/principal/dashboard?estado=cargando", "#/principal/requests", "#/principal/observer", "#/principal/analytics", "#/principal/teachers"]) {
       await page.goto(URL_BASE + h, { waitUntil: "networkidle" });
       await page.waitForTimeout(400);
       const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       report.check(`${w}px ${h}: sin desbordamiento horizontal`, over <= 0, over + " px");
-      await page.screenshot({ path: join(OUT, `paso6b4a-${w}-${h.replace(/[#/?=]+/g, "-").slice(1)}.png`), fullPage: true });
+      await page.screenshot({ path: join(OUT, `paso6b4-${w}-${h.replace(/[#/?=]+/g, "-").slice(1)}.png`), fullPage: true });
     }
     report.check(`${w}px: consola limpia`, cons.length === 0, cons.join(" | "));
     await ctx.close();

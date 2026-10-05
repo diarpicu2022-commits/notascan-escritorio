@@ -629,3 +629,55 @@ Medios: 1024 y 1440 px (390/768 no aplican, ventana Tauri con `minWidth` 1024) s
 encabezado y el primer indicador del panorama se salen 17 px (fuera del rango de la ventana). Regresión: auth 20/20,
 data 8/8, teacher-data 33/33, admin-data 37/37, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62,
 components 121/121, teacher 123/123, admin 102/102, principal 76/76, states 90/90, identity 25/25, platform 26/26.
+
+### Paso 6b.4b · Rectoría: indicadores, analítica y seguimiento docente con datos reales (2026-10-05)
+
+Diego responde «continua» tras 6b.4a: se toma como visto bueno de 6b.4a; sus dos decisiones siguen abiertas. El perfil
+del estudiante (vista de Rectoría y compartida) se separa como **6b.4c** por tamaño.
+
+Sin dirección nueva: `InstitutionalAnalytics` y `TeacherMonitoringPanel` del sistema (Paso 5c) reciben los datos como
+propiedad opcional; sin ella pintan las cifras del sistema (la fidelidad en demostración no cambia: 76/76).
+
+**Reglas de cálculo** (las mismas del Ranking de 6b.3b para no tener dos verdades):
+- Nota de un estudiante en una materia y periodo: promedio ponderado (peso de la evaluación) de sus notas **verificadas**.
+- Promedio del estudiante: media de sus materias; promedio institucional y por grado: media de los estudiantes con notas.
+- Reprobación: estudiantes con al menos una materia por debajo de 3.0, sobre los que tienen notas. Diferencia en puntos
+  frente al periodo anterior con notas; sin anterior, «Primer periodo con notas verificadas».
+- Inasistencia: ausencias / registros de asistencia del rango del periodo, por grado (función `attendance_by_grade`).
+- Evolución: periodos del año que ya tienen notas; la serie del año anterior aparece solo si tiene notas en esos mismos
+  periodos (hoy no hay 2025 en la base, así que la línea va sola y la pregunta «¿Mejoramos frente al año pasado?» aún no
+  se responde).
+- Seguimiento: en el periodo abierto, por docente, notas verificadas sobre las esperadas (estudiantes activos del curso ×
+  evaluaciones con fecha cumplida); evaluación pendiente = vencida y sin todas sus notas verificadas. Verde 100 %,
+  amarillo ≥ 80 %, rojo < 80 % (los cortes de color de la barra del sistema). «Última actualización»: la nota más
+  reciente que tocó, en «Hoy, 09:20» / «Ayer, 17:10» / «Hace 9 días» / «Sin registros».
+
+Migración `20261005120000_rectoria_lectura.sql`: Rectoría lee el directorio de personal de su colegio (nombres de los
+docentes sin cuenta todavía; sin escritura) y `attendance_by_grade(desde, hasta)` agrega la asistencia en la base
+(security invoker). SHA-1 (LF) `f872f7b0774255e94dca5d58db090361f8d649ad`.
+
+**Hallazgo corregido (afectaba pasos anteriores):** el API de Supabase devuelve como máximo 1000 filas por petición y
+varias lecturas no paginaban: estudiantes del colegio (Secretaría y Rectoría), conteo de estudiantes de la estructura,
+notas del Ranking, asistencia y notas del boletín (un curso de 35 en un periodo pasa de 2000 registros de asistencia),
+notas de la planilla, de los conceptos y del inicio del docente. Ahora pasan por `allRows` (de 1000 en 1000, con orden
+estable por id).
+
+Estados: Analítica (carga, error, vacío «Aún no hay notas verificadas.»), Seguimiento (vacío «Aún no hay asignaciones en
+el periodo abierto.») y, en el panorama, «Docentes con pendientes» con «Todos los docentes están al día.»; la
+inasistencia sin registros lo dice en su bloque.
+
+Verificación: `verify:principal-data` 25/25 con un juego de datos calculado a mano (3.3 · +0.3; 33 % · +33 puntos ·
+1 estudiante; 8 % · Octavo; Sexto 3.3 y Octavo 3.4; Carlos 50 % retraso con 1 pendiente hace 9 días, Ana 100 %; cambio a
+Periodo 2: 3.0, 0 %, asistencia pedida con 2026-04-06 → 2026-06-19), `verify:db` 132/132 (Rectoría lee el directorio y
+no lo edita; el docente no lo lee; `attendance_by_grade` agrega y respeta el RLS; sin sesión no se llama),
+`verify:states` 98/98, `verify:principal` 76/76, `verify:principal-viewports` 18/18 en 1024 y 1440 px. Regresión completa en verde: auth 20/20, data 8/8, teacher-data 33/33, admin-data 37/37, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121, teacher 123/123, admin 102/102, identity 25/25, platform 26/26.
+Fallos propios: la etiqueta decía «1 solicitudes» (corregido a singular, con comprobación); la primera medición de
+visibilidad dio opacidad 0 porque se tomó a los 16 ms, dentro de la entrada escalonada del sistema — medido de nuevo a
+1,5 s: 1. Observado sin cambiar (sistema): con `prefers-reduced-motion` la duración de la entrada se anula, pero el
+retardo escalonado se mantiene, así que los bloques aparecen con unas décimas de segundo de diferencia.
+
+**Decisiones para Diego (6b.4b)**:
+1. **«Enviar recordatorio»** no tiene canal real: en la app conectada se oculta (en demostración sigue como el sistema).
+   Propuesta: tabla de recordatorios que el docente ve como aviso en su Inicio; o correo cuando haya SMTP propio.
+2. **«Exportar informe»** de Analítica no hace nada (tampoco en el sistema): se resuelve con Reportes.
+3. **Meta institucional 3.5** (línea del gráfico) viene del sistema: ¿es la del colegio o la configura Secretaría?

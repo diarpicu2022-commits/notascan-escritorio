@@ -19,7 +19,7 @@ import { EmptyState } from "../EmptyState";
 import { Block } from "../Layout";
 import { Modal } from "../Overlays";
 import { useToast } from "../Toast";
-import { historyDate } from "../../../services/principal";
+import { historyDate, type AnalyticsData, type MonitorRow } from "../../../services/principal";
 
 /** Verde, amarillo o rojo con forma y palabra, nunca solo color. */
 export function TeacherStatus({ status }: { status: TeacherState }) {
@@ -27,10 +27,13 @@ export function TeacherStatus({ status }: { status: TeacherState }) {
   return <StatusDot status={s[1]} label={s[0]} />;
 }
 
-/** Indicadores y cuatro gráficos; cada uno responde una pregunta. */
-export function InstitutionalAnalytics({ hideFilters }: { hideFilters?: boolean }) {
+const one = (v: number) => (Math.round(v * 10) / 10).toFixed(1);
+const signed = (v: number, unit: string) => (v > 0 ? "+" : "−") + Math.abs(v) + unit;
+
+/** Indicadores y cuatro gráficos; cada uno responde una pregunta. Sin `data`, las cifras del sistema. */
+export function InstitutionalAnalytics({ hideFilters, data, onPeriod }: { hideFilters?: boolean; data?: AnalyticsData; onPeriod?: (p: string) => void }) {
   const [period, setPeriod] = useState("Periodo 3");
-  const one = (v: number) => (Math.round(v * 10) / 10).toFixed(1);
+  if (data) return <RealAnalytics hideFilters={hideFilters} d={data} onPeriod={onPeriod} />;
   return (
     <div className="ns-col" style={{ gap: 24 }}>
       {hideFilters ? null : (
@@ -54,15 +57,48 @@ export function InstitutionalAnalytics({ hideFilters }: { hideFilters?: boolean 
   );
 }
 
-type TeacherRow = (typeof TEACHERS)[number];
+/** Las mismas piezas con las cifras de la base; lo que aún no tiene datos lo dice en su lugar. */
+function RealAnalytics({ hideFilters, d, onPeriod }: { hideFilters?: boolean; d: AnalyticsData; onPeriod?: (p: string) => void }) {
+  const pts = d.evol.now.concat(d.evol.prev ?? []).filter((v) => !isNaN(v));
+  const lo = Math.max(1, Math.floor((Math.min(...pts) - 0.3) * 5) / 5), hi = Math.min(5, Math.ceil((Math.max(...pts) + 0.3) * 5) / 5);
+  const absMax = Math.max(12, Math.ceil(Math.max(0, ...d.absence.map((x) => x.value)) / 4) * 4);
+  const avgNote = d.avgDelta === null ? "Primer periodo con notas verificadas" : d.avgDelta === 0 ? "Igual que el periodo anterior" : signed(d.avgDelta, "") + " frente al periodo anterior";
+  const failNote = (d.failDelta === null || d.failDelta === 0 ? "" : signed(d.failDelta, d.failDelta === 1 || d.failDelta === -1 ? " punto" : " puntos") + " · ") + d.failCount + (d.failCount === 1 ? " estudiante" : " estudiantes");
+  const noAbsence = <EmptyState icon="calendar" title="Aún no hay asistencia en este periodo." message="Aparecerá cuando los docentes tomen asistencia." />;
+  return (
+    <div className="ns-col" style={{ gap: 24 }}>
+      {hideFilters ? null : (
+        <div className="ns-row">
+          <FilterGroup as="select" label="Año" value={String(d.evol.year)} options={[{ value: String(d.evol.year), label: String(d.evol.year) }]} />
+          <FilterGroup as="select" label="Periodo" value={d.period} onChange={(p) => onPeriod?.(p)} options={d.periods.map((p) => ({ value: p, label: p }))} />
+        </div>
+      )}
+      <section className="ns-kpis" aria-label="Indicadores institucionales">
+        <div className="ns-kpi ns-kpi--lead"><span className="ns-overline" style={{ color: "var(--gold)" }}>Promedio institucional</span><strong><CountUp value={one(d.avg)} /></strong><span>{d.avgDelta ? <Icon name={d.avgDelta > 0 ? "sortup" : "sortdown"} size={14} /> : null}{avgNote}</span></div>
+        <div className="ns-kpi"><span className="ns-overline">Índice de reprobación</span><strong><CountUp value={d.failPct + "%"} /></strong><span>{d.failDelta ? <Icon name={d.failDelta > 0 ? "sortup" : "sortdown"} size={14} /> : null}{failNote}</span></div>
+        <div className="ns-kpi"><span className="ns-overline">Tasa de inasistencia</span><strong>{d.absenceRate === null ? "—" : <CountUp value={d.absenceRate + "%"} />}</strong><span>{d.absenceRate === null ? "Sin asistencia registrada" : d.worstAbsence ? <><Icon name="warning" size={14} />{d.worstAbsence + " concentra la mayor tasa"}</> : "Sin inasistencias"}</span></div>
+      </section>
+      <div className="ns-charts">
+        <Block className="ns-chart-block"><BarChart title="Promedio por grado" subtitle="¿Qué grados están por debajo de la meta institucional?" data={d.gradeAvg} max={5} ticks={[0, 2.5, 5]} target={3.5} targetLabel="Meta" seriesLabel="Promedio" lowBelow={3.5} format={one} /></Block>
+        <Block className="ns-chart-block"><LineChart title="Evolución del rendimiento" subtitle="¿Mejoramos frente al año pasado?" labels={d.evol.labels} min={lo} max={hi} ticks={[lo, Math.round(((lo + hi) / 2) * 10) / 10, hi]}
+          series={[{ name: String(d.evol.year), points: d.evol.now }, ...(d.evol.prev ? [{ name: String(d.evol.prevYear), points: d.evol.prev, tone: "gold" as const, dashed: true }] : [])]} format={(v) => v.toFixed(1)} /></Block>
+        <Block className="ns-chart-block"><DonutChart title="Índice de reprobación" subtitle="¿Cuántos estudiantes pierden al menos una materia?" centerValue={d.failPct + "%"} centerLabel="reprueban" data={[{ label: "Aprueban todas", value: d.students - d.failCount, tone: "navy" }, { label: "Reprueban 1 o más", value: d.failCount, tone: "gold" }]} /></Block>
+        <Block className="ns-chart-block">{d.absence.length ? <BarChart title="Tasa de inasistencia por grado" subtitle="¿Dónde intervenir primero?" data={d.absence} max={absMax} ticks={[0, absMax / 2, absMax]} format={(v) => Math.round(v) + "%"} /> : noAbsence}</Block>
+      </div>
+    </div>
+  );
+}
 
-/** Avance del registro de notas por docente, con recordatorio a quien va atrasado. */
-export function TeacherMonitoringPanel() {
+type TeacherRow = MonitorRow;
+
+/** Avance del registro de notas por docente, con recordatorio a quien va atrasado. Sin `rows`, los del sistema. */
+export function TeacherMonitoringPanel({ rows, remind = true }: { rows?: MonitorRow[]; remind?: boolean } = {}) {
   const [f, setF] = useState("all");
   const [showToast, toastNode] = useToast();
+  const source = rows ?? (TEACHERS as unknown as MonitorRow[]);
   const counts: Record<TeacherState, number> = { ok: 0, warn: 0, late: 0 };
-  TEACHERS.forEach((t) => { counts[t.status]++; });
-  const list = TEACHERS.filter((t) => f === "all" || t.status === f);
+  source.forEach((t) => { counts[t.status]++; });
+  const list = source.filter((t) => f === "all" || t.status === f);
   return (
     <>
       <div className="ns-tstatus-strip" role="group" aria-label="Resumen por estado">
@@ -86,7 +122,7 @@ export function TeacherMonitoringPanel() {
           { key: "last", label: "Última actualización" },
           { key: "status", label: "Estado", sortable: true, sortValue: (t) => ({ ok: 2, warn: 1, late: 0 })[t.status], render: (t) => <TeacherStatus status={t.status} /> },
         ]}
-        rowActions={(t) => (t.status === "ok" ? null : (
+        rowActions={(t) => (t.status === "ok" || !remind ? null : (
           <Button size="sm" variant="secondary" icon="bell" onClick={() => showToast({ tone: "success", title: "Recordatorio enviado", message: "Se notificó a " + t.name + "." })}>Enviar recordatorio</Button>
         ))}
       />

@@ -3,7 +3,7 @@ import { DEMO, supabase } from "../lib/supabase";
 import { SUBJECTS, subjectGrades } from "../data/academic";
 import { IMPORT_ISSUES, PERIODS, type ImportIssue } from "../data/admin";
 import { ALL_STUDENTS, COURSES, type StudentRecord } from "../data/students";
-import { demoData, demoInitial, forcedState } from "./client";
+import { demoData, demoInitial, forcedState, allRows } from "./client";
 
 /*
  * Secretaría · matrícula, importación, paz y salvo, ranking e inicio (paso 6b.3b).
@@ -228,7 +228,7 @@ export async function saveClearance(ids: string[], key: ClearKey, value: boolean
 
 export interface RankRow { id: string; name: string; course: string; grade: string; score: number; subjectsPassed: number; subjectsTotal: number; pos: number }
 export interface Academic {
-  periods: Array<{ id: string; name: string; weight: number; status: string }>;
+  periods: Array<{ id: string; name: string; weight: number; status: string; year?: number; open?: string; close?: string }>;
   subjects: string[];
   courses: CourseOption[];
   students: Array<{ id: string; name: string; course: string; grade: string }>;
@@ -240,12 +240,12 @@ export interface Academic {
 async function fetchAcademic(): Promise<Academic> {
   const sb = supabase();
   const [p, a, sj, e, g, st, c, gl] = await Promise.all([
-    sb.from("academic_periods").select("id, name, final_weight, status").order("year").order("position"),
+    sb.from("academic_periods").select("id, name, final_weight, status, year, open_date, close_date").order("year").order("position"),
     sb.from("teaching_assignments").select("id, subject_id, period_id"),
     sb.from("subjects").select("id, name").neq("status", "archived").order("name"),
     sb.from("evaluations").select("id, assignment_id, weight"),
-    sb.from("grades").select("evaluation_id, student_id, value").eq("status", "verified").range(0, 9999),
-    sb.from("students").select("id, full_name, course_id").eq("status", "active").order("full_name"),
+    allRows((from, to) => sb.from("grades").select("evaluation_id, student_id, value").eq("status", "verified").order("id").range(from, to)),
+    allRows((from, to) => sb.from("students").select("id, full_name, course_id").eq("status", "active").order("full_name").order("id").range(from, to)),
     sb.from("courses").select("id, grade_level_id").neq("status", "archived").order("id"),
     sb.from("grade_levels").select("id, name"),
   ]);
@@ -277,7 +277,7 @@ async function fetchAcademic(): Promise<Academic> {
   });
   const gradeOf = new Map(courses.map((x) => [x.id, x.gradeId]));
   return {
-    periods: ((p.data ?? []) as Array<{ id: string; name: string; final_weight: number; status: string }>).map((x) => ({ id: x.id, name: x.name, weight: Number(x.final_weight), status: x.status })),
+    periods: ((p.data ?? []) as Array<{ id: string; name: string; final_weight: number; status: string; year: number; open_date: string; close_date: string }>).map((x) => ({ id: x.id, name: x.name, weight: Number(x.final_weight), status: x.status, year: x.year, open: x.open_date, close: x.close_date })),
     subjects: subjects.map((x) => x.name), courses,
     students: ((st.data ?? []) as Array<{ id: string; full_name: string; course_id: string }>).map((x) => ({ id: x.id, name: x.full_name, course: x.course_id, grade: gradeOf.get(x.course_id) ?? "" })),
     scores,

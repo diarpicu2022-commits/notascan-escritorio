@@ -34,6 +34,9 @@ const SCREENS = [
   // 6b.4a · Rectoría: solicitudes (bandeja y bloque del panorama) y observador.
   { hash: "#/principal/requests", name: "Solicitudes (Rectoría)", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las solicitudes.", emptyTitle: "No hay solicitudes pendientes." },
   { hash: "#/principal/dashboard", name: "Panorama · Esperan tu decisión", inverse: ".ns-decide", loading: ".ns-decide [aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las solicitudes.", emptyTitle: "No hay solicitudes pendientes." },
+  // 6b.4b · Rectoría: analítica y seguimiento docente.
+  { hash: "#/principal/analytics", name: "Analítica", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar la analítica.", emptyTitle: "Aún no hay notas verificadas." },
+  { hash: "#/principal/teachers", name: "Seguimiento docente", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar el seguimiento docente.", emptyTitle: "Aún no hay asignaciones en el periodo abierto." },
   { hash: "#/principal/observer", name: "Observador (Rectoría)", loading: "[aria-busy=true] .ns-skel", errorTitle: "No pudimos cargar las anotaciones.", emptyTitle: "Aún no hay anotaciones." },
 ];
 

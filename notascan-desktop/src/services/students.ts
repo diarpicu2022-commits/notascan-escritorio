@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEMO, supabase } from "../lib/supabase";
 import { ALL_STUDENTS, type StudentRecord } from "../data/students";
 import type { EnrollmentStatus } from "../types/domain";
-import { demoData, demoInitial, forcedState } from "./client";
+import { demoData, demoInitial, forcedState, allRows } from "./client";
 
 /* Estudiantes: lectura de la vista student_overview (RLS de quien consulta) y cambios de Secretaría. */
 
@@ -33,7 +33,7 @@ function toRecord(r: OverviewRow): StudentRecord {
 
 async function fetchStudents(): Promise<StudentRecord[]> {
   if (DEMO) return demoData(ALL_STUDENTS, []);
-  const { data, error } = await supabase().from("student_overview").select("*").order("full_name");
+  const { data, error } = await allRows<OverviewRow>((from, to) => supabase().from("student_overview").select("*").order("full_name").order("id").range(from, to));
   if (error) throw error;
   return (data as OverviewRow[]).map(toRecord);
 }

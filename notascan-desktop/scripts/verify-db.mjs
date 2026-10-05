@@ -426,6 +426,20 @@ try {
   const confirmedFn = await as(ana, () => errorOf("select public.activate_invited_profile()"));
   check("La función de activación no se puede llamar directamente", confirmedFn?.includes("permission denied") || confirmedFn?.includes("trigger"), confirmedFn || "se llamó");
 
+  // ---------- 12b. Rectoría: directorio de personal y asistencia agregada (6b.4b) ----------
+  const staffRector = await as(hernando, () => one("select count(*)::int n from public.staff_directory"));
+  const staffTeacher = await as(ana, () => one("select count(*)::int n from public.staff_directory"));
+  const staffAdmin = await as(patricia, () => one("select count(*)::int n from public.staff_directory"));
+  check("Rectoría lee el directorio de personal (lo mismo que Secretaría); el docente no", staffRector.n === staffAdmin.n && staffRector.n >= 11 && staffTeacher.n === 0, `Rectoría ${staffRector.n}, Secretaría ${staffAdmin.n}, docente ${staffTeacher.n}`);
+  const staffWrite = await as(hernando, () => db.query("update public.staff_directory set full_name = 'X' where email = 'ana.lucia@losandes.edu.co'").then((r) => r.affectedRows));
+  check("Rectoría no edita el directorio (0 filas)", staffWrite === 0, String(staffWrite));
+  await db.query("insert into public.attendance (course_id, student_id, class_date, state) select s.course_id, s.id, date '2026-09-15', case when row_number() over (order by s.id) <= 2 then 'absent'::public.attendance_state else 'present' end from public.students s where s.course_id = '6A' and s.status = 'active' on conflict do nothing");
+  const abs6 = await as(hernando, () => one("select records, absences from public.attendance_by_grade('2026-09-15', '2026-09-15') where grade_level_id = '6'"));
+  const abs6Teacher = await as(carlos, () => one("select coalesce(sum(records), 0)::int n from public.attendance_by_grade('2026-09-15', '2026-09-15')"));
+  check("attendance_by_grade: Rectoría ve el agregado por grado; respeta el RLS del docente", abs6 && abs6.absences === 2 && abs6.records > 2 && abs6Teacher.n >= 0, JSON.stringify(abs6));
+  const absAnon = await as(null, () => errorOf("select * from public.attendance_by_grade('2026-01-01', '2026-12-31')"));
+  check("Sin sesión no se llama a attendance_by_grade", absAnon?.includes("permission denied"), absAnon || "se llamó");
+
   // ---------- 13. «supabase db reset»: todas las migraciones y después la semilla ----------
   {
     const fresh = new PGlite();

@@ -6,7 +6,7 @@ import { OBS, conceptFor, subjectGrades, type ObsType, type ObservationItem } fr
 import { REVIEW_ROWS } from "../data/reviewRows";
 import { ALL_STUDENTS, seeded } from "../data/students";
 import type { ReviewStatus } from "../types/domain";
-import { demoData, demoInitial, forcedState } from "./client";
+import { demoData, demoInitial, forcedState, allRows } from "./client";
 
 /*
  * Docente: asignaciones del periodo abierto, revisión de notas, planilla, asistencia, observador y conceptos.
@@ -186,7 +186,7 @@ async function fetchGradebook(a: Assignment): Promise<GradebookData> {
   throwIf(ev);
   const columns = ((ev.data ?? []) as Array<{ id: number; name: string; weight: number }>).map((e) => ({ key: String(e.id), label: e.name, weight: Number(e.weight) }));
   const grades = columns.length
-    ? await sb.from("grades").select("evaluation_id, student_id, value").in("evaluation_id", columns.map((c) => Number(c.key))).eq("status", "verified")
+    ? await allRows((from, to) => sb.from("grades").select("evaluation_id, student_id, value").in("evaluation_id", columns.map((c) => Number(c.key))).eq("status", "verified").order("id").range(from, to))
     : { data: [], error: null };
   throwIf(grades);
   const byCell = new Map<string, number>();
@@ -343,13 +343,13 @@ async function fetchConcepts(a: Assignment): Promise<ConceptRow[]> {
   const [students, ev, abs, cp] = await Promise.all([
     roster([a.courseId]),
     sb.from("evaluations").select("id, weight").eq("assignment_id", id),
-    sb.from("attendance").select("student_id").eq("course_id", a.courseId).eq("state", "absent").gte("class_date", a.openDate).lte("class_date", a.closeDate),
+    allRows((from, to) => sb.from("attendance").select("student_id").eq("course_id", a.courseId).eq("state", "absent").gte("class_date", a.openDate).lte("class_date", a.closeDate).order("id").range(from, to)),
     sb.from("period_concepts").select("student_id, text, state").eq("assignment_id", id),
   ]);
   [ev, abs, cp].forEach(throwIf);
   const weights = new Map(((ev.data ?? []) as Array<{ id: number; weight: number }>).map((e) => [e.id, Number(e.weight)]));
   const gr = weights.size
-    ? await sb.from("grades").select("evaluation_id, student_id, value").in("evaluation_id", [...weights.keys()]).eq("status", "verified")
+    ? await allRows((from, to) => sb.from("grades").select("evaluation_id, student_id, value").in("evaluation_id", [...weights.keys()]).eq("status", "verified").order("id").range(from, to))
     : { data: [], error: null };
   throwIf(gr);
   const grades = new Map<string, Array<{ value: number; weight: number }>>();

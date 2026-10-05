@@ -95,7 +95,7 @@ Lo primero que se lee al retomar.
   - Servicio de visión decidido (2026-10-05): **A · modelo multimodal (GPT-4o / Claude con visión)** para Subir
     fotografías. Implica declarar la transferencia a terceros en la política (las fotos son de menores).
 - **Paso 6b.4 · Rectoría** (en curso, por partes).
-  - **6b.4a (hecho 2026-10-05, esperando visto bueno):** Solicitudes con datos reales y cambio de nota real
+  - **6b.4a (hecho y aprobado 2026-10-05, con «continua»; sus dos decisiones siguen abiertas):** Solicitudes con datos reales y cambio de nota real
     (migración `20261005090000_solicitudes.sql`: `grade_id`, `request_fits_grade`, `decide_grade_request` aplica la
     nota y no aplica a ciegas), «Esperan tu decisión» del panorama, número del menú desde la base y Observador.
     `verify:db` 127/127, `verify:principal-data` 13/13, `verify:states` 90/90, `verify:principal` 76/76.
@@ -103,7 +103,13 @@ Lo primero que se lee al retomar.
       SHA-1 LF `c400c9cc…`); el clasificador de permisos no me dejó pulsar «Run» en producción.
     - Dos decisiones en el anexo (Paso 6b.4a): formulario del docente para pedir el cambio y qué hacer con las 3
       solicitudes de la semilla.
-  - **6b.4b (siguiente):** indicadores del panorama, Analítica, Seguimiento docente (recordatorio) y perfil.
+  - **6b.4b (hecho 2026-10-05, esperando visto bueno):** indicadores y gráficos del panorama y de Analítica con
+    datos reales (mismo modelo de notas que el Ranking), Seguimiento docente real, lecturas paginadas de 1000 en 1000 en
+    toda la app (hallazgo: el API corta en 1000 filas). Migración `20261005120000_rectoria_lectura.sql` (directorio de
+    personal para Rectoría, `attendance_by_grade`). `verify:principal-data` 25/25, `verify:db` 132/132, `verify:states` 98/98.
+    - **Pendiente de Diego:** ejecutar también esta migración (después de la de solicitudes), SHA-1 LF `f872f7b0…`.
+    - Tres decisiones en el anexo (Paso 6b.4b): recordatorio, exportar informe, meta 3.5.
+  - **6b.4c (siguiente):** perfil del estudiante con datos reales (Rectoría y compartido).
   - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.

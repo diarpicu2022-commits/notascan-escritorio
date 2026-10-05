@@ -5,7 +5,7 @@ import { PERIODS } from "../data/admin";
 import { ALL_STUDENTS, COURSES, type StudentRecord } from "../data/students";
 import { demoReportCard, type ReportCardData } from "../components/organisms/ReportCardDocument";
 import { DEMO_INSTITUTION, toInstitution, type InstitutionRow } from "./institution";
-import { demoData, demoInitial, forcedState } from "./client";
+import { demoData, demoInitial, forcedState, allRows } from "./client";
 
 /*
  * Boletines (paso 6b.3c). Solo entra lo que una persona confirmó: notas verificadas, conceptos escritos o revisados
@@ -56,14 +56,14 @@ async function fetchReportCards({ course, period }: Ctx): Promise<ReportCardsDat
   const [eq, cpq, atq, mq, rq] = await Promise.all([
     asg.length ? sb.from("evaluations").select("id, assignment_id, weight").in("assignment_id", asg.map((a) => a.id)) : Promise.resolve({ data: [], error: null }),
     sb.from("period_concepts").select("student_id, assignment_id, text, state").in("assignment_id", asg.filter((a) => a.period_id === cur.id).map((a) => a.id)).in("state", ["teacher", "reviewed"]),
-    sb.from("attendance").select("student_id, state").eq("course_id", course).gte("class_date", cur.open_date).lte("class_date", cur.close_date),
+    allRows((from, to) => sb.from("attendance").select("student_id, state").eq("course_id", course).gte("class_date", cur.open_date).lte("class_date", cur.close_date).order("id").range(from, to)),
     sb.from("director_messages").select("student_id, text, state").eq("period_id", cur.id).in("state", ["teacher", "reviewed"]),
     sb.from("report_cards").select("student_id, status").eq("period_id", cur.id).in("student_id", ids),
   ]);
   [eq, cpq, atq, mq, rq].forEach(throwIf);
   const evals = (eq.data ?? []) as Array<{ id: number; assignment_id: number; weight: number }>;
   const gr = evals.length
-    ? await sb.from("grades").select("evaluation_id, student_id, value").eq("status", "verified").in("evaluation_id", evals.map((e) => e.id)).in("student_id", ids)
+    ? await allRows((from, to) => sb.from("grades").select("evaluation_id, student_id, value").eq("status", "verified").in("evaluation_id", evals.map((e) => e.id)).in("student_id", ids).order("id").range(from, to))
     : { data: [], error: null };
   throwIf(gr);
 

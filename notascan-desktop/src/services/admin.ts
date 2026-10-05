@@ -3,7 +3,7 @@ import { DEMO, supabase } from "../lib/supabase";
 import { GRADE_NAME, PERIOD_SETUP, SUBJECTS, TEACHERS } from "../data/academic";
 import { INITIAL_ASSIGN, PERIODS, USERS, type Assignment, type DirectoryUser, type UserRole, type UserStatus } from "../data/admin";
 import { ALL_STUDENTS, COURSES } from "../data/students";
-import { demoData, demoInitial, forcedState } from "./client";
+import { demoData, demoInitial, forcedState, allRows } from "./client";
 
 /*
  * Secretaría · configuración (paso 6b.3a): estructura académica, malla curricular, periodos y usuarios.
@@ -45,7 +45,7 @@ async function fetchStructure(): Promise<StructureData> {
     sb.from("grade_levels").select("id, name, level, status").order("id"),
     sb.from("courses").select("id, grade_level_id, name, director_email, capacity, status").order("id"),
     sb.from("subjects").select("id, name, code, category, status").order("name"),
-    sb.from("students").select("course_id, status"),
+    allRows((from, to) => sb.from("students").select("course_id, status").order("id").range(from, to)),
     sb.from("staff_directory").select("email, full_name, role").eq("role", "teacher").order("full_name"),
   ]);
   [g, c, s, st, t].forEach(throwIf);

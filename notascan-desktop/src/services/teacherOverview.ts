@@ -4,7 +4,7 @@ import { DEMO, supabase } from "../lib/supabase";
 import { EVALUATIONS, STUDENTS, subjectGrades, type EvalKind, type EvalStatus, type EvaluationItem, type TeacherStudent } from "../data/academic";
 import { ALL_STUDENTS } from "../data/students";
 import type { ReviewStatus } from "../types/domain";
-import { demoData, demoInitial, forcedState } from "./client";
+import { demoData, demoInitial, forcedState, allRows } from "./client";
 import { roster, todayIso, useMyAssignments, weekdayDate, type Assignment, type RosterRow } from "./teacher";
 
 /*
@@ -39,7 +39,7 @@ async function fetchOverview(assignments: Assignment[]): Promise<Overview> {
     return { id: e.id, assignmentKey: String(e.assignment_id), name: e.name, kind: e.kind, weight: Number(e.weight), status: e.status, dueDate: e.due_date, course: a?.courseId ?? "", subject: a?.subject ?? "" };
   });
   const gr = evals.length
-    ? await sb.from("grades").select("evaluation_id, student_id, status, value, verified_at, verified_by").in("evaluation_id", evals.map((e) => e.id))
+    ? await allRows((from, to) => sb.from("grades").select("evaluation_id, student_id, status, value, verified_at, verified_by").in("evaluation_id", evals.map((e) => e.id)).order("id").range(from, to))
     : { data: [], error: null };
   throwIf(gr);
   const grades = ((gr.data ?? []) as Array<{ evaluation_id: number; student_id: string; status: ReviewStatus; value: number | null; verified_at: string | null; verified_by: string | null }>)

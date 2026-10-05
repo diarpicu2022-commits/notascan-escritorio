@@ -40,3 +40,15 @@ export function clock(ms: number): string {
   const d = new Date(ms);
   return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
 }
+
+/** Todas las filas de una consulta, de 1000 en 1000 (el API de Supabase devuelve como máximo 1000 por petición). */
+export async function allRows<T>(page: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>): Promise<{ data: T[]; error: unknown }> {
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const r = await page(from, from + 999);
+    if (r.error) return { data: out, error: r.error };
+    const rows = (r.data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < 1000) return { data: out, error: null };
+  }
+}
