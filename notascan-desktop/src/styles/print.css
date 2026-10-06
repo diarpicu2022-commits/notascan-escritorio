@@ -4,11 +4,21 @@
 .ns-print-root { display: none; }
 
 @media print {
-  @page { size: A4; margin: 12mm; }
+  /* Página sin márgenes (2026-10-06, Diego: «la hora arriba y lo que pone el navegador daña el boletín»): el motor de
+     impresión dibuja fecha, título y número de página en los márgenes; sin márgenes no tiene dónde y no aparecen,
+     sin que nadie tenga que desmarcar nada. El aire de la página lo da ahora el relleno de la hoja (14 mm), que se
+     repite en cada página cuando un reporte largo ocupa varias (box-decoration-break: clone). */
+  @page { size: A4; margin: 0; }
+  html, body { margin: 0; padding: 0; background: #fffefb; }
   body > *:not(.ns-print-root) { display: none !important; }
   .ns-print-root { display: block; }
   /* border-box: .ns-paper tiene width 100 % más 40 px de relleno por lado; sin esto la hoja medía 785 px en los 703
      de un A4 y el encabezado y las notas se cortaban por la derecha (visto en la app de escritorio, 2026-10-06). */
-  .ns-print-root .ns-paper { break-after: page; box-shadow: none; margin: 0 auto; max-width: none; box-sizing: border-box; width: 100%; }
+  .ns-print-root .ns-paper {
+    break-after: page; box-shadow: none; margin: 0; max-width: none; box-sizing: border-box; width: 100%;
+    border: 0; padding: 14mm; box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+  .ns-print-root .ns-paper-table thead { display: table-header-group; }
+  .ns-print-root .ns-paper-table tr { break-inside: avoid; }
   .ns-print-root .ns-paper:last-child { break-after: auto; }
 }

@@ -1064,3 +1064,14 @@ hoja salía cortada por la derecha.
   boletines y Rectoría. Nueva comprobación en `verify:teacher-data` (62/62): con la copia del documento impreso, a
   703 px, nada se sale. Repetido en la app: el encabezado y la tabla caben completos.
 Pendiente en escritorio: subir fotografías y la lectura con IA (necesita la clave de Anthropic).
+
+#### Enmienda 9 (2026-10-06, pedida por Diego): el boletín sale sin la fecha ni el título del navegador
+
+Diego: «al dar imprimir el boletín sale con la hora en la parte de arriba y otras cosas que pone el navegador; daña el
+boletín y su presentación». Fallo propio: lo vi en la prueba anterior y lo dejé como una casilla que cada persona
+debía desmarcar. Ahora `@page { margin: 0 }`: sin márgenes el motor de impresión no tiene dónde dibujar fecha, título
+ni número de página, para nadie. El aire lo da la hoja: relleno de 14 mm, sin borde de pantalla, repetido en cada
+página (`box-decoration-break: clone`); el encabezado de la tabla se repite y las filas no se parten.
+Verificación: `verify:print` 5/5 imprime a PDF real una tabla de 60 filas y la mide con PyMuPDF (A4 595×842 pt,
+3 páginas, ≥ 14 mm a cada lado también arriba en las páginas 2 y 3, encabezado en cada página); `verify:teacher-data`
+62/62 (la hoja cabe en los 794 px del A4). En la app de escritorio, el diálogo de impresión muestra la hoja limpia.

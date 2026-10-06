@@ -478,12 +478,12 @@ try {
   const printed = await page.evaluate(() => window.__printed.at(-1) ?? "");
   report.check("Consolidado · PDF: imprime la hoja con el colegio, «Consolidado por curso», los estudiantes y quién lo generó",
     printed.includes("Consolidado por curso") && printed.includes("María Fernanda López Rosero") && printed.includes("Generado por Ana Lucía Rosero") && printed.includes("Incluye solo las materias que dicta"), printed.slice(0, 200));
-  // Cabe en el papel: A4 con márgenes de 12 mm deja 186 mm (703 px) de ancho útil. Visto en la app de escritorio
-  // (2026-10-06): el encabezado y las notas se salían por la derecha.
+  // Cabe en el papel: la página A4 no tiene márgenes (así el navegador no imprime fecha ni título) y mide 210 mm
+  // (794 px); el aire lo da el relleno de la hoja. Visto en la app de escritorio (2026-10-06): se salía por la derecha.
   {
     const vp = page.viewportSize();
     await page.emulateMedia({ media: "print" });
-    await page.setViewportSize({ width: 703, height: 1000 });
+    await page.setViewportSize({ width: 794, height: 1123 });
     await page.waitForTimeout(300);
     const fit = await page.evaluate(() => {
       const root = document.getElementById("print-copy"); if (!root) return { error: "sin copia" };
@@ -494,7 +494,7 @@ try {
     });
     await page.emulateMedia({ media: "screen" });
     await page.setViewportSize(vp);
-    report.check("Consolidado · PDF: la hoja cabe en el ancho útil de un A4 (nada se sale por la derecha)", fit.n === 0, JSON.stringify(fit));
+    report.check("Consolidado · PDF: la hoja cabe en el ancho de un A4 (nada se sale por la derecha)", fit.n === 0, JSON.stringify(fit));
   }
 
   // Por evaluación en CSV: se elige la evaluación en el diálogo.
