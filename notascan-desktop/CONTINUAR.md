@@ -145,9 +145,13 @@ Lo primero que se lee al retomar.
   él, los correos de invitación y de restablecimiento llegan con el enlace por defecto y sin código. **Pendiente de
   Diego:** SMTP propio (recomendado Brevo, gratis 300/día) en Authentication → Emails → SMTP Settings. Después pego las
   tres plantillas de `supabase/templates/` con sus asuntos y pruebo el envío.
-- **Siguiente:** legal (política, autorización del acudiente, transferencia
-  de fotos a Anthropic, derechos del titular), compilar Tauri, cierre.
-  - Después: Reportes del Docente y Subir fotografías.
+- **Paso 6g · Legal (hecho 2026-10-06, esperando visto bueno):** borradores en `docs/legal/` (política 2026.1,
+  autorización del acudiente, términos), migración `20261006120000_autorizaciones.sql` **aplicada** (no se matricula
+  sin autorización; salud solo con autorización expresa; revocar con motivo), matrícula/importación con autorización,
+  perfil con autorización y exportación de datos, aceptación de la política al entrar. `verify:db` 155/155,
+  `verify:admin-data` 51/51, `verify:principal-data` 46/46. **Pendiente:** revisión de un abogado; supresión de datos.
+- **Siguiente:** compilar la app de escritorio con Tauri (instalar Rust + MSVC Build Tools) y el cierre.
+  Pendientes de Diego: clave de Anthropic; SMTP propio (después pego las plantillas); revisión del abogado.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.
 - Credencial de la base: la lectura de la contraseña desde el navegador fue bloqueada por permisos (bien). Diego la
@@ -179,13 +183,13 @@ La app trata datos de **menores de edad** (estudiantes), de acudientes y de salu
 fotografías de exámenes. Marco: Ley 1581 de 2012, Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015);
 el art. 7 de la Ley 1581 exige respetar el interés superior del menor.
 
-- [ ] Política de tratamiento de datos con versión y fecha (`docs/legal/`), visible dentro de la app.
-- [ ] Autorización del acudiente para los datos del estudiante; registro de la versión aceptada y la fecha.
-- [ ] Datos sensibles (salud, observador) con acceso restringido por rol y explicación antes de pedirlos.
-- [ ] Términos y condiciones (hay cuentas por rol).
-- [ ] Derechos del titular: consultar, exportar, corregir y suprimir; y qué se conserva por obligación académica.
-- [ ] Retención de las fotografías de exámenes: cuánto tiempo y cuándo se borran.
-- [ ] Si se usa una API de visión externa (Google Cloud Vision / GPT-4o): transferencia a terceros declarada en la política.
+- [x] Política de tratamiento de datos con versión y fecha (`docs/legal/`), visible dentro de la app (6g, borrador).
+- [x] Autorización del acudiente para los datos del estudiante; registro de la versión aceptada y la fecha (6g).
+- [x] Datos sensibles (salud) con autorización expresa y separada, acceso restringido por rol (6g).
+- [x] Términos y condiciones (6g, borrador; el personal los acepta al entrar).
+- [~] Derechos del titular: consultar y exportar (JSON) y corregir, hechos; **suprimir pendiente de abogado**.
+- [x] Retención de las fotografías de exámenes: se borran al cerrar el periodo (6e).
+- [x] API de visión externa (Anthropic, Claude Haiku 4.5): transmisión declarada en la política (6g).
 - [ ] Cookies: no aplica a la app de escritorio (no hay rastreo); revisar si se publica una versión web.
 
 Los textos legales que se redacten son borradores técnicos y los revisa un abogado antes de usarlos.

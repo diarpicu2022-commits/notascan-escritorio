@@ -27,6 +27,7 @@ const OBS = [
 const rpcs = [];
 const reminders = [];
 const reportsSaved = [];
+const consents = [];
 
 // ---------- 6b.4b · datos para analítica y seguimiento, calculados a mano ----------
 // Periodo 3 (abierto): s1 Matemáticas (4.0×50 + 5.0×50) = 4.5 · s2 Matemáticas 2.0 · s3 Física 3.4.
@@ -110,6 +111,7 @@ async function mockApi(page) {
     const body = r.request().postDataJSON();
     rpcs.push({ url: r.request().url(), body });
     if (r.request().url().includes("attendance_by_grade")) return r.fulfill({ json: ATT });
+    if (r.request().url().includes("current_policy_version")) return r.fulfill({ json: "2026.1" });
     if (!r.request().url().includes("decide_grade_request")) return r.fulfill({ status: 204, body: "" });
     const req = REQS.find((x) => x.id === body.p_request);
     if (body.p_request === 244 && body.p_decision === "approved") {
@@ -126,6 +128,12 @@ async function mockApi(page) {
   });
   await page.route("**/rest/v1/grade_change_requests**", (r) => r.fulfill({ json: REQS }));
   await page.route("**/rest/v1/observations**", (r) => r.fulfill({ json: OBS }));
+  // 6g: la aceptación de la política (vacía hasta aceptar) y la autorización del acudiente de s1.
+  await page.route("**/rest/v1/consents**", (r) => {
+    if (r.request().method() === "POST") { consents.push(r.request().postDataJSON()); return r.fulfill({ status: 201, body: "" }); }
+    return r.fulfill({ json: consents.length ? [{ id: 1 }] : [] });
+  });
+  await page.route("**/rest/v1/guardian_authorizations**", (r) => r.fulfill({ json: [{ id: 5, guardian_name: "Rosa Paz", relationship: "Madre", health_data: true, method: "firma-fisica", received_on: "2026-01-12", policy_version: "2026.1", revoked_at: null, revoked_reason: null }] }));
   await page.route("**/rest/v1/teacher_reminders**", (r) => { if (r.request().method() === "POST") reminders.push(r.request().postDataJSON()); r.fulfill({ status: 201, body: "" }); });
   await page.route("**/rest/v1/generated_reports**", (r) => { if (r.request().method() === "POST") reportsSaved.push(r.request().postDataJSON()); return r.fulfill(r.request().method() === "POST" ? { status: 201, body: "" } : { json: [] }); });
   for (const [name, rows] of Object.entries(A)) {
@@ -153,6 +161,24 @@ try {
   });
   const cons = watchConsole(page);
   await mockApi(page);
+
+  // ---------- 0. Política de datos (6g): hay que aceptarla antes de usar la app ----------
+  const gate = page.locator("[role=dialog]", { hasText: "Antes de usar NotaScan" });
+  await gate.waitFor({ timeout: 10000 });
+  const accept = gate.getByRole("button", { name: "Aceptar y continuar" });
+  report.check("Política (6g): al entrar sin haberla aceptado, la ventana pide aceptarla (versión 2026.1) y no deja seguir sin marcar",
+    (await gate.textContent()).includes("versión 2026.1") && (await accept.isDisabled()), (await gate.textContent()).slice(0, 120));
+  await gate.getByRole("tab", { name: "Política completa" }).click();
+  const fullPolicy = await gate.textContent();
+  report.check("Política (6g): se puede leer la política completa del repositorio dentro de la app",
+    fullPolicy.includes("Responsable del tratamiento") && fullPolicy.includes("Anthropic PBC") && fullPolicy.includes("Borrador técnico"), fullPolicy.slice(0, 200));
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: join(OUT, "paso6g-politica.png") });
+  await gate.getByLabel(/Leí y acepto/).check();
+  await accept.click();
+  await gate.waitFor({ state: "detached", timeout: 8000 }).catch(() => {});
+  report.check("Política (6g): aceptar la guarda con la versión y la ventana se cierra",
+    JSON.stringify(consents.at(-1)) === JSON.stringify({ user_id: UID, policy_version: "2026.1" }) && (await gate.count()) === 0, JSON.stringify(consents));
 
   // ---------- 1. Panorama: lo que espera decisión ----------
   const items = page.locator(".ns-decide .ns-list-item");
@@ -314,7 +340,16 @@ try {
   await page.screenshot({ path: join(OUT, "paso6b4c-perfil-boletin.png") });
 
   await page.getByRole("tab", { name: "Información" }).click();
+  await page.locator("[aria-label='Autorización del acudiente'] dl").waitFor({ timeout: 8000 });
   const info = await page.locator(".ns-block").last().textContent();
+  report.check("Perfil · autorización (6g): quién firmó, cuándo, la versión y si cubre salud; Rectoría la ve pero no la edita",
+    info.includes("Rosa Paz (Madre)") && info.includes("12/01/2026 · firma física") && info.includes("Versión 2026.1") && info.includes("Autorizados")
+      && (await page.getByRole("button", { name: "Revocar autorización" }).count()) === 0 && (await page.getByRole("button", { name: "Registrar autorización" }).count()) === 0, info.slice(-260));
+  const [exp6g] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Exportar datos del estudiante" }).click()]);
+  const exported = JSON.parse(await (await import("node:fs/promises")).readFile(await exp6g.path(), "utf8"));
+  report.check("Perfil · derecho de acceso (6g): exporta en JSON todo lo del estudiante (datos, acudientes, salud, autorizaciones, notas, asistencia, observador)",
+    exp6g.suggestedFilename() === "datos-estudiante-s1.json" && exported.estudiante?.id === "s1" && ["acudientes", "salud", "autorizaciones", "notas", "asistencia", "observador", "conceptos", "boletines"].every((k) => k in exported) && exported.autorizaciones.length === 1,
+    exp6g.suggestedFilename() + " · " + Object.keys(exported).join(","));
   report.check("Perfil · información: acudiente y salud reales (alergia y contacto de emergencia), marcados como sensibles",
     info.includes("TI 1084000001") && info.includes("Rosa Paz (Madre)") && info.includes("alergias: Penicilina") && info.includes("contacto de emergencia: Rosa Paz · 3120000000") && info.includes("Visible solo para Secretaría y Rectoría"), info);
 

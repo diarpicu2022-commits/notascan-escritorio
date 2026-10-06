@@ -17,7 +17,7 @@ const msgOf = (e: unknown) => (e && typeof e === "object" && "message" in e ? St
 /** Mensaje para la persona: las reglas de la base tal cual; lo demás, genérico. */
 export function enrollMessage(e: unknown): string {
   const m = msgOf(e);
-  if (/Ya existe un estudiante|no existe en la estructura|Faltan nombres|Solo Secretaría/.test(m)) return m;
+  if (/Ya existe un estudiante|no existe en la estructura|Faltan nombres|Solo Secretaría|autorización/.test(m)) return m;
   return "No pudimos guardar la matrícula. Revisa tu conexión e inténtalo de nuevo.";
 }
 
@@ -52,13 +52,16 @@ export interface EnrollInput {
   first: string; last: string; docType: string; doc: string; birth: string; phone: string; email: string;
   allergies: string; conditions: string; medNotes: string; emName: string; emPhone: string;
   gName: string; gRel: string; gDoc: string; gPhone: string; gEmail: string; year: string; grade: string; course: string; state: string;
+  /** Autorización del acudiente (6g): datos de salud solo si la autorizó expresamente. */
+  authHealth?: boolean;
 }
 
 const toRpc = (v: EnrollInput) => ({
   year: v.year, first_names: v.first, last_names: v.last, doc_type: v.docType, document: (DOC_ABBR[v.docType] ?? "TI") + " " + v.doc.replace(/\D/g, ""),
   birth_date: v.birth, course_id: v.course, status: v.state === "Pendiente" ? "pending" : "active",
   guardian_name: v.gName, guardian_rel: v.gRel, guardian_doc: v.gDoc, guardian_phone: v.gPhone, guardian_email: v.gEmail,
-  allergies: v.allergies, conditions: v.conditions, medical_notes: v.medNotes, emergency_contact: v.emName, emergency_phone: v.emPhone,
+  // Sin autorización expresa para datos de salud, no se envían (la base tampoco los guardaría).
+  ...(v.authHealth ? { allergies: v.allergies, conditions: v.conditions, medical_notes: v.medNotes, emergency_contact: v.emName, emergency_phone: v.emPhone } : {}),
 });
 
 /** Devuelve el código estudiantil asignado por la base (en demostración, ninguno). */
@@ -67,7 +70,8 @@ export function useEnrollStudent() {
   return useMutation({
     mutationFn: async (v: EnrollInput): Promise<string | null> => {
       if (DEMO) return null;
-      const r = await supabase().rpc("enroll_student", { p: toRpc(v) });
+      // La matrícula y la autorización firmada del acudiente se registran juntas (Ley 1581, art. 7).
+      const r = await supabase().rpc("register_enrollment", { p: toRpc(v), a: { received: true, health: !!v.authHealth, guardian_name: v.gName, relationship: v.gRel } });
       throwIf(r);
       return r.data as string;
     },
@@ -202,7 +206,8 @@ export function useImportStudents() {
         };
       });
       if (DEMO) return list.length;
-      const res = await supabase().rpc("enroll_students", { p: list });
+      // Una autorización por estudiante (la firmada por el acudiente de su fila); datos de salud, nunca en lote.
+      const res = await supabase().rpc("register_enrollments", { p: list, a: { received: true } });
       throwIf(res);
       return res.data as number;
     },

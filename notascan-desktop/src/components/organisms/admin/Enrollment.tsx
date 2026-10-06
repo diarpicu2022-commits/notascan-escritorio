@@ -10,7 +10,7 @@ import {
 } from "../../../services/enrollment";
 import { Badge } from "../../atoms/Badge";
 import { Button } from "../../atoms/Button";
-import { Input, Select, Textarea } from "../../atoms/Field";
+import { Checkbox, Input, Select, Textarea } from "../../atoms/Field";
 import { Icon, type IconName } from "../../atoms/Icon";
 import { ImportFileZone } from "../../molecules/DropZones";
 import { FilterGroup } from "../../molecules/Filters";
@@ -34,6 +34,9 @@ export function StudentRegistrationForm({ onNavigate }: { onNavigate?: (page: st
   const enroll = useEnrollStudent();
   const [code, setCode] = useState<string | null>(null);
   const [saveErr, setSaveErr] = useState<string | null>(null);
+  // Autorización del acudiente (6g, solo con la base): firmada y recibida es obligatoria; la de salud, facultativa.
+  const [auth, setAuth] = useState({ received: false, health: false });
+  const [authTried, setAuthTried] = useState(false);
   // Grados y cursos: en demostración los del sistema; en modo normal, los activos de la estructura académica.
   const opts = courseQ.data ?? [];
   const gradeOpts = DEMO ? ["6", "7", "8", "9", "10", "11"].map((g) => ({ value: g, label: GRADE_NAME[g] }))
@@ -54,8 +57,9 @@ export function StudentRegistrationForm({ onNavigate }: { onNavigate?: (page: st
     setTried({ ...tried, [step]: true });
     if (!valid(step)) return;
     if (step < 3) { setStep(step + 1); return; }
+    if (!DEMO && !auth.received) { setAuthTried(true); return; }
     setSaveErr(null);
-    enroll.mutateAsync(v).then((id) => { setCode(id); setDone(true); }, (e) => setSaveErr(enrollMessage(e)));
+    enroll.mutateAsync({ ...v, authHealth: auth.health }).then((id) => { setCode(id); setDone(true); }, (e) => setSaveErr(enrollMessage(e)));
   }
 
   if (done) {
@@ -65,7 +69,7 @@ export function StudentRegistrationForm({ onNavigate }: { onNavigate?: (page: st
         <h2 className="ns-block-h">Matrícula registrada</h2>
         <p>{v.first + " " + v.last + " quedó matriculado en " + gradeName + " · " + v.course + " para el año lectivo " + v.year + "." + (code ? " Código estudiantil: " + code + "." : "")}</p>
         <div className="ns-row">
-          <Button icon="plus" onClick={() => { setDone(false); setCode(null); setStep(0); setTried({}); setV({ ...v, first: "", last: "", doc: "", birth: "" }); }}>Registrar otro estudiante</Button>
+          <Button icon="plus" onClick={() => { setDone(false); setCode(null); setStep(0); setTried({}); setAuth({ received: false, health: false }); setAuthTried(false); setV({ ...v, first: "", last: "", doc: "", birth: "" }); }}>Registrar otro estudiante</Button>
           <Button variant="secondary" onClick={() => onNavigate?.("students")}>Ver estudiantes</Button>
         </div>
       </Block>
@@ -89,6 +93,10 @@ export function StudentRegistrationForm({ onNavigate }: { onNavigate?: (page: st
     body = (
       <>
         <p className="ns-sensitive"><Icon name="lock" size={16} />Información sensible. Solo la ven Secretaría y Rectoría. Todos los campos son opcionales.</p>
+        {DEMO ? null : (
+          <Checkbox label="El acudiente autorizó expresamente el tratamiento de los datos de salud (dato sensible: puede no autorizarlo)" checked={auth.health} onChange={(x) => setAuth({ ...auth, health: x })} />
+        )}
+        {DEMO || auth.health ? null : <span className="ns-caption">Sin esta autorización, los datos de salud no se guardan.</span>}
         <div className="ns-form-grid">
           <Input label="Alergias" value={v.allergies} onChange={set("allergies")} placeholder="Ninguna conocida" />
           <Input label="Condiciones relevantes" value={v.conditions} onChange={set("conditions")} />
@@ -120,6 +128,12 @@ export function StudentRegistrationForm({ onNavigate }: { onNavigate?: (page: st
           <strong>{(v.first || "—") + " " + v.last}</strong>
           <span className="ns-caption">{v.docType + " " + (v.doc || "—") + " · Acudiente: " + (v.gName || "—") + " · " + gradeName + " " + v.course}</span>
         </div>
+        {DEMO ? null : (
+          <div className="ns-span-2 ns-col" style={{ gap: 6 }}>
+            <Checkbox label="Recibí la autorización firmada del acudiente para el tratamiento de los datos del estudiante (política 2026.1)" checked={auth.received} onChange={(x) => { setAuth({ ...auth, received: x }); setAuthTried(false); }} />
+            {authTried && !auth.received ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />Sin la autorización firmada del acudiente no se puede matricular.</span> : null}
+          </div>
+        )}
       </div>
     );
   }
@@ -172,6 +186,9 @@ export function BulkImportPanel({ onNavigate, initialStep = 0 }: { onNavigate?: 
   const [filter, setFilter] = useState("all");
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Importar exige las autorizaciones firmadas de los acudientes (6g, solo con la base).
+  const [importAuth, setImportAuth] = useState(false);
+  const [importAuthTried, setImportAuthTried] = useState(false);
   const timer = useRef<number>();
   useEffect(() => () => window.clearTimeout(timer.current), []);
   const total = DEMO ? DEMO_IMPORT.total : count;
@@ -323,10 +340,21 @@ export function BulkImportPanel({ onNavigate, initialStep = 0 }: { onNavigate?: 
       {content}
       <ConfirmAction open={confirm} onCancel={() => setConfirm(false)} icon="upload" title={"¿Importar " + valid + " estudiantes?"} loading={importMut.isPending}
         description={"Los registros quedarán activos en la matrícula " + new Date().getFullYear() + ". Se importan todos o ninguno."} confirmLabel="Confirmar importación"
-        onConfirm={() => importMut.mutateAsync({ rows, issues }).then(
-          (n) => { setImported(n); setConfirm(false); setStep(5); },
-          (e) => { setConfirm(false); setErr(enrollMessage(e)); },
-        )} />
+        onConfirm={() => {
+          if (!DEMO && !importAuth) { setImportAuthTried(true); return; }
+          importMut.mutateAsync({ rows, issues }).then(
+            (n) => { setImported(n); setConfirm(false); setStep(5); },
+            (e) => { setConfirm(false); setErr(enrollMessage(e)); },
+          );
+        }}>
+        {DEMO ? null : (
+          <div className="ns-col" style={{ gap: 6 }}>
+            <Checkbox label={"Tengo la autorización firmada del acudiente de cada uno de estos " + valid + " estudiantes (política 2026.1)"} checked={importAuth} onChange={(x) => { setImportAuth(x); setImportAuthTried(false); }} />
+            {importAuthTried && !importAuth ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />Sin las autorizaciones firmadas no se puede importar.</span> : null}
+            <span className="ns-caption">Los datos de salud no se importan: se registran uno a uno, con su autorización expresa.</span>
+          </div>
+        )}
+      </ConfirmAction>
       {err && step === 4 ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />{"No se importó ningún estudiante. " + err}</span> : null}
     </div>
   );

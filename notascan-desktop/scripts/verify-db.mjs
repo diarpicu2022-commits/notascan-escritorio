@@ -115,7 +115,7 @@ try {
   const teacherAddStudent = await as(ana, () => errorOf("insert into public.students (id, first_names, last_names, doc_type, document) values ('9999', 'Prueba', 'Docente', 'TI', 'TI 1')"));
   check("El docente no puede matricular estudiantes", teacherAddStudent?.includes("row-level security"), teacherAddStudent || "matriculó");
   const adminAddStudent = await as(patricia, () => errorOf("insert into public.students (id, first_names, last_names, doc_type, document, course_id) values ('9999', 'Prueba', 'Secretaría', 'TI', 'TI 9999', '7A')"));
-  check("Secretaría sí puede matricular", !adminAddStudent, adminAddStudent || "");
+  check("Secretaría no matricula por fuera del registro con autorización del acudiente (6g)", adminAddStudent?.includes("Falta la autorización del acudiente"), adminAddStudent || "matriculó");
 
   // ---------- 5. Solicitudes: el docente pide, Rectoría decide ----------
   // La solicitud apunta a la nota (grade_id) de la evaluación cerrada de la sección 4 (vale 4.3).
@@ -286,26 +286,52 @@ try {
   const student = (doc, course = "7A", extra = {}) => JSON.stringify({ year: "2026", first_names: "Emilia", last_names: "Narváez Paz", doc_type: "Tarjeta de identidad", document: doc,
     birth_date: "2014-03-12", course_id: course, status: "active", guardian_name: "Rosa Paz", guardian_rel: "Madre", guardian_phone: "3120000000", allergies: "Penicilina", ...extra });
   const maxBefore = (await one("select max(id::bigint)::text m from public.students where id ~ '^2026[0-9]{4}$'")).m;
-  const enrolled = await as(patricia, () => one("select public.enroll_student($1::jsonb) id", [student("TI 1099000001")]));
+  const AUTH = JSON.stringify({ received: true, health: true });
+  const noAuth = await as(patricia, () => errorOf("select public.register_enrollment($1::jsonb, '{}'::jsonb)", [student("TI 1099000001")]));
+  check("Autorización (6g): sin la autorización firmada del acudiente no se matricula", noAuth?.includes("Falta la autorización firmada"), noAuth || "matriculó");
+  const legacyEnroll = await as(patricia, () => errorOf("select public.enroll_student($1::jsonb)", [student("TI 1099000001")]));
+  check("Autorización (6g): la función vieja sin autorización ya no deja matricular", legacyEnroll?.includes("Falta la autorización del acudiente"), legacyEnroll || "matriculó");
+  const noHealth = await as(patricia, () => errorOf("select public.register_enrollment($1::jsonb, $2::jsonb)", [student("TI 1099000001"), JSON.stringify({ received: true, health: false })]));
+  check("Autorización (6g): datos de salud sin autorización expresa para ellos no se guardan (ni la matrícula)", noHealth?.includes("datos de salud"), noHealth || "se guardó");
+  const enrolled = await as(patricia, () => one("select public.register_enrollment($1::jsonb, $2::jsonb) id", [student("TI 1099000001"), AUTH]));
+  const authRow = await one("select policy_version, guardian_name, relationship, health_data, method, recorded_by = $2 by_patricia from public.guardian_authorizations where student_id = $1", [enrolled.id, patricia]);
+  check("Autorización (6g): queda registrada con la versión vigente, quien firma, salud sí y quién la registró",
+    authRow && authRow.policy_version === "2026.1" && authRow.guardian_name === "Rosa Paz" && authRow.relationship === "Madre" && authRow.health_data === true && authRow.method === "firma-fisica" && authRow.by_patricia, JSON.stringify(authRow));
   const parts = await one(`select (select count(*)::int from public.guardians where student_id = $1) g, (select allergies from public.student_medical where student_id = $1) a,
     (select status::text from public.students where id = $1) s`, [enrolled.id]);
   check("Matrícula: registra estudiante, acudiente y datos médicos con el código siguiente del año",
     enrolled.id === String(BigInt(maxBefore) + 1n) && parts.g === 1 && parts.a === "Penicilina" && parts.s === "active", JSON.stringify({ id: enrolled.id, maxBefore, ...parts }));
-  const dupDoc = await as(patricia, () => errorOf("select public.enroll_student($1::jsonb)", [student("TI 1099000001")]));
+  const dupDoc = await as(patricia, () => errorOf("select public.register_enrollment($1::jsonb, $2::jsonb)", [student("TI 1099000001"), AUTH]));
   check("Matrícula: un documento repetido se rechaza con un mensaje claro", dupDoc?.includes("Ya existe un estudiante con el documento TI 1099000001"), dupDoc || "se registró");
-  const noCourse = await as(patricia, () => errorOf("select public.enroll_student($1::jsonb)", [student("TI 1099000002", "6C")]));
+  const noCourse = await as(patricia, () => errorOf("select public.register_enrollment($1::jsonb, $2::jsonb)", [student("TI 1099000002", "6C"), AUTH]));
   check("Matrícula: un curso que no existe se rechaza", noCourse?.includes("El curso 6C no existe"), noCourse || "se registró");
-  const teacherEnroll = await as(ana, () => errorOf("select public.enroll_student($1::jsonb)", [student("TI 1099000003")]));
+  const teacherEnroll = await as(ana, () => errorOf("select public.register_enrollment($1::jsonb, $2::jsonb)", [student("TI 1099000003"), AUTH]));
   check("Matrícula: un docente no matricula", teacherEnroll?.includes("Solo Secretaría"), teacherEnroll || "matriculó");
   const countBefore = (await one("select count(*)::int n from public.students")).n;
-  const batchBad = await as(patricia, () => errorOf("select public.enroll_students($1::jsonb)", ["[" + student("TI 1099000010") + "," + student("TI 1099000001") + "]"]));
+  const BATCH = JSON.stringify({ received: true });
+  const batchBad = await as(patricia, () => errorOf("select public.register_enrollments($1::jsonb, $2::jsonb)", ["[" + student("TI 1099000010", "7A", { allergies: "" }) + "," + student("TI 1099000001", "7A", { allergies: "" }) + "]", BATCH]));
   const countAfterBad = (await one("select count(*)::int n from public.students")).n;
   check("Importación: si una fila falla no entra ninguna (todo o nada)", batchBad?.includes("Ya existe") && countAfterBad === countBefore, `${batchBad} · ${countBefore} → ${countAfterBad}`);
-  const batchOk = await as(patricia, () => one("select public.enroll_students($1::jsonb) n", ["[" + student("TI 1099000011") + "," + student("TI 1099000012", "7B", { allergies: "" }) + "]"]));
+  const batchHealth = await as(patricia, () => errorOf("select public.register_enrollments($1::jsonb, $2::jsonb)", ["[" + student("TI 1099000013") + "]", JSON.stringify({ received: true, health: true })]));
+  check("Importación (6g): los datos de salud nunca entran en lote, aunque se pida", batchHealth?.includes("datos de salud"), batchHealth || "entraron");
+  const batchOk = await as(patricia, () => one("select public.register_enrollments($1::jsonb, $2::jsonb) n", ["[" + student("TI 1099000011", "7A", { allergies: "" }) + "," + student("TI 1099000012", "7B", { allergies: "" }) + "]", BATCH]));
+  const batchAuth = await one("select count(*)::int n, bool_or(health_data) h from public.guardian_authorizations a join public.students s on s.id = a.student_id where s.document in ('TI 1099000011', 'TI 1099000012')");
+  check("Importación (6g): una autorización por estudiante, sin datos de salud", batchAuth.n === 2 && batchAuth.h === false, JSON.stringify(batchAuth));
   const noMed = await one("select count(*)::int n from public.student_medical m join public.students s on s.id = m.student_id where s.document = 'TI 1099000012'");
   check("Importación: entran todas las filas válidas y sin datos médicos no se crea ficha médica", batchOk.n === 2 && noMed.n === 0, JSON.stringify({ ...batchOk, med: noMed.n }));
-  const anonEnroll = await as(null, () => errorOf("select public.enroll_student('{}'::jsonb)"));
-  check("Sin sesión no se llama enroll_student", anonEnroll?.includes("permission denied"), anonEnroll || "se llamó");
+  const anonEnroll = await as(null, () => errorOf("select public.register_enrollment('{}'::jsonb, '{}'::jsonb)"));
+  check("Sin sesión no se llama register_enrollment", anonEnroll?.includes("permission denied"), anonEnroll || "se llamó");
+  // Quién ve y quién revoca; revocar la autorización de salud borra esos datos.
+  const authTeacher = await as(ana, () => one("select count(*)::int n from public.guardian_authorizations"));
+  const authRector = await as(hernando, () => one("select count(*)::int n from public.guardian_authorizations"));
+  check("Autorizaciones (6g): Rectoría las consulta; el docente no", authRector.n >= 3 && authTeacher.n === 0, JSON.stringify({ authRector, authTeacher }));
+  const authId = (await one("select id from public.guardian_authorizations where student_id = $1", [enrolled.id])).id;
+  const revokeTeacher = await as(ana, () => errorOf("select public.revoke_guardian_authorization($1, 'x')", [authId]));
+  const revokeNoReason = await as(patricia, () => errorOf("select public.revoke_guardian_authorization($1, '')", [authId]));
+  const revokeOk = await as(patricia, () => errorOf("select public.revoke_guardian_authorization($1, 'El acudiente retiró la autorización de salud')", [authId]));
+  const afterRevoke = await one("select (select count(*)::int from public.student_medical where student_id = $1) med, (select revoked_reason from public.guardian_authorizations where id = $2) r", [enrolled.id, authId]);
+  check("Revocar (6g): solo Secretaría y con motivo; queda en el historial y se borran los datos de salud",
+    revokeTeacher?.includes("Solo Secretaría") && revokeNoReason?.includes("motivo") && !revokeOk && afterRevoke.med === 0 && afterRevoke.r === "El acudiente retiró la autorización de salud", JSON.stringify({ revokeTeacher, revokeNoReason, revokeOk, afterRevoke }));
 
   // ---------- 11. Boletines y mensaje del director (6b.3c) ----------
   // Directores de la semilla: Ana Lucía dirige 6A; Jorge Insuasty, 7B.
@@ -355,7 +381,7 @@ try {
     insert into public.academic_periods (id, year, position, name, open_date, close_date, status) values ('2026-p3', 2026, 3, 'Periodo 3', '2026-07-13', '2026-10-15', 'open');
     insert into public.teaching_assignments (teacher_email, subject_id, course_id, period_id) values ('profe@sanfelipe.edu.co', 'mat', '7A', '2026-p3')`).then(() => null, (e) => e.message));
   check("Multicolegio: otro colegio crea su propio grado 7, curso 7A, materia «mat» y periodo abierto (sin chocar con el primero)", !sameIds, sameIds || "");
-  const enrolledB = await as(adminB, () => one("select public.enroll_student($1::jsonb) id", [JSON.stringify({ year: "2026", first_names: "Sara", last_names: "Ruano Paz", doc_type: "Tarjeta de identidad", document: "TI 1084655210", course_id: "7A", guardian_name: "Luz Paz", guardian_phone: "3120000000" })]));
+  const enrolledB = await as(adminB, () => one("select public.register_enrollment($1::jsonb, '{\"received\": true}'::jsonb) id", [JSON.stringify({ year: "2026", first_names: "Sara", last_names: "Ruano Paz", doc_type: "Tarjeta de identidad", document: "TI 1084655210", course_id: "7A", guardian_name: "Luz Paz", guardian_phone: "3120000000" })]));
   const codeMax = (await one("select max(id::bigint)::text m from public.students where id ~ '^2026[0-9]{4}$'")).m;
   check("Multicolegio: el mismo documento puede estar en dos colegios y el código estudiantil sigue siendo único en la plataforma", enrolledB.id === codeMax, JSON.stringify({ enrolledB, codeMax }));
   const seenByB = await as(adminB, () => one("select count(*)::int n from public.students"));

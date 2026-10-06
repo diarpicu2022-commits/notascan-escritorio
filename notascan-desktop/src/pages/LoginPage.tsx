@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { cx } from "../lib/cx";
 import type { DesktopRole } from "../data/roles";
-import { Dots } from "../components/atoms/Button";
 import { Icon, type IconName } from "../components/atoms/Icon";
 import { Logo } from "../components/atoms/Logo";
 import { Toast } from "../components/organisms/Toast";
+import { Modal } from "../components/organisms/Overlays";
+import { LEGAL, LegalDocument } from "../components/organisms/LegalDocument";
+import { Button, Dots } from "../components/atoms/Button";
 import type { CodePurpose, LoginError } from "../app/AuthContext";
 
 /** Ilustración propia del login: hoja de examen + teléfono escaneando, dentro de manchas orgánicas. */
@@ -185,6 +187,7 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
   const [role, setRole] = useState<DesktopRole>(defaultRole);
   const [serverErr, setServerErr] = useState<LoginError | null>(null);
   const [ssoMsg, setSsoMsg] = useState(false);
+  const [policyOpen, setPolicyOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const remember = useRef<HTMLInputElement>(null);
   const timer = useRef<number>();
@@ -271,9 +274,15 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
           {onAcceptCode
             ? <p className="ns-auth-foot">¿Te invitaron? <a href="#" onClick={(e) => { e.preventDefault(); setSent(false); setCodeFlow("invite"); }}>Activa tu cuenta con el código del correo</a></p>
             : <p className="ns-auth-foot">¿Primera vez? <a href="#" onClick={(e) => e.preventDefault()}>Solicita acceso a tu coordinación</a></p>}
+          {/* Con la base (6g): la política de datos se puede leer antes de entrar. */}
+          {onAcceptCode ? <p className="ns-auth-foot"><a href="#" onClick={(e) => { e.preventDefault(); setPolicyOpen(true); }}>Política de tratamiento de datos</a></p> : null}
         </form>
         )}
       </main>
+      <Modal open={policyOpen} size="doc" onClose={() => setPolicyOpen(false)} icon="lock" title="Política de tratamiento de datos"
+        actions={<Button variant="secondary" onClick={() => setPolicyOpen(false)} data-autofocus>Cerrar</Button>}>
+        <div style={{ maxHeight: 420, overflowY: "auto", paddingRight: 8 }} tabIndex={0} aria-label="Texto de la política"><LegalDocument text={LEGAL.policy} /></div>
+      </Modal>
       {sent ? (
         <div className="ns-toast-region">
           <Toast tone="info" title="Revisa tu correo"

@@ -22,6 +22,8 @@ const COMPONENTS = PERIODS.flatMap((p) => [["Actividades", 40], ["Exámenes", 30
 
 const writes = [];
 let purgeFails = false;
+// 6g · autorizaciones del acudiente simuladas (la base las devuelve y las revoca).
+const auths = [];
 const record = (r) => { const q = r.request(); writes.push({ method: q.method(), url: decodeURIComponent(q.url()), body: q.postDataJSON() }); };
 const last = (method, table) => writes.filter((w) => w.method === method && w.url.includes("/rest/v1/" + table)).pop();
 
@@ -33,13 +35,26 @@ async function mockApi(page) {
   await page.route("**/auth/v1/token**", (r) => r.fulfill({ json: { access_token: jwt, token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: "r", user } }));
   await page.route("**/auth/v1/user**", (r) => r.fulfill({ json: user }));
   await page.route("**/auth/v1/recover**", (r) => { record(r); r.fulfill({ json: {} }); });
+  // 6g: Patricia ya aceptó la política vigente (la ventana de aceptación se prueba en Rectoría).
+  await page.route("**/rest/v1/consents**", (r) => r.fulfill({ json: [{ id: 1 }] }));
+  await page.route("**/rest/v1/guardian_authorizations**", (r) => {
+    if (r.request().method() === "POST") {
+      const b = r.request().postDataJSON();
+      record(r);
+      auths.push({ id: 31, guardian_name: b.guardian_name, relationship: b.relationship, health_data: b.health_data, method: "firma-fisica", received_on: b.received_on, policy_version: b.policy_version, revoked_at: null, revoked_reason: null });
+      return r.fulfill({ status: 201, body: "" });
+    }
+    return r.fulfill({ json: auths });
+  });
   await page.route("**/functions/v1/purge-exam-photos**", (r) => { record(r); return purgeFails ? r.fulfill({ status: 500, json: { error: "No pudimos borrar todas las fotos." } }) : r.fulfill({ json: { removed: 7, grades: 5 } }); });
   await page.route("**/functions/v1/invite-staff**", (r) => { record(r); r.fulfill({ json: { sent: [r.request().postDataJSON().email] } }); });
   await page.route("**/rest/v1/rpc/**", (r) => {
     record(r);
     const u = r.request().url();
-    if (u.includes("enroll_students")) return r.fulfill({ json: r.request().postDataJSON().p.length });
-    if (u.includes("enroll_student")) return r.fulfill({ json: "20261211" });
+    if (u.includes("current_policy_version")) return r.fulfill({ json: "2026.1" });
+    if (u.includes("revoke_guardian_authorization")) { const b = r.request().postDataJSON(); auths.forEach((x) => { if (x.id === b.p_id) { x.revoked_at = new Date().toISOString(); x.revoked_reason = b.p_reason; } }); return r.fulfill({ status: 204, body: "" }); }
+    if (u.includes("register_enrollments")) return r.fulfill({ json: r.request().postDataJSON().p.length });
+    if (u.includes("register_enrollment")) return r.fulfill({ json: "20261211" });
     // save_period cambia el estado del periodo simulado (para ver el periodo cerrado al recargar).
     if (u.includes("save_period")) { const b = r.request().postDataJSON(); const per = PERIODS.find((x) => x.id === b.p_id); if (per) per.status = b.p_status; }
     return r.fulfill({ status: 204, body: "" });
@@ -50,6 +65,8 @@ async function mockApi(page) {
       { id: ANA, email: "ana.lucia@losandes.edu.co", status: "active", last_seen_at: today },
       { id: UID, email: "patricia@losandes.edu.co", status: "active", last_seen_at: today },
     ] });
+    // El perfil de la sesión es una fila (id=eq.); una lista de perfiles es una lista, como en la base.
+    if (!decodeURIComponent(r.request().url()).includes("id=eq.")) return r.fulfill({ json: [{ email: user.email, full_name: "Patricia Ortega" }] });
     return r.fulfill({ json: { id: UID, email: user.email, full_name: "Patricia Ortega", role: "admin", status: "active" } });
   });
   const table = (name, rows) => page.route("**/rest/v1/" + name + "**", (r) => {
@@ -212,18 +229,28 @@ try {
   report.check("Registro: documento corto avisa «entre 8 y 12 dígitos»", (await page.locator(".ns-field-error").textContent()) === "Escribe solo números, entre 8 y 12 dígitos.");
   await page.getByRole("textbox", { name: /^Número de documento/ }).fill("1084512345");
   await page.getByRole("button", { name: "Siguiente" }).click();
+  // Datos de salud sin su autorización expresa: se escriben, pero no se envían (6g).
+  await page.getByRole("textbox", { name: /^Alergias/ }).fill("Penicilina");
+  report.check("Registro (6g): sin autorización para datos de salud, la sección lo advierte", (await page.locator(".ns-reg-body").textContent()).includes("Sin esta autorización, los datos de salud no se guardan."));
   await page.getByRole("button", { name: "Siguiente" }).click();
   await page.getByRole("textbox", { name: /^Nombre completo/ }).fill("Rosa Paz");
   await page.getByLabel(/^Parentesco/).selectOption("Madre");
   await page.getByRole("textbox", { name: /^Teléfono/ }).fill("3120000000");
   await page.getByRole("button", { name: "Siguiente" }).click();
   report.check("Registro: grado y curso salen de la estructura de la base", (await page.getByLabel(/^Curso/).inputValue()) === "6A" && (await page.getByLabel(/^Grado/).inputValue()) === "6");
+  const before6g = writes.filter((w) => w.url.includes("/rpc/register_enrollment")).length;
+  await page.getByRole("button", { name: "Guardar matrícula" }).click();
+  report.check("Registro (6g): sin la autorización firmada del acudiente no se guarda y lo dice",
+    writes.filter((w) => w.url.includes("/rpc/register_enrollment")).length === before6g && (await page.locator(".ns-reg-body .ns-field-error").textContent()) === "Sin la autorización firmada del acudiente no se puede matricular.");
+  await page.getByLabel(/Recibí la autorización firmada del acudiente/).check();
   await page.getByRole("button", { name: "Guardar matrícula" }).click();
   await page.locator(".ns-reg-done h2").waitFor({ timeout: 8000 });
-  const en = writes.filter((w) => w.url.includes("/rpc/enroll_student")).pop();
+  const en = writes.filter((w) => w.url.includes("/rpc/register_enrollment")).pop();
   report.check("Registro: una sola llamada con documento normalizado, curso y acudiente; muestra el código de la base",
     en?.body.p.document === "TI 1084512345" && en.body.p.course_id === "6A" && en.body.p.guardian_name === "Rosa Paz" && en.body.p.status === "active" && (await page.locator(".ns-reg-done p").textContent()).includes("Código estudiantil: 20261211."),
     JSON.stringify(en?.body.p));
+  report.check("Registro (6g): la autorización va en la misma llamada (recibida, sin salud) y las alergias no se envían",
+    JSON.stringify(en?.body.a) === JSON.stringify({ received: true, health: false, guardian_name: "Rosa Paz", relationship: "Madre" }) && !("allergies" in (en?.body.p ?? {})), JSON.stringify(en?.body));
 
   // ---------- 7. Matrícula: importación CSV (6b.3b) ----------
   await page.goto(URL_BASE + "#/admin/enrollment?tab=import");
@@ -254,8 +281,13 @@ try {
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Confirmar importación" }).click();
   await page.locator("[role=alertdialog]").getByRole("button", { name: "Confirmar importación" }).click();
+  report.check("Importación (6g): sin marcar que se tienen las autorizaciones firmadas no se importa",
+    (await page.locator("[role=alertdialog] .ns-field-error").textContent()) === "Sin las autorizaciones firmadas no se puede importar." && writes.filter((w) => w.url.includes("/rpc/register_enrollments")).length === 0);
+  await page.locator("[role=alertdialog]").getByLabel(/Tengo la autorización firmada del acudiente/).check();
+  await page.locator("[role=alertdialog]").getByRole("button", { name: "Confirmar importación" }).click();
   await page.locator(".ns-reg-done h2", { hasText: "Importación completada" }).waitFor({ timeout: 8000 });
-  const imp = writes.filter((w) => w.url.includes("/rpc/enroll_students")).pop();
+  const imp = writes.filter((w) => w.url.includes("/rpc/register_enrollments")).pop();
+  report.check("Importación (6g): una autorización por estudiante en la misma llamada", JSON.stringify(imp?.body.a) === JSON.stringify({ received: true }), JSON.stringify(imp?.body.a));
   const docs = imp?.body.p.map((x) => x.document + "@" + x.course_id).sort().join(", ");
   report.check("Importación: una sola llamada con válidas, corregidas y con advertencia; sin duplicados ni omitidas",
     docs === "TI 1084000010@6A, TI 1084000011@6A, TI 1084000012@6A, TI 1084000014@6A" && (await page.locator(".ns-reg-done p").textContent()) === "4 estudiantes fueron registrados correctamente.", docs);
@@ -272,9 +304,10 @@ try {
   await page.getByRole("button", { name: "Corregir errores" }).click();
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Confirmar importación" }).click();
+  await page.locator("[role=alertdialog]").getByLabel(/Tengo la autorización firmada del acudiente/).check();
   await page.locator("[role=alertdialog]").getByRole("button", { name: "Confirmar importación" }).click();
   await page.locator(".ns-reg-done h2", { hasText: "Importación completada" }).waitFor({ timeout: 8000 });
-  const ximp = writes.filter((w) => w.url.includes("/rpc/enroll_students")).pop();
+  const ximp = writes.filter((w) => w.url.includes("/rpc/register_enrollments")).pop();
   report.check("Excel: importa con documento, curso en mayúsculas y fecha ISO", JSON.stringify(ximp?.body.p.map((x) => [x.document, x.course_id, x.birth_date])) === JSON.stringify([["TI 1084000021", "6A", "2014-03-12"], ["TI 1084000022", "6A", "2014-07-01"]]), JSON.stringify(ximp?.body.p));
 
   // ---------- 7c. Boletines (6b.3c) ----------
@@ -320,6 +353,38 @@ try {
   await page.locator(".ns-sidebar-course").waitFor({ timeout: 10000 });
   await page.waitForFunction(() => document.querySelector(".ns-sidebar-course")?.textContent?.includes("Periodo"), null, { timeout: 8000 }).catch(() => {});
   report.check("Menú (Secretaría): año lectivo con el periodo abierto de la base", (await page.locator(".ns-sidebar-course").textContent()) === "Año lectivo2026 · Periodo 3", await page.locator(".ns-sidebar-course").textContent());
+
+  // ---------- Autorización del acudiente en el perfil (6g): registrar y revocar ----------
+  await page.route("**/rest/v1/student_overview?*id=eq.20261002*", (r) => r.fulfill({ json: [{ id: "20261002", first_names: "Luis", last_names: "Mora Ortiz", full_name: "Luis Mora Ortiz", doc_type: "Tarjeta de identidad", document: "TI 1084000002", course_id: "6A", grade_level_id: "6", status: "pending", enrolled_on: "2026-01-19", library_ok: true, fees_ok: false, documents_ok: true, guardian_name: "Jorge Mora", guardian_rel: "Padre", guardian_phone: "3157654321", avg_grade: 2.5, attendance_pct: 90 }] }));
+  await page.goto(URL_BASE + "#/admin/profile/20261002?tab=info");
+  const authBox = page.locator("[aria-label='Autorización del acudiente']");
+  await authBox.getByRole("button", { name: "Registrar autorización" }).waitFor({ timeout: 10000 });
+  report.check("Perfil (6g): un estudiante matriculado antes aparece «Sin autorización registrada» y Secretaría puede registrarla",
+    (await authBox.textContent()).includes("Sin autorización registrada"));
+  await authBox.getByRole("button", { name: "Registrar autorización" }).click();
+  const regDlg = page.locator("[role=dialog]", { hasText: "Registrar autorización del acudiente" });
+  report.check("Perfil (6g): el formulario trae el acudiente de la matrícula", (await regDlg.getByLabel(/Quién firma/).inputValue()) === "Jorge Mora" && (await regDlg.getByLabel(/Parentesco/).inputValue()) === "Padre");
+  await regDlg.getByLabel(/Autorizó expresamente los datos de salud/).check();
+  await regDlg.getByRole("button", { name: "Registrar" }).click();
+  await toastTitle(page, "Autorización registrada");
+  const authPost = writes.filter((w) => w.url.includes("/rest/v1/guardian_authorizations")).pop();
+  report.check("Perfil (6g): registrar guarda versión vigente, quien firma, parentesco y salud, sin firma del cliente",
+    authPost?.body.student_id === "20261002" && authPost.body.policy_version === "2026.1" && authPost.body.guardian_name === "Jorge Mora" && authPost.body.relationship === "Padre" && authPost.body.health_data === true && !("recorded_by" in authPost.body),
+    JSON.stringify(authPost?.body));
+  await authBox.getByRole("button", { name: "Revocar autorización" }).waitFor({ timeout: 8000 });
+  await authBox.getByRole("button", { name: "Revocar autorización" }).click();
+  const revDlg = page.locator("[role=alertdialog]", { hasText: "¿Revocar la autorización?" });
+  report.check("Perfil (6g): revocar exige motivo", await revDlg.getByRole("button", { name: "Revocar" }).isDisabled());
+  await revDlg.getByLabel(/Motivo/).fill("El acudiente retiró la autorización");
+  await revDlg.getByRole("button", { name: "Revocar" }).click();
+  await toastTitle(page, "Autorización revocada");
+  const rev = writes.filter((w) => w.url.includes("/rpc/revoke_guardian_authorization")).pop();
+  await page.waitForTimeout(800);
+  report.check("Perfil (6g): la revocatoria va a la base con el motivo y queda en el historial",
+    JSON.stringify(rev?.body) === JSON.stringify({ p_id: 31, p_reason: "El acudiente retiró la autorización" }) && (await authBox.textContent()).includes("El acudiente retiró la autorización") && (await authBox.textContent()).includes("Sin autorización registrada"),
+    JSON.stringify(rev?.body));
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: join(OUT, "paso6g-perfil-autorizacion.png"), fullPage: true });
 
   // ---------- Cerrar el periodo borra sus fotos de exámenes (6e) ----------
   await page.goto(URL_BASE + "#/admin/periods");

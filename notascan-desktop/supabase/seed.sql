@@ -356,4 +356,5 @@ insert into public.grade_change_requests (teacher_email, student_id, subject_id,
   ('jorge.insuasty@losandes.edu.co', '20261427', 'ing', '8B', 2.5, 3.5, 'Ajuste de nota', 'Sin soporte adjunto.', 'rejected', 'falta el soporte de la evaluación');
 
 insert into public.privacy_policies (version, published_on, url) values
-  ('2026.1', '2026-10-01', 'docs/legal/politica-de-tratamiento-de-datos.md');
+  ('2026.1', '2026-10-01', 'docs/legal/politica-de-tratamiento-de-datos.md')
+on conflict (version) do nothing;

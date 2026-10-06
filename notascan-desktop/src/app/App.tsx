@@ -22,6 +22,7 @@ import { hrefFor, parseHash, type Route } from "./router";
 import { ShellContext } from "./ShellContext";
 import { SyncContext } from "./SyncContext";
 import { useRealSync } from "../services/offlineQueue";
+import { ConsentGate } from "../components/organisms/ConsentGate";
 import { useAuth } from "./AuthContext";
 import { DEMO } from "../lib/supabase";
 import { ForbiddenPage } from "../pages/ForbiddenPage";
@@ -132,7 +133,7 @@ export function App() {
 
   return (
     <SyncContext.Provider value={syncValue}>
-      <ShellContext.Provider value={shell}>{content}</ShellContext.Provider>
+      <ShellContext.Provider value={shell}>{content}{DEMO ? null : <ConsentGate onLogout={shell.logout} />}</ShellContext.Provider>
     </SyncContext.Provider>
   );
 }

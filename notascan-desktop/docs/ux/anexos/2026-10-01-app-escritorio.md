@@ -911,3 +911,52 @@ contaban como errores de la app.
 Regresión completa en verde: read-exam 11/11, auth 20/20, data 8/8, teacher-data 61/61, admin-data 41/41,
 principal-data 41/41, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121,
 teacher 123/123, admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.
+
+### Paso 6g · Legal: política, autorización del acudiente y derechos del titular (2026-10-06)
+
+Diego aprueba 6f y pide seguir con lo legal mientras configura el SMTP. **Todos los textos son borradores técnicos** y
+los revisa un abogado antes de usarse con datos reales (`docs/legal/README.md` lista lo que debe confirmar: roles
+responsable/encargado, transmisión a Brasil y EE. UU., qué hace Anthropic con las imágenes, retención del registro
+académico, RNBD y cómo documentar que se escuchó al menor).
+
+- **Documentos** (`docs/legal/`): política de tratamiento de datos 2026.1 (colegio = responsable, NotaScan =
+  encargado, Supabase / Anthropic / proveedor de correo = subencargados; inventario real de datos, finalidades,
+  autorización de menores y de datos sensibles, dónde y cuánto tiempo, seguridad, derechos con los plazos de la Ley
+  1581 —consultas 10 días hábiles, reclamos 15—), formato de autorización del acudiente (con la opción facultativa
+  para salud y el aviso de las fotos) y términos de uso para el personal.
+- **Migración `20261006120000_autorizaciones.sql`** (aplicada, cotejada `a9a5aad0…`, comprobada en el catálogo):
+  `guardian_authorizations` (quién firma, parentesco, salud sí/no, forma, fecha, versión, quién la registró —lo pone la
+  base—, revocatoria con motivo); **reglas en la base que se comprueban al confirmar**: no se matricula sin autorización
+  registrada y no se guardan datos de salud sin autorización expresa para ellos (también si alguien llama a la base por
+  fuera de la app); `register_enrollment(s)` matricula y registra la autorización en un solo paso; en lote nunca entran
+  datos de salud; `revoke_guardian_authorization` exige motivo y, si ya no hay autorización de salud, borra esos datos;
+  `current_policy_version()`.
+- **En la app (solo la conectada; demostración igual):**
+  - Matrícula: «Recibí la autorización firmada del acudiente» es obligatoria para guardar; en «Información médica», la
+    autorización de salud es una casilla aparte y sin ella esos datos no se envían. Importación: la confirmación exige
+    marcar que se tienen las autorizaciones firmadas.
+  - Perfil → Información (Secretaría y Rectoría): estado de la autorización (quién firmó, fecha, versión, salud) y su
+    historial; Secretaría la **registra** (estudiantes matriculados antes) o la **revoca** con motivo. **Exportar datos
+    del estudiante** (JSON con todo lo que conserva el colegio: derecho de acceso).
+  - El personal **acepta la política y los términos** al entrar si no aceptó la versión vigente (ventana que no se cierra
+    sin aceptar o salir; resumen, política completa y términos leídos del repositorio); queda en `consents`.
+  - Inicio de sesión: enlace «Política de tratamiento de datos».
+  - Piezas del sistema: `Modal` (tamaño documento), `SegmentedTabs`, `Checkbox`, `ns-sensitive`, `ns-paper-table`,
+    títulos de bloque. El texto legal se muestra desde `docs/legal/` (nunca se desincroniza).
+
+Verificación: `verify:db` 155/155 (sin autorización no se matricula; la función vieja tampoco; salud sin autorización
+no; quedó la versión, quién firma y quién registró; lote sin salud; Rectoría consulta y el docente no; revocar solo
+Secretaría, con motivo, y borra la salud), `verify:admin-data` 51/51 (matrícula e importación exigen la autorización y
+la envían en la misma llamada; las alergias sin autorización no salen; registrar y revocar en el perfil),
+`verify:principal-data` 46/46 (la ventana de la política aparece, se lee completa, no deja seguir sin marcar y guarda la
+versión; el perfil muestra la autorización sin dejar editar a Rectoría; exportar descarga el JSON completo).
+Fallos propios: la ventana de aceptación aparecía cuando la base no devolvía una versión (tomaba cualquier respuesta como
+versión; ahora solo un texto); la semilla duplicaba la versión de la política en una instalación desde cero; en las
+pruebas, simuladores de `profiles` que devolvían una fila donde la base devuelve una lista.
+
+**Pendiente (no se hace sin abogado):** supresión de los datos de un estudiante a pedido del acudiente (qué se borra y
+qué se conserva por el deber legal del registro académico).
+
+Regresión completa en verde: read-exam 11/11, auth 20/20, data 8/8, teacher-data 61/61, admin-data 51/51,
+principal-data 46/46, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121,
+teacher 123/123, admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.

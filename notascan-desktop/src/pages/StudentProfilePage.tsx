@@ -20,6 +20,10 @@ import { ErrorState, LoadingBlocks } from "../components/organisms/QueryState";
 import { ReportCardView } from "../components/organisms/ReportCardDocument";
 import { cardOf, useReportCards } from "../services/reportCards";
 import { useStudentProfile, type ProfileData } from "../services/studentProfile";
+import { exportStudentData, privacyMessage, useAuthorizations, useRegisterAuthorization, useRevokeAuthorization } from "../services/privacy";
+import { Checkbox, Input, Select, Textarea } from "../components/atoms/Field";
+import { Modal } from "../components/organisms/Overlays";
+import { useToast } from "../components/organisms/Toast";
 
 /* Enmienda 2026-10-01 (anexo): notascan-ui pintaba este texto con un color propio fuera de
    tokens.json. Diego eligió pasarlo a un token; --ivory-deep es el más cercano al original. */
@@ -213,6 +217,7 @@ function RealProfileBody({ d, role, tab, setTab, onBack }: { d: ProfileData; rol
           ))}
         </dl>
         <p className="ns-sensitive"><Icon name="lock" size={16} />{"Información médica: " + parts.join(" · ") + ". Visible solo para Secretaría y Rectoría."}</p>
+        <AuthorizationPanel studentId={s.id} guardian={s.guardian} relationship={s.guardianRel} canEdit={role === "admin"} />
       </Block>
     );
   }
@@ -233,4 +238,83 @@ function ProfileReportCard({ studentId, course, period }: { studentId: string; c
   const row = q.data?.rows.find((r) => r.id === studentId);
   if (!row) return <EmptyState icon="file" title="Aún no hay boletín para este periodo." message="Aparece cuando el estudiante tenga notas verificadas." />;
   return <Block><div className="ns-paper-scroll"><ReportCardView data={cardOf(row, period)} compact /></div></Block>;
+}
+
+const isoToday = () => { const d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); };
+const dmy = (iso: string) => iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4);
+
+/** Autorización del acudiente y derechos del titular (paso 6g): registrar, revocar con motivo y exportar los datos. */
+function AuthorizationPanel({ studentId, guardian, relationship, canEdit }: { studentId: string; guardian: string; relationship: string; canEdit: boolean }) {
+  const q = useAuthorizations(studentId);
+  const register = useRegisterAuthorization();
+  const revoke = useRevokeAuthorization();
+  const [showToast, toastNode] = useToast();
+  const [form, setForm] = useState<null | { name: string; rel: string; health: boolean; on: string }>(null);
+  const [revoking, setRevoking] = useState<number | null>(null);
+  const [reason, setReason] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const active = (q.data ?? []).find((a) => !a.revokedAt);
+  const history = (q.data ?? []).filter((a) => a.revokedAt);
+  async function doExport() {
+    setExporting(true);
+    try {
+      const { name, blob } = await exportStudentData(studentId);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      showToast({ tone: "success", title: "Datos exportados", message: name + ": todo lo que el colegio tiene de este estudiante." });
+    } catch (e) {
+      showToast({ tone: "error", title: "No pudimos exportar los datos", message: e instanceof Error && /No encontramos/.test(e.message) ? e.message : "Revisa tu conexión e inténtalo de nuevo." });
+    } finally { setExporting(false); }
+  }
+  return (
+    <section className="ns-col" style={{ gap: 12, marginTop: 16 }} aria-label="Autorización del acudiente">
+      <h3 className="ns-subhead">Autorización del acudiente</h3>
+      {q.isPending && !q.data ? <LoadingBlocks rows={1} height={40} label="Cargando la autorización" />
+        : q.isError && !q.data ? <ErrorState title="No pudimos cargar la autorización." onRetry={() => q.refetch()} />
+          : active ? (
+            <dl className="ns-dl ns-dl--2">
+              {[["Firmó", active.guardianName + " (" + active.relationship + ")"], ["Recibida", dmy(active.receivedOn) + " · " + (active.method === "firma-digital" ? "firma digital" : "firma física")],
+                ["Política", "Versión " + active.policyVersion], ["Datos de salud", active.health ? "Autorizados" : "No autorizados"]].map((x) => (
+                <Fragment key={x[0]}><dt>{x[0]}</dt><dd>{x[1]}</dd></Fragment>
+              ))}
+            </dl>
+          ) : <p className="ns-sensitive"><Icon name="warning" size={16} />Sin autorización registrada. El colegio debe tener la autorización firmada del acudiente para tratar estos datos.</p>}
+      {history.length ? <span className="ns-caption">{"Revocadas: " + history.map((h) => dmy(h.revokedAt!.slice(0, 10)) + " — " + h.revokedReason).join(" · ")}</span> : null}
+      <div className="ns-row">
+        {canEdit && !active && q.data ? <Button size="sm" icon="check" onClick={() => setForm({ name: guardian, rel: relationship || "Acudiente", health: false, on: isoToday() })}>Registrar autorización</Button> : null}
+        {canEdit && active ? <Button size="sm" variant="secondary" icon="close" onClick={() => { setReason(""); setRevoking(active.id); }}>Revocar autorización</Button> : null}
+        <Button size="sm" variant="secondary" icon="download" loading={exporting} loadingText="Exportando…" onClick={doExport}>Exportar datos del estudiante</Button>
+      </div>
+      <Modal open={!!form} onClose={() => setForm(null)} icon="check" title="Registrar autorización del acudiente"
+        description="Registra la autorización firmada que entregó el acudiente (política vigente)."
+        actions={[
+          <Button key="c" variant="secondary" onClick={() => setForm(null)}>Cancelar</Button>,
+          <Button key="g" icon="check" disabled={!form?.name.trim()} loading={register.isPending} onClick={() => form && register.mutateAsync({ studentId, guardianName: form.name, relationship: form.rel, health: form.health, receivedOn: form.on }).then(
+            () => { setForm(null); showToast({ tone: "success", title: "Autorización registrada", message: "Quedó con la versión vigente de la política y la fecha." }); },
+            (e) => showToast({ tone: "error", title: "No se registró la autorización", message: privacyMessage(e) }),
+          )}>Registrar</Button>,
+        ]}>
+        {form ? (
+          <div className="ns-form-grid">
+            <Input label="Quién firma" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={!form.name.trim() ? "Escribe el nombre de quien firmó." : null} />
+            <Select label="Parentesco" value={form.rel} onChange={(x) => setForm({ ...form, rel: x })} options={["Madre", "Padre", "Abuela", "Abuelo", "Tía", "Tío", "Tutor legal", "Acudiente"]} />
+            <Input label="Fecha en que se recibió" type="date" value={form.on} onChange={(e) => setForm({ ...form, on: e.target.value })} />
+            <Checkbox label="Autorizó expresamente los datos de salud" checked={form.health} onChange={(x) => setForm({ ...form, health: x })} />
+          </div>
+        ) : null}
+      </Modal>
+      <Modal open={revoking !== null} onClose={() => setRevoking(null)} alert icon="close" tone="burgundy" title="¿Revocar la autorización?"
+        description="Queda en el historial con el motivo. Si ya no hay autorización para datos de salud, esos datos se borran; el registro académico se conserva."
+        actions={[
+          <Button key="c" variant="secondary" onClick={() => setRevoking(null)} data-autofocus>Cancelar</Button>,
+          <Button key="r" variant="danger" icon="close" disabled={!reason.trim()} loading={revoke.isPending} onClick={() => revoke.mutateAsync({ id: revoking!, studentId, reason }).then(
+            () => { setRevoking(null); showToast({ tone: "success", title: "Autorización revocada", message: "Quedó en el historial con el motivo." }); },
+            (e) => showToast({ tone: "error", title: "No se revocó la autorización", message: privacyMessage(e) }),
+          )}>Revocar</Button>,
+        ]}>
+        <Textarea label="Motivo" required value={reason} onChange={setReason} rows={2} hint="Obligatorio. Por ejemplo: «El acudiente retiró la autorización de salud»." />
+      </Modal>
+      {toastNode}
+    </section>
+  );
 }
