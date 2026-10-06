@@ -140,7 +140,12 @@ Lo primero que se lee al retomar.
 - **6e aprobado (2026-10-06).**
 - **Paso 6f · Planilla sin conexión real (hecho 2026-10-06, esperando visto bueno):** cola persistente por docente,
   conexión real, sincronización con rechazos explicados. `verify:teacher-data` 61/61. Sin migración.
-- **Siguiente:** página de restablecimiento de contraseña, legal (política, autorización del acudiente, transferencia
+- **6f aprobado (2026-10-06).** Restablecer contraseña: no hace falta página nueva (la app ya restablece e invita con
+  código), pero **Supabase no deja editar las plantillas sin SMTP propio** («Set up custom SMTP to edit templates»): sin
+  él, los correos de invitación y de restablecimiento llegan con el enlace por defecto y sin código. **Pendiente de
+  Diego:** SMTP propio (recomendado Brevo, gratis 300/día) en Authentication → Emails → SMTP Settings. Después pego las
+  tres plantillas de `supabase/templates/` con sus asuntos y pruebo el envío.
+- **Siguiente:** legal (política, autorización del acudiente, transferencia
   de fotos a Anthropic, derechos del titular), compilar Tauri, cierre.
   - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
