@@ -1037,3 +1037,16 @@ barra horizontal, el menú queda fijo al desplazar, al cambiar de pantalla vuelv
 y al imprimir no se recorta. Regresión de la demostración en verde (shell 62, componentes 121, Secretaría 105, docente
 123, Rectoría 76, estados 98, plataforma 30). Fallos propios: la primera prueba ponía la clase antes de existir el
 documento y medía con las barras ocultas; una regresión corrió mientras la compilación reemplazaba `dist` y se repitió.
+- Añadido el mismo día: `scrollbar-gutter: stable` en el contenedor; sin él, al pasar del inicio (se desplaza) al perfil
+  (cabe) el buscador saltaba 15 px. `verify:desktop-scroll` 9/9 (nueva: mismo borde, 1476 px, con y sin barra).
+
+#### Prueba de Secretaría en la app de escritorio, con datos reales (2026-10-06)
+
+Con la cuenta de Secretaría de Diego (`diarpi386@gmail.com`, Colegio Los Andes), sin cambiar datos: las 10 secciones
+cargan con los datos reales (72 estudiantes, 59 activos; 82 usuarios; 6 grados; malla por curso; 4 periodos al 25 %;
+boletines y paz y salvos de 7A; ranking vacío explicado: no hay notas verificadas). Perfil del estudiante → Información:
+«Sin autorización registrada» con Registrar y Exportar. **Descargas dentro de la app de escritorio: funcionan**
+(`datos-estudiante-20261350.json`, 1485 bytes, JSON válido con las 12 secciones del derecho de acceso).
+Pendiente de probar en escritorio: imprimir a PDF y descargar Excel (Reportes), y el flujo del docente.
+Observación: hay datos médicos del sembrado sin autorización de salud (anteriores a la regla de 6g); la regla impide
+cargar nuevos, pero los existentes siguen ahí — decidir con el abogado si se borran o se pide la autorización.

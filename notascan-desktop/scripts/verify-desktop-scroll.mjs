@@ -54,6 +54,17 @@ try {
   report.check("La barra usa el estilo del sistema (difiere de la de Windows)", !styled.equals(native));
   await page.evaluate(() => document.querySelector("style:last-of-type").remove());
 
+  // Sin salto al cambiar entre una pantalla que se desplaza y una que cabe: el buscador queda en el mismo sitio.
+  const searchRight = () => page.locator(".ns-app-tools").first().evaluate((el) => Math.round(el.getBoundingClientRect().right));
+  await page.goto(URL_BASE + "#/admin/dashboard"); await page.waitForTimeout(500);
+  const long = { right: await searchRight(), scrolls: await page.locator("#root").evaluate((el) => el.scrollHeight > el.clientHeight) };
+  await page.goto(URL_BASE + "#/admin/ranking"); await page.waitForTimeout(500);
+  await page.setViewportSize({ width: 1536, height: 1400 }); await page.waitForTimeout(300);
+  const short = { right: await searchRight(), scrolls: await page.locator("#root").evaluate((el) => el.scrollHeight > el.clientHeight) };
+  await page.setViewportSize({ width: 1536, height: 816 }); await page.waitForTimeout(300);
+  const long2 = await searchRight();
+  report.check("Sin salto lateral: el buscador queda en el mismo sitio con y sin barra", long.scrolls && !short.scrolls && short.right === long2, JSON.stringify({ long, short, long2 }));
+
   await page.emulateMedia({ media: "print" });
   const pr = await page.evaluate(() => ({ pos: getComputedStyle(document.getElementById("root")).position, ov: getComputedStyle(document.body).overflow }));
   report.check("Al imprimir el contenido no queda recortado por el contenedor", pr.pos === "static" && pr.ov === "visible", JSON.stringify(pr));
