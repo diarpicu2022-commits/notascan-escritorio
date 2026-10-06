@@ -143,7 +143,13 @@ try {
   // La impresión (PDF) se simula: se guarda el texto del documento que se imprimiría y se cierra el diálogo.
   await page.addInitScript(() => {
     window.__printed = [];
-    window.print = () => { window.__printed.push(document.querySelector(".ns-print-root")?.textContent ?? ""); window.dispatchEvent(new Event("afterprint")); };
+    window.print = () => {
+      const root = document.querySelector(".ns-print-root");
+      window.__printed.push(root?.textContent ?? "");
+      // Copia del documento para medir cómo cabe en el papel después de imprimir (2026-10-06).
+      if (root) { document.getElementById("print-copy")?.remove(); const c = root.cloneNode(true); c.id = "print-copy"; document.body.appendChild(c); }
+      window.dispatchEvent(new Event("afterprint"));
+    };
   });
   const cons = watchConsole(page);
   await mockApi(page);
@@ -472,6 +478,24 @@ try {
   const printed = await page.evaluate(() => window.__printed.at(-1) ?? "");
   report.check("Consolidado · PDF: imprime la hoja con el colegio, «Consolidado por curso», los estudiantes y quién lo generó",
     printed.includes("Consolidado por curso") && printed.includes("María Fernanda López Rosero") && printed.includes("Generado por Ana Lucía Rosero") && printed.includes("Incluye solo las materias que dicta"), printed.slice(0, 200));
+  // Cabe en el papel: A4 con márgenes de 12 mm deja 186 mm (703 px) de ancho útil. Visto en la app de escritorio
+  // (2026-10-06): el encabezado y las notas se salían por la derecha.
+  {
+    const vp = page.viewportSize();
+    await page.emulateMedia({ media: "print" });
+    await page.setViewportSize({ width: 703, height: 1000 });
+    await page.waitForTimeout(300);
+    const fit = await page.evaluate(() => {
+      const root = document.getElementById("print-copy"); if (!root) return { error: "sin copia" };
+      const w = root.getBoundingClientRect().right;
+      const over = [...root.querySelectorAll("*")].filter((e) => e.getBoundingClientRect().right > w + 1)
+        .map((e) => (e.className || e.tagName) + "→" + Math.round(e.getBoundingClientRect().right));
+      return { w: Math.round(w), over: over.slice(0, 6), n: over.length };
+    });
+    await page.emulateMedia({ media: "screen" });
+    await page.setViewportSize(vp);
+    report.check("Consolidado · PDF: la hoja cabe en el ancho útil de un A4 (nada se sale por la derecha)", fit.n === 0, JSON.stringify(fit));
+  }
 
   // Por evaluación en CSV: se elige la evaluación en el diálogo.
   await page.getByRole("radio", { name: "CSV" }).click().catch(async () => page.getByRole("button", { name: "CSV" }).click());

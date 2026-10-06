@@ -7,6 +7,8 @@
   @page { size: A4; margin: 12mm; }
   body > *:not(.ns-print-root) { display: none !important; }
   .ns-print-root { display: block; }
-  .ns-print-root .ns-paper { break-after: page; box-shadow: none; margin: 0 auto; max-width: none; }
+  /* border-box: .ns-paper tiene width 100 % más 40 px de relleno por lado; sin esto la hoja medía 785 px en los 703
+     de un A4 y el encabezado y las notas se cortaban por la derecha (visto en la app de escritorio, 2026-10-06). */
+  .ns-print-root .ns-paper { break-after: page; box-shadow: none; margin: 0 auto; max-width: none; box-sizing: border-box; width: 100%; }
   .ns-print-root .ns-paper:last-child { break-after: auto; }
 }

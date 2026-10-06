@@ -1050,3 +1050,17 @@ boletines y paz y salvos de 7A; ranking vacío explicado: no hay notas verificad
 Pendiente de probar en escritorio: imprimir a PDF y descargar Excel (Reportes), y el flujo del docente.
 Observación: hay datos médicos del sembrado sin autorización de salud (anteriores a la regla de 6g); la regla impide
 cargar nuevos, pero los existentes siguen ahí — decidir con el abogado si se borran o se pide la autorización.
+
+#### Prueba del Docente en la app de escritorio, con datos reales (2026-10-06)
+
+Cuenta de prueba creada por Diego (`ana.lucia@losandes.edu.co`, Add user con confirmación automática; el asistente no
+crea cuentas ni escribe contraseñas). Las 9 secciones cargan con datos reales (inicio con 9 notas por verificar y el
+Parcial 2 de 7A; planilla de 7A; conceptos; recuperaciones vacía explicada; asistencia de 6A; observador; 65
+estudiantes; reportes). **Excel en escritorio: funciona** (`Consolidado 6A · Periodo 3.xlsx`, 3609 bytes, abre con
+estudiante · materia · promedio · desempeño). **PDF en escritorio: abre el diálogo de impresión de Windows**, pero la
+hoja salía cortada por la derecha.
+- Causa medida: `.ns-paper` tiene `width: 100%` más 40 px de relleno por lado sin `border-box` → 785 px en los 703 útiles
+  de un A4 (12 mm de margen). Arreglo solo en impresión (`print.css`: `box-sizing: border-box`); aplica a reportes,
+  boletines y Rectoría. Nueva comprobación en `verify:teacher-data` (62/62): con la copia del documento impreso, a
+  703 px, nada se sale. Repetido en la app: el encabezado y la tabla caben completos.
+Pendiente en escritorio: subir fotografías y la lectura con IA (necesita la clave de Anthropic).
