@@ -1000,3 +1000,20 @@ Verificación medida con clics reales sobre la app compilada: abre maximizada �
 `verify-out/paso6h-sin-bordes-*.png`. Regresión web y demostración igual (auth 20, docente 61/123, Secretaría 51/105,
 Rectoría 46/76, shell 62, componentes 121, estados 98). Fallo propio: el primer guion de clics no contaba el borde
 invisible de redimensionado ni el menú de acomodar de Windows 11 y daba falsos negativos; corregido.
+
+#### Enmienda 7 (2026-10-06, pedida por Diego): campos sin recuadro interior y sin el ojo de Edge
+
+En la app de escritorio (WebView2 = motor de Edge) Diego vio dos defectos al escribir: un recuadro alrededor del campo
+dentro de la cápsula, y en la contraseña un botón «mostrar» propio de Edge además del ojo del sistema.
+- Causa del recuadro: la regla general `.ns input:focus-visible` (contorno navy) gana sobre el `outline: none` de los
+  campos con envoltorio. La referencia del sistema (`notascan-ui`) tiene el mismo defecto. Ahora, como ya hacía
+  `.ns-grade-input`, el campo interior no dibuja contorno y el foco lo marca el envoltorio: cápsula del login (borde
+  dorado + halo, ya existente), porcentaje de evaluación (contorno de foco del sistema en el envoltorio) y búsqueda
+  Ctrl+K (el panel abierto ya es el foco). Un borde dorado que probé en la búsqueda se quitó: no estaba en el contrato y
+  la comparación con el sistema lo detectó.
+- `input::-ms-reveal, input::-ms-clear { display: none }`: queda un solo control para mostrar la contraseña.
+
+Verificación en Microsoft Edge (`verify:fields-edge`, 7/7): sin recuadro en correo y contraseña al escribir, la cápsula
+marca el foco, el ojo de Edge se quita (la imagen del campo cambia al forzarlo), un solo botón de mostrar, y con
+el teclado el foco sigue visible. `verify:shell` 62/62 (la referencia recibe la misma regla para la búsqueda; el resto
+sigue comparado píxel a píxel); regresión completa en verde. Instaladores reemplazados en la Release v0.1.0.

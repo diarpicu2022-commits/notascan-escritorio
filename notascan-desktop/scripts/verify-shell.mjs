@@ -78,7 +78,7 @@ async function compare(label, ref, mine, selector, shotName) {
   let at = 0;
   while (at < r.length && r[at] === m[at]) at++;
   report.check(`${label}: DOM idéntico al del sistema`, r === m, r === m ? "" : `…${r.slice(Math.max(0, at - 50), at + 70)}… vs …${m.slice(Math.max(0, at - 50), at + 70)}…`);
-  const a = await ref.locator(selector).first().screenshot({ animations: "disabled" });
+  const a = await ref.locator(selector).first().screenshot({ animations: "disabled", path: join(OUT, `paso3-${shotName}-ref.png`) });
   const b = await mine.locator(selector).first().screenshot({ animations: "disabled", path: join(OUT, `paso3-${shotName}.png`) });
   const d = await pixelDiff(mine, a, b);
   report.check(`${label}: píxeles iguales al sistema (≤ 0.5 %)`, d.pct <= 0.5, `${d.size}, ${d.pct.toFixed(3)} % distinto (${d.raw.toFixed(3)} % sin tolerancia de 1 px)`);
@@ -111,6 +111,9 @@ try {
     await compare(`Herramientas ${role}`, ref, mine, ".ns-app-tools", `tools-${role}`);
     if (role === "teacher") {
       // Búsqueda global abierta con Ctrl+K y una consulta.
+      // Enmienda 7 (2026-10-06, pedida por Diego): el campo de búsqueda ya no dibuja el recuadro de foco dentro del
+      // panel. La referencia lo trae; se le aplica la misma regla para que el resto se siga comparando píxel a píxel.
+      await ref.addStyleTag({ content: ".ns-gsearch-input input:focus-visible { outline: none; }" });
       for (const p of [ref, mine]) { await p.keyboard.press("Control+k"); await p.keyboard.type("María"); await p.waitForTimeout(150); }
       await compare("Búsqueda Ctrl+K", ref, mine, ".ns-gsearch", "busqueda");
       // El panel es vidrio: se oculta el contenido de página que queda detrás para comparar solo el panel.

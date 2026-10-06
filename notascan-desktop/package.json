@@ -30,7 +30,8 @@
     "verify:principal-data": "node scripts/verify-principal-data.mjs",
     "verify:principal-viewports": "node scripts/verify-principal-viewports.mjs",
     "verify:read-exam": "node scripts/verify-read-exam.mjs",
-    "db:seed": "tsx scripts/gen-seed.ts"
+    "db:seed": "tsx scripts/gen-seed.ts",
+    "verify:fields-edge": "node scripts/verify-fields-edge.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

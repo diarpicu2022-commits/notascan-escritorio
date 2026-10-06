@@ -13,6 +13,9 @@ body { margin: 0; background: var(--ivory); font-family: var(--font-ui); color: 
 .ns-caption { font: 500 12px/16px var(--font-ui); color: var(--muted); }
 
 /* ---------- Focus (shared) ---------- */
+/* Edge/WebView2 añade su propio botón de mostrar contraseña y una «x» de borrar: el sistema ya tiene el suyo (ojo
+   dentro de la cápsula). Se ocultan para que no haya dos controles (pedido de Diego, 2026-10-06). */
+input::-ms-reveal, input::-ms-clear { display: none; }
 .ns-focusable:focus-visible, .ns button:focus-visible, .ns a:focus-visible, .ns input:focus-visible, .ns select:focus-visible, .ns [tabindex]:focus-visible, .is-focus {
   outline: var(--focus-width) solid var(--focus); outline-offset: 3px;
 }
@@ -708,6 +711,9 @@ body { background-color: var(--ivory); }
 .ns-auth-field label { font: 600 14px/20px var(--font-ui); color: var(--ivory); }
 .ns-auth-input { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 8px 0 18px; border-radius: var(--radius-full); background: rgba(247, 243, 236, .1); border: var(--border-width) solid rgba(247, 243, 236, .32); color: var(--ivory); transition: border-color var(--duration-fast), background-color var(--duration-fast); }
 .ns-auth-input:hover { background: rgba(247, 243, 236, .14); }
+/* El foco lo marca la cápsula (borde dorado + halo), no el campo interior: sin esto la regla general de foco dibujaba
+   un recuadro dentro de la cápsula (visto en WebView2, 2026-10-06). */
+.ns-auth-input input:focus-visible { outline: none; }
 .ns-auth-input:focus-within { border-color: var(--gold); background: rgba(247, 243, 236, .16); box-shadow: 0 0 0 4px rgba(184, 146, 75, .25); }
 .ns-auth-input input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; color: var(--ivory); font: 500 15px/20px var(--font-ui); outline: none; }
 .ns-auth-input input::placeholder { color: #b8b3a8; }
@@ -942,6 +948,7 @@ button.ns-cell-link:hover span { text-decoration: underline; text-decoration-col
 .ns kbd, kbd { display: inline-grid; place-items: center; min-width: 22px; height: 20px; padding: 0 5px; border: 1.5px solid var(--navy); border-bottom-width: 3px; border-radius: 5px; background: var(--paper); font: 700 10px/1 var(--font-ui); color: var(--navy); }
 .ns-gsearch { width: min(820px, calc(100vw - 32px)); display: grid; grid-template-rows: auto 1fr auto; max-height: 76vh; border: var(--border-width) solid var(--navy); border-radius: 18px; background: rgba(255, 253, 248, .96); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 8px 8px 0 var(--navy); overflow: hidden; animation: ns-pop var(--duration-base) var(--ease-out); }
 .ns-gsearch-input { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: var(--border-width) solid var(--navy); }
+.ns-gsearch-input input:focus-visible { outline: none; }
 .ns-gsearch-input input { flex: 1; border: 0; background: transparent; font: 600 18px/24px var(--font-ui); color: var(--navy); outline: none; }
 .ns-gsearch-body { display: grid; grid-template-columns: 1fr 280px; min-height: 280px; overflow: hidden; }
 .ns-gsearch-list { display: grid; align-content: start; gap: 10px; padding: 16px; overflow: auto; }
@@ -1022,6 +1029,8 @@ button.ns-cell-link:hover span { text-decoration: underline; text-decoration-col
 .ns-weight-row { display: grid; grid-template-columns: 16px minmax(140px, 1fr) minmax(120px, 1.4fr) 92px auto; gap: 12px; align-items: center; }
 .ns-weight-row .ns-field { gap: 0; } .ns-weight-row .ns-input { height: 42px; }
 .ns-range { width: 100%; accent-color: var(--navy); height: 28px; }
+.ns-pct-input input:focus-visible { outline: none; }
+.ns-pct-input:focus-within { outline: var(--focus-width) solid var(--focus); outline-offset: 2px; }
 .ns-pct-input { display: flex; align-items: center; height: 42px; border: var(--border-width) solid var(--navy); border-radius: var(--radius-md); background: var(--paper); overflow: hidden; }
 .ns-pct-input input { width: 100%; height: 100%; border: 0; padding: 0 4px 0 12px; font: 800 16px var(--font-ui); color: var(--navy); text-align: right; background: transparent; }
 .ns-pct-input span { padding: 0 10px 0 2px; font-weight: 800; }
