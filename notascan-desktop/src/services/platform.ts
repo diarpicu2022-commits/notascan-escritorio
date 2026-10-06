@@ -173,7 +173,7 @@ export function useSaveService() {
 
 /* ---------- Invitaciones por correo (paso 7e) ---------- */
 
-/** Pide a la función invite-staff que envíe la invitación (código de 6 dígitos por correo). */
+/** Pide a la función invite-staff que envíe la invitación (código numérico por correo). */
 export async function sendInvitation(target: { institutionId?: string; email?: string }): Promise<string[]> {
   if (DEMO) { await new Promise((r) => window.setTimeout(r, 600)); return [target.email ?? "secretaria@colegio.edu.co"]; }
   const { data, error } = await supabase().functions.invoke("invite-staff", { body: target.institutionId ? { institution_id: target.institutionId } : { email: target.email } });

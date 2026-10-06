@@ -36,10 +36,13 @@ try {
   await page.getByRole("link", { name: "Activa tu cuenta con el código del correo" }).click();
   report.check("El login ofrece activar la cuenta con el código", (await page.locator(".ns-auth-form h2").textContent()) === "Activa tu cuenta");
   await page.getByRole("button", { name: "Continuar" }).click();
-  report.check("Sin datos: pide el correo y el código de 6 dígitos", (await page.locator(".ns-auth-error").allTextContents()).join("|") === "Escribe tu correo completo.|El código tiene 6 dígitos.");
+  report.check("Sin datos: pide el correo y el código del correo", (await page.locator(".ns-auth-error").allTextContents()).join("|") === "Escribe tu correo completo.|Escribe el código completo del correo.");
   await page.locator("#code-email").fill("Secretaria@Champagnat.edu.co");
   await page.locator("#code-token").fill("12a34-56");
-  report.check("El código solo acepta dígitos (6)", (await page.locator("#code-token").inputValue()) === "123456");
+  report.check("El código solo acepta dígitos", (await page.locator("#code-token").inputValue()) === "123456");
+  // Supabase puede enviar códigos de 6 a 10 dígitos (el proyecto real envía 8): se aceptan enteros.
+  await page.locator("#code-token").fill("12345678901");
+  report.check("El código admite hasta 10 dígitos (Supabase envía 6 a 10)", (await page.locator("#code-token").inputValue()) === "1234567890");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator(".ns-auth-error", { hasText: "El código no es válido" }).waitFor({ timeout: 8000 });
   report.check("Código equivocado: lo dice y prueba invitación y código reenviado", (await page.locator(".ns-auth-error").textContent()) === "El código no es válido o ya venció. Pide uno nuevo." && verifies.map((v) => v.type).join(",") === "invite,email" && verifies[0].email === "secretaria@champagnat.edu.co", JSON.stringify(verifies));
@@ -75,7 +78,7 @@ try {
   await p2.locator("#auth-email").fill("secretaria@champagnat.edu.co");
   await p2.getByRole("link", { name: "¿Olvidaste tu contraseña?" }).click();
   await p2.locator(".ns-toast-title", { hasText: "Revisa tu correo" }).waitFor({ timeout: 8000 });
-  report.check("Restablecer: el aviso habla del código y ofrece «Ya tengo el código»", (await p2.locator(".ns-toast-text").textContent()).includes("código de 6 dígitos"));
+  report.check("Restablecer: el aviso habla del código y ofrece «Ya tengo el código»", (await p2.locator(".ns-toast-text").textContent()).includes("Te enviamos un código a "));
   await p2.getByRole("link", { name: "Ya tengo el código" }).click();
   report.check("Restablecer: abre «Restablece tu contraseña» con el correo ya escrito", (await p2.locator(".ns-auth-form h2").textContent()) === "Restablece tu contraseña" && (await p2.locator("#code-email").inputValue()) === "secretaria@champagnat.edu.co");
   await p2.locator("#code-token").fill("482913");

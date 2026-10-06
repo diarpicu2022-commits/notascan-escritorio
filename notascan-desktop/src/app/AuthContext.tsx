@@ -17,7 +17,7 @@ interface AuthState {
   signIn: (email: string, password: string, role: DesktopRole, remember: boolean) => Promise<{ error: LoginError | null; role: DesktopRole }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<LoginError | null>;
-  /** Verifica el código de 6 dígitos del correo. La sesión queda abierta solo para crear la contraseña. */
+  /** Verifica el código numérico del correo. La sesión queda abierta solo para crear la contraseña. */
   acceptCode: (email: string, code: string, purpose: CodePurpose) => Promise<LoginError | null>;
   /** Guarda la contraseña nueva y entra con el rol del perfil. */
   setNewPassword: (password: string) => Promise<{ error: LoginError | null; role: DesktopRole | null }>;

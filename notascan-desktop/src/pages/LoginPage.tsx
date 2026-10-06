@@ -103,7 +103,7 @@ interface LoginPageProps {
   onSubmit?: (data: { email: string; password: string; role: DesktopRole; remember: boolean }) => Promise<LoginError | null>;
   /** «¿Olvidaste tu contraseña?»: envía el correo de restablecimiento de Supabase. */
   onForgot?: (email: string) => Promise<LoginError | null>;
-  /** Modo normal: verifica el código de 6 dígitos del correo (invitación o restablecimiento). */
+  /** Modo normal: verifica el código numérico (6 a 10 dígitos, según el proyecto) del correo (invitación o restablecimiento). */
   onAcceptCode?: (email: string, code: string, purpose: CodePurpose) => Promise<LoginError | null>;
   /** Modo normal: guarda la contraseña nueva y entra. */
   onSetPassword?: (password: string) => Promise<LoginError | null>;
@@ -123,7 +123,7 @@ function CodeFlow({ purpose, initialEmail, onAcceptCode, onSetPassword, onBack }
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<LoginError | null>(null);
-  const okEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), okCode = /^\d{6}$/.test(code);
+  const okEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), okCode = /^\d{6,10}$/.test(code);
   const strong = pw.length >= 8 && /[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(pw) && /\d/.test(pw);
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -149,12 +149,12 @@ function CodeFlow({ purpose, initialEmail, onAcceptCode, onSetPassword, onBack }
       <h2>{title}</h2>
       {step === "code" ? (
         <>
-          <p className="ns-auth-note">{purpose === "invite" ? "Escribe el correo con el que te invitaron y el código de 6 dígitos que te llegó." : "Escribe tu correo y el código de 6 dígitos que te enviamos."}</p>
+          <p className="ns-auth-note">{purpose === "invite" ? "Escribe el correo con el que te invitaron y el código numérico que te llegó." : "Escribe tu correo y el código numérico que te enviamos."}</p>
           <AuthField id="code-email" label="Correo institucional" icon="mail" type="email" placeholder="nombre@colegio.edu.co" auto="email"
             value={email} onChange={(e) => setEmail(e.target.value)} error={tried && !okEmail ? "Escribe tu correo completo." : err?.field === "email" ? err.message : null} />
-          <AuthField id="code-token" label="Código del correo" icon="key" type="text" placeholder="123456" auto="one-time-code"
-            value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            error={tried && !okCode ? "El código tiene 6 dígitos." : err?.field === "code" ? err.message : null} />
+          <AuthField id="code-token" label="Código del correo" icon="key" type="text" placeholder="12345678" auto="one-time-code"
+            value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            error={tried && !okCode ? "Escribe el código completo del correo." : err?.field === "code" ? err.message : null} />
         </>
       ) : (
         <>
@@ -287,7 +287,7 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
         <div className="ns-toast-region">
           <Toast tone="info" title="Revisa tu correo"
             message={onAcceptCode
-              ? <>{"Te enviamos un código de 6 dígitos a " + email.trim().toLowerCase() + ". "}<a href="#" onClick={(e) => { e.preventDefault(); setSent(false); setCodeFlow("recovery"); }}>Ya tengo el código</a></>
+              ? <>{"Te enviamos un código a " + email.trim().toLowerCase() + ". "}<a href="#" onClick={(e) => { e.preventDefault(); setSent(false); setCodeFlow("recovery"); }}>Ya tengo el código</a></>
               : "Te enviamos un enlace a " + email.trim().toLowerCase() + " para elegir una contraseña nueva."}
             onClose={() => setSent(false)} />
         </div>
