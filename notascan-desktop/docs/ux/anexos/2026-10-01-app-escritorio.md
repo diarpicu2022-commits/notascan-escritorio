@@ -800,3 +800,52 @@ pruebas, variable duplicada, lectura del .xlsx (la librería devuelve hojas) y c
 Regresión completa en verde: auth 20/20, data 8/8, teacher-data 47/47, admin-data 39/39, principal-data 41/41,
 platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121, teacher 123/123,
 admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.
+
+### Paso 6d · Subir fotografías con lectura por IA (2026-10-06)
+
+Decisiones de Diego: servicio de visión **Claude Haiku 4.5** (el más barato de los comparados: ≈ $0,003 por foto, frente a
+≈ $0,005 de GPT-4o y ≈ $0,006 de Claude Sonnet 5.5); la clave del proveedor va como **secreto de la función en Supabase**
+y la pega él (nunca en la app); las fotos van al **bucket privado** y se **borran al cerrar el periodo** (declararlo en
+la política de datos). Para identificar al estudiante: escribe en la hoja su **código estudiantil completo (8 dígitos)**
+y su **nombre**; el código manda y el nombre se compara **siempre**.
+GitHub Models (gratuito, usado por Diego en otro proyecto) **ya no existe**: GitHub lo retiró el 30 de julio de 2026
+([docs](https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models)). Probar con Haiku cuesta
+centavos (20 fotos ≈ $0,06).
+
+Sin dirección nueva: el flujo «Calificar una evaluación» del sistema (pasos, evaluación, zona de carga, lista de
+fotos, `ProcessingPanel`) con datos reales; en demostración no cambia (`verify:teacher` 123/123).
+
+- **Función `read-exam`** (Edge Function, publicada desde el editor de Supabase con `index.ts` y `match.ts` cotejados
+  por SHA-1: `ae5f03c2…` y `0275fdf9…`; sin sesión responde 401). Con la sesión del docente (RLS): comprueba que la
+  evaluación es suya y no está cerrada, toma la lista del curso, descarga la foto de SU carpeta, la manda a
+  `claude-haiku-4-5` con respuesta de forma fija (`output_config.format` con `json_schema`: código, nombre, nota y la
+  claridad de cada uno; la respuesta se valida antes de usarla) y guarda la lectura en `grades` con los permisos del
+  docente (detectada, confianza, estado, foto). Una nota ya verificada nunca se reemplaza. Sin clave: 503 explicado.
+- **El modelo solo lee; quién es el estudiante lo decide `match.ts`** contra la lista del curso: código exacto; un dígito
+  dudoso solo vale si el nombre respalda a un único candidato; sin código, el nombre si es único; si no, «sin
+  estudiante» (no se adivina). El nombre se compara siempre: un código claro pero de otro estudiante queda «Revisar»
+  con el motivo. Confianza: 96 % nota clara, 72 % dudosa, máximo 60–65 % si el código o el nombre no cuadran; «por
+  verificar» solo con código exacto, nombre que no contradice y nota clara. Escala: «45» se entiende 4.5; fuera de
+  1.0–5.0 no se toma.
+- **En la app:** cada foto se reduce en el equipo (JPEG, lado mayor 1568 px: más píxeles no leen mejor y cuestan más),
+  se sube a `exam-photos/<docente>/<evaluación>/` y se lee de a una; cada fila dice el resultado (Listo · Revisar con
+  el motivo · Sin estudiante: «anótala a mano en la planilla» · No se leyó con el porqué). Sin clave configurada, avisa
+  una vez y no sigue gastando. «Ir a revisión» abre la revisión de esa evaluación.
+- **`ProcessingPanel`**: dos opciones nuevas para no mostrar datos falsos —título al terminar («Sin estudiante
+  identificado») y confianza vacía («—»)—; sin ellas, el del sistema (antes ponía 98 % cuando no había confianza).
+
+Verificación: `verify:read-exam` 11/11 (lógica de identificación: exacto, nombre que no coincide, dígito dudoso con y
+sin respaldo, solo nombre, dos «María», código de otro curso, nota ilegible y dudosa, escala, tildes), función
+compilada contra `@anthropic-ai/sdk` 0.131.0 sin errores de tipos, `verify:teacher-data` 53/53 (subida a la carpeta del
+docente y de la evaluación como JPEG, lectura en orden, resultado por foto, panel con datos reales, sin clave avisa y
+no sigue).
+Fallos propios: el panel decía «Estudiante identificado» y 96 % con la última foto sin estudiante (corregido); en las
+pruebas, ruta equivocada (`grade` en vez de `grades`), selector ambiguo y un PNG mal formado.
+
+**Pendiente:** (1) Diego crea la clave en console.anthropic.com y la pega en Supabase → Edge Functions → Secrets como
+`ANTHROPIC_API_KEY`; después, prueba con ~20 fotos reales. (2) Borrado de fotos al cerrar el periodo (siguiente paso).
+(3) Política de datos: transferencia de las fotos a Anthropic solo para leer la nota.
+
+Regresión completa en verde: read-exam 11/11, auth 20/20, data 8/8, teacher-data 53/53, admin-data 39/39,
+principal-data 41/41, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121,
+teacher 123/123, admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.

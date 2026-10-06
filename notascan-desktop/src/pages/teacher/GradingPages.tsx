@@ -16,12 +16,138 @@ import { PageShell } from "../../components/templates/PageShell";
 import { EVALUATIONS } from "../../data/academic";
 import { ErrorState } from "../../components/organisms/QueryState";
 import { saveMessage, useReview, useSaveReview, type ReviewRow } from "../../services/teacher";
+import { useAuth } from "../../app/AuthContext";
+import { DEMO } from "../../lib/supabase";
+import { useToast } from "../../components/organisms/Toast";
+import { useOverview } from "../../services/teacherOverview";
+import { readExamPhoto, type ExamResult } from "../../services/vision";
+import { assignmentsState, queryState } from "./states";
 
 /* 02 · Calificar: ¿qué detectó la IA y es correcto? Carga → procesamiento → revisión. */
 
 type FileItem = { name: string; status: "success" | "processing" | "warning"; note: string };
 
 export function UploadPage() {
+  return DEMO ? <DemoUploadPage /> : <RealUploadPage />;
+}
+
+type QueueItem = { key: string; file: File; name: string; state: "queued" | "reading" | "done" | "review" | "unassigned" | "error"; note: string; result?: ExamResult };
+const QUEUE_DOT: Record<QueueItem["state"], ["success" | "processing" | "warning" | "error", string]> = {
+  queued: ["warning", "En cola"], reading: ["processing", "Procesando"], done: ["success", "Listo"], review: ["warning", "Revisar"], unassigned: ["warning", "Sin estudiante"], error: ["error", "No se leyó"],
+};
+
+/** Subir fotografías con la base y el servicio de visión (paso 6d): una foto a la vez, cada una con su resultado. */
+function RealUploadPage() {
+  const { navigate: go } = useShell();
+  const { profile } = useAuth();
+  const { aq, q } = useOverview();
+  const [subject, setSubject] = useState<string | undefined>();
+  const [course, setCourse] = useState<string | undefined>();
+  const [evalId, setEvalId] = useState<string | undefined>();
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const running = useRef(false);
+  const [showToast, toastNode] = useToast();
+  const assignments = aq.data ?? [];
+  const subjects = [...new Set(assignments.map((a) => a.subject))];
+  const curSubject = subject ?? subjects[0];
+  const courses = assignments.filter((a) => a.subject === curSubject).map((a) => a.courseId);
+  const curCourse = course && courses.includes(course) ? course : courses[0];
+  const assignment = assignments.find((a) => a.subject === curSubject && a.courseId === curCourse);
+  const evals = (q.data?.evals ?? []).filter((e) => e.assignmentKey === assignment?.key && e.status !== "cerrada");
+  const curEval = evals.find((e) => String(e.id) === evalId) ?? evals[0];
+
+  // La cola avanza de a una foto: así se respeta el límite del servicio y el panel muestra en qué va.
+  async function run(items: QueueItem[]) {
+    if (running.current || !curEval || !profile) return;
+    running.current = true;
+    const evaluationId = curEval.id;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state: "reading", note: "Leyendo código, nombre y nota…" } : x)));
+      try {
+        const r = await readExamPhoto(profile.id, evaluationId, it.file, i);
+        const g = r.detected === null ? "sin nota" : r.detected.toFixed(1);
+        const state: QueueItem["state"] = !r.studentId ? "unassigned" : !r.saved || r.status === "needs-review" ? "review" : "done";
+        const note = !r.studentId ? r.note + " No se guardó: anótala a mano en la planilla."
+          : r.studentName + " · " + g + (r.note ? " · " + r.note : "");
+        setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state, note, result: r } : x)));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "No pudimos leer la foto.";
+        setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state: "error", note: msg } : x)));
+        // Sin servicio configurado no tiene sentido seguir con las demás.
+        if (/no está configurado|clave/.test(msg)) {
+          showToast({ tone: "error", title: "El servicio de lectura no está listo", message: msg });
+          break;
+        }
+      }
+    }
+    running.current = false;
+  }
+
+  function add(files: File[]) {
+    const fresh = files.map((f, i) => ({ key: Date.now() + "-" + i + "-" + f.name, file: f, name: f.name, state: "queued" as const, note: "En espera" }));
+    setQueue((q) => q.concat(fresh));
+    void run(fresh);
+  }
+
+  const reading = queue.findIndex((x) => x.state === "reading");
+  const lastDone = [...queue].reverse().find((x) => x.result);
+  const finished = queue.filter((x) => x.state !== "queued" && x.state !== "reading").length;
+  const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando tus evaluaciones", "No pudimos cargar tus evaluaciones.");
+  return (
+    <PageShell active="grade">
+      <Header
+        eyebrow="Paso 1 a 4 · la IA trabaja, tú esperas" title="Calificar una evaluación" highlight="evaluación"
+        description="Elige la evaluación y sube las fotografías. NotaScan identifica a cada estudiante por el código y el nombre que escribió en la hoja."
+        actions={<Button size="lg" iconRight="arrow" disabled={!curEval} onClick={() => curEval && go("review", { id: String(curEval.id) })}>Ir a revisión</Button>}
+      />
+      <ReviewStepper current={3} />
+      {state ?? (
+        <div className="ns-upload-grid">
+          <div className="ns-col" style={{ gap: 24 }}>
+            <Block label="Evaluación">
+              <BlockTitle>1 · Evaluación</BlockTitle>
+              <div className="ns-row">
+                <FilterGroup as="select" label="Asignatura" value={curSubject} onChange={setSubject} options={subjects.map((s) => ({ value: s, label: s }))} />
+                <FilterGroup as="select" label="Curso" value={curCourse} onChange={setCourse} options={courses.map((c) => ({ value: c, label: c }))} />
+                {evals.length ? <FilterGroup as="select" label="Evaluación" value={curEval ? String(curEval.id) : undefined} onChange={setEvalId} options={evals.map((e) => ({ value: String(e.id), label: e.name }))} /> : null}
+              </div>
+              {evals.length ? null : <EmptyState icon="evaluations" title="No hay evaluaciones abiertas en este curso." message="Crea la evaluación en Evaluaciones y vuelve para subir las fotos." action={<Button variant="secondary" icon="plus" onClick={() => go("evaluations")}>Ir a evaluaciones</Button>} />}
+            </Block>
+            <Block label="Fotografías">
+              <BlockTitle>2 · Fotografías</BlockTitle>
+              {curEval ? <UploadZone hint="Arrastra las fotos del examen o haz clic. Una hoja por foto, con el código y el nombre del estudiante a la vista." onFiles={add} /> : null}
+              {queue.length ? (
+                <ul className="ns-list" style={{ marginTop: 16 }}>
+                  {queue.map((f) => (
+                    <li key={f.key} className="ns-list-item">
+                      <span className="ns-file-icon" aria-hidden><Icon name="file" size={18} /></span>
+                      <div className="ns-list-main"><strong>{f.name}</strong><span className="ns-caption">{f.note}</span></div>
+                      <StatusDot status={QUEUE_DOT[f.state][0]} label={QUEUE_DOT[f.state][1]} />
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </Block>
+          </div>
+          {queue.length ? (
+            <ProcessingPanel simulate={false} step={reading >= 0 ? 1 : 3} index={reading >= 0 ? reading + 1 : finished} total={queue.length}
+              file={reading >= 0 ? queue[reading].name : lastDone?.name}
+              studentName={lastDone?.result?.studentName ?? "Sin estudiante"} detected={lastDone?.result?.detected === null || !lastDone?.result ? "—" : lastDone.result.detected.toFixed(1)}
+              confidence={lastDone?.result?.studentId ? lastDone.result.confidence : null}
+              doneTitle={lastDone?.result?.studentId ? "Estudiante identificado" : "Sin estudiante identificado"} grade={lastDone?.result?.detected === null || !lastDone?.result ? "—" : lastDone.result.detected.toFixed(1).replace(".", ",")} />
+          ) : (
+            <Block><EmptyState icon="camera" title="Aún no has subido fotografías." message="Cada foto se lee en unos segundos. La IA solo detecta: tú revisas y confirmas cada nota." /></Block>
+          )}
+        </div>
+      )}
+      {toastNode}
+    </PageShell>
+  );
+}
+
+/** El flujo del sistema con sus datos de demostración (sin cambios). */
+function DemoUploadPage() {
   const { navigate: go } = useShell();
   const [files, setFiles] = useState<FileItem[]>([
     { name: "parcial2_programacion_05.jpg", status: "success", note: "Valentina Guerrero · 4.2" },

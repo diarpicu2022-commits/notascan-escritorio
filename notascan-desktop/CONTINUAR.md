@@ -124,8 +124,17 @@ Lo primero que se lee al retomar.
   evaluación en PDF, Excel (`write-excel-file`) y CSV; «Exportar informe» de Analítica; historial `generated_reports`.
   Migración `20261005210000_reportes.sql` **aplicada** (cotejada y comprobada). `verify:teacher-data` 47/47,
   `verify:principal-data` 41/41, `verify:db` 144/144.
-- **Siguiente:** Subir fotografías con el servicio de visión A (modelo multimodal). Después: cola sin conexión real,
-  página de restablecimiento, legal, compilar Tauri, cierre.
+- **Subir fotografías — decisiones de Diego (2026-10-05):** la clave del proveedor va como secreto de una función de
+  Supabase (Diego la pega; nunca en la app); las fotos van al bucket privado, se envían al proveedor solo para leer la
+  nota y se borran al cerrar el periodo (declararlo en la política de datos). Proveedor: **Claude Haiku 4.5** (≈ $0.003 por foto;
+  GPT-4o ≈ $0.005, Sonnet 5.5 ≈ $0.006). Identificación: código estudiantil de 8 dígitos + nombre, comparados siempre.
+  GitHub Models fue retirado el 2026-07-30 (no sirve para pruebas gratis).
+- **Paso 6d · Subir fotografías (hecho 2026-10-06, esperando visto bueno):** función `read-exam` publicada (Haiku 4.5,
+  código + nombre siempre, `match.ts`), subida a la carpeta privada, resultado por foto. `verify:read-exam` 11/11,
+  `verify:teacher-data` 53/53.
+  - **Pendiente de Diego:** clave en console.anthropic.com → Supabase → Edge Functions → Secrets → `ANTHROPIC_API_KEY`.
+- **Siguiente:** borrar las fotos al cerrar el periodo; después cola sin conexión real, página de restablecimiento,
+  legal (incluye la transferencia de fotos a Anthropic), compilar Tauri, cierre.
   - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.

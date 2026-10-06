@@ -90,12 +90,15 @@ interface ProcessingPanelProps {
   grade?: string;
   studentName?: string;
   detected?: string;
-  confidence?: number;
+  /** null: sin confianza (no se detectó); sin valor, la cifra de ejemplo del sistema. */
+  confidence?: number | null;
+  /** Título al terminar (por defecto, el del sistema). */
+  doneTitle?: string;
   className?: string;
 }
 
 /** Reconocimiento de una foto: QR → nota → confianza. Vidrio porque flota sobre el flujo. */
-export function ProcessingPanel({ step: stepProp, simulate, file = "parcial2_programacion_07.jpg", index, total, grade, studentName, detected, confidence, className }: ProcessingPanelProps) {
+export function ProcessingPanel({ step: stepProp, simulate, file = "parcial2_programacion_07.jpg", index, total, grade, studentName, detected, confidence, doneTitle = "Estudiante identificado", className }: ProcessingPanelProps) {
   const auto = simulate !== false && stepProp === undefined;
   const [own, setOwn] = useState(auto ? 0 : stepProp ?? 0);
   const step = auto ? own : stepProp ?? 0;
@@ -112,7 +115,7 @@ export function ProcessingPanel({ step: stepProp, simulate, file = "parcial2_pro
         <span className="ns-overline">{"Foto " + (index || 7) + " de " + (total || 24)}</span>
         <StatusDot status={done ? "success" : "processing"} label={done ? "Listo para revisar" : "Procesando"} />
       </div>
-      <h2 className="ns-proc-title">{done ? "Estudiante identificado" : "Analizando fotografía…"}</h2>
+      <h2 className="ns-proc-title">{done ? doneTitle : "Analizando fotografía…"}</h2>
       <div className="ns-photo" role="img" aria-label={"Vista previa de " + file}>
         <span className="ns-photo-qr" />
         {step >= 1 ? <span className="ns-photo-box" style={{ left: "6%", top: "9%", width: 64, height: 64 }} /> : null}
@@ -128,7 +131,7 @@ export function ProcessingPanel({ step: stepProp, simulate, file = "parcial2_pro
               {d ? <Icon name="check" size={18} /> : a ? <StatusDot status="processing" hideLabel /> : <Icon name="clock" size={18} />}
               {label}
               <span className="ns-proc-item-state">
-                {d ? (i === 0 ? studentName || "María Fernanda López" : i === 1 ? detected || "4.5" : (confidence || 98) + "%") : a ? "En curso" : "En espera"}
+                {d ? (i === 0 ? studentName || "María Fernanda López" : i === 1 ? detected || "4.5" : (confidence === undefined ? "98%" : confidence === null ? "—" : confidence + "%")) : a ? "En curso" : "En espera"}
               </span>
             </li>
           );

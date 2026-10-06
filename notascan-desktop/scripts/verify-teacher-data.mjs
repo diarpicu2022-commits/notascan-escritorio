@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { OUT, URL_BASE, createReport, startPreview, watchConsole } from "./harness.mjs";
 
 const report = createReport();
+const toastTitle = (page, text) => page.locator(".ns-toast-title", { hasText: text }).waitFor({ timeout: 8000 }).then(() => true, () => false);
 const UID = "33333333-3333-4333-8333-333333333333";
 const today = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
 
@@ -321,6 +322,57 @@ try {
   const rw = writes.recoveries[0];
   report.check("Recuperaciones: guarda original y recuperación; el resultado y la firma los pone la base",
     rw && rw.url.includes("on_conflict=student_id,assignment_id") && rw.body.student_id === "20261189" && rw.body.assignment_id === 11 && rw.body.original === 2 && rw.body.recovery === 3.5 && !signed(rw.body), JSON.stringify(rw));
+
+  // ---------- Subir fotografías (6d): foto a la carpeta privada, lectura con read-exam y resultado por foto ----------
+  // Imagen real (PNG 40×30) para que el equipo la pueda reducir antes de subirla.
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAACgAAAAeCAIAAADRv8uKAAAALElEQVR4nO3NIREAAAgEMPq3RGM+AjFA7G5+lekTJRaLxWKxWCwWi8XivI0XNKnR9TxFfTUAAAAASUVORK5CYII=", "base64");
+  const uploads = [], reads = [];
+  let readMode = "ok";
+  const RESULTS = [
+    { saved: true, studentId: "20261175", studentName: "María Fernanda López Rosero", how: "code", detected: 4.5, confidence: 96, status: "pending", note: "", reading: { code: "20261175", name: "María López" } },
+    { saved: true, studentId: "20261182", studentName: "Juan Sebastián Martínez Paz", how: "code", detected: 3.8, confidence: 60, status: "needs-review", note: "El nombre escrito («Valentina Guerrero») no coincide con el del código.", reading: { code: "20261182", name: "Valentina Guerrero" } },
+    { saved: false, studentId: null, studentName: null, how: "none", detected: 4, confidence: 96, status: "needs-review", note: "El código 20269999 no es de un estudiante del curso.", reading: { code: "20269999", name: "Ana Torres" } },
+  ];
+  await page.route("**/storage/v1/object/exam-photos/**", (r) => { uploads.push({ url: decodeURIComponent(r.request().url()), type: r.request().headers()["content-type"] }); r.fulfill({ json: { Key: "exam-photos/x" } }); });
+  await page.route("**/functions/v1/read-exam**", (r) => {
+    reads.push(r.request().postDataJSON());
+    if (readMode === "sin-clave") return r.fulfill({ status: 503, json: { error: "El servicio de lectura de fotos aún no está configurado. Falta la clave del proveedor en Supabase." } });
+    return r.fulfill({ json: RESULTS[(reads.length - 1) % RESULTS.length] });
+  });
+  await page.goto(URL_BASE + "#/teacher/grades");
+  const fileInput = page.locator('input[type=file][accept="image/*"]');
+  await fileInput.waitFor({ state: "attached", timeout: 10000 });
+  report.check("Subir fotografías: evaluación abierta de la base (Matemáticas · 7A · Parcial 2) y panel vacío antes de subir",
+    (await page.getByRole("combobox", { name: "Evaluación" }).inputValue()) === "101" && (await page.locator(".ns-empty-title").last().textContent()) === "Aún no has subido fotografías.");
+  await fileInput.setInputFiles([1, 2, 3].map((i) => ({ name: "hoja" + i + ".png", mimeType: "image/png", buffer: PNG })));
+  await page.waitForFunction(() => document.querySelectorAll(".ns-list-item .ns-dot--processing, .ns-list-item [data-status=processing]").length === 0 && document.querySelectorAll(".ns-list-item").length === 3 && !document.body.textContent.includes("Leyendo código"), null, { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(800);
+  const items = await page.locator(".ns-upload-grid .ns-list-item").allTextContents();
+  report.check("Cada foto se sube como JPEG a la carpeta del docente y de la evaluación (UID/101/…) y se manda a leer en orden",
+    uploads.length === 3 && uploads.every((u) => u.url.includes("/exam-photos/" + UID + "/101/") && u.url.endsWith(".jpg")) && reads.length === 3 && reads.every((b, i) => b.evaluation_id === 101 && b.photo_path.startsWith(UID + "/101/") && b.photo_path.endsWith("-" + i + ".jpg")),
+    JSON.stringify({ uploads: uploads.map((u) => u.url.split("/exam-photos/")[1]), reads }));
+  report.check("Resultado por foto: lista (María · 4.5), revisar con el motivo (nombre que no coincide) y sin estudiante con qué hacer",
+    items[0].includes("María Fernanda López Rosero · 4.5") && items[0].includes("Listo")
+      && items[1].includes("Juan Sebastián Martínez Paz · 3.8 · El nombre escrito («Valentina Guerrero») no coincide") && items[1].includes("Revisar")
+      && items[2].includes("El código 20269999 no es de un estudiante del curso. No se guardó: anótala a mano en la planilla.") && items[2].includes("Sin estudiante"),
+    items.join(" / "));
+  const panel = await page.locator(".ns-proc").textContent();
+  report.check("Panel: datos reales de la última foto (3 de 3); si no hubo estudiante lo dice y no inventa confianza",
+    panel.includes("Foto 3 de 3") && panel.includes("Sin estudiante identificado") && panel.includes("Calculando confianza—") && !panel.includes("96%"), panel.slice(0, 200));
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: join(OUT, "paso6d-subir-fotos.png") });
+
+  // Sin la clave del servicio: la primera foto lo explica y las demás esperan (no se gasta nada en vano).
+  readMode = "sin-clave";
+  const before = reads.length;
+  await fileInput.setInputFiles([4, 5].map((i) => ({ name: "hoja" + i + ".png", mimeType: "image/png", buffer: PNG })));
+  await toastTitle(page, "El servicio de lectura no está listo");
+  const all = await page.locator(".ns-upload-grid .ns-list-item").allTextContents();
+  report.check("Sin clave configurada: avisa una vez, la foto dice por qué y la siguiente queda en cola sin llamar al servicio",
+    reads.length === before + 1 && all[3].includes("aún no está configurado") && all[3].includes("No se leyó") && all[4].includes("En cola"), all.slice(3).join(" / "));
+  const ownErrors = cons.filter((m) => !/status of (400|403|500|503)/.test(m));
+  report.check("Subir fotografías: consola sin errores propios", ownErrors.length === 0, ownErrors.join(" | "));
+  cons.length = 0;
 
   // ---------- Reportes (6c): consolidado, por evaluación y por estudiante en PDF, Excel y CSV ----------
   const { default: readXlsx } = await import("read-excel-file/node");
