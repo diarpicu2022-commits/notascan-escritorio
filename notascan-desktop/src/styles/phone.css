@@ -1,0 +1,22 @@
+/* Subir desde el celular · ventana del QR (2026-10-06). Solo tokens y piezas del sistema: el número de cada paso es la
+   marca del stepper (.ns-step-mark: círculo navy de 28 px); el QR va sobre papel con el borde y la sombra dura de los
+   bloques. Lectura obligada: el QR es lo primero que se ve, a la izquierda; los pasos explican al lado. */
+.ns-phone-pair { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-6); align-items: start; margin-top: var(--space-4); }
+.ns-phone-qr {
+  width: 264px; height: 264px; display: grid; place-items: center; padding: 16px; box-sizing: border-box;
+  background: var(--paper); border: var(--border-width) solid var(--navy); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+}
+.ns-phone-qr img { display: block; width: 232px; height: 232px; image-rendering: pixelated; }
+.ns-phone-qr-expired { display: grid; gap: 12px; justify-items: center; text-align: center; font: 700 15px/20px var(--font-ui); color: var(--navy); }
+.ns-phone-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.ns-phone-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; }
+.ns-phone-steps li > span {
+  width: 28px; height: 28px; display: grid; place-items: center; box-sizing: border-box;
+  border: var(--border-width) solid var(--navy); border-radius: var(--radius-full); background: var(--paper);
+  font: 700 12px/1 var(--font-ui); color: var(--navy); font-variant-numeric: tabular-nums;
+}
+.ns-phone-steps strong { display: block; font: 600 15px/20px var(--font-ui); color: var(--navy); }
+.ns-phone-steps small { display: block; margin-top: 2px; font: 400 13px/18px var(--font-ui); color: var(--muted); }
+.ns-phone-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-top: 14px; border-top: var(--border-width) dashed var(--hairline); }
+.ns-phone-live { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; }
+@media (max-width: 720px) { .ns-phone-pair { grid-template-columns: 1fr; justify-items: center; } }

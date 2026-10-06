@@ -445,8 +445,37 @@ try {
   await fileInput.setInputFiles([4, 5].map((i) => ({ name: "hoja" + i + ".png", mimeType: "image/png", buffer: PNG })));
   await toastTitle(page, "El servicio de lectura no está listo");
   const all = await page.locator(".ns-upload-grid .ns-list-item").allTextContents();
-  report.check("Sin clave configurada: avisa una vez, la foto dice por qué y la siguiente queda en cola sin llamar al servicio",
-    reads.length === before + 1 && all[3].includes("aún no está configurado") && all[3].includes("No se leyó") && all[4].includes("En cola"), all.slice(3).join(" / "));
+  report.check("Sin clave configurada: avisa una vez, la foto dice por qué y la siguiente lo dice también sin llamar al servicio",
+    reads.length === before + 1 && all[3].includes("aún no está configurado") && all[3].includes("No se leyó") && all[4].includes("aún no está configurado"), all.slice(3).join(" / "));
+  // ---------- Subir desde el celular (2026-10-06): QR con permiso, las fotos llegan solas y se leen ----------
+  readMode = "ok";
+  const phoneCalls = [];
+  let pendingPhone = [{ id: 1, photo_path: UID + "/101/movil-1700000000000-1.jpg" }];
+  await page.route("**/rest/v1/rpc/start_phone_upload**", (r) => { phoneCalls.push(["start", r.request().postDataJSON()]); r.fulfill({ json: [{ session_id: "s-1", token: "a".repeat(64), expires_at: new Date(Date.now() + 20 * 60000).toISOString() }] }); });
+  await page.route("**/rest/v1/rpc/close_phone_upload**", (r) => { phoneCalls.push(["close", r.request().postDataJSON()]); r.fulfill({ status: 204, body: "" }); });
+  await page.route("**/rest/v1/phone_uploads**", (r) => {
+    if (r.request().method() === "PATCH") { phoneCalls.push(["pick", decodeURIComponent(r.request().url())]); return r.fulfill({ status: 204, body: "" }); }
+    const rows = pendingPhone; pendingPhone = []; return r.fulfill({ json: rows });
+  });
+  const readsBefore = reads.length;
+  await page.getByRole("button", { name: "Subir desde el celular" }).click();
+  const phoneDlg = page.locator("[role=dialog]");
+  await phoneDlg.locator(".ns-phone-qr img").waitFor({ timeout: 8000 });
+  const phoneDlgText = await phoneDlg.textContent();
+  report.check("Celular: el botón abre el QR (permiso para la evaluación 101) con los 3 pasos y cuánto falta para que venza",
+    phoneCalls[0]?.[1]?.p_evaluation === 101 && phoneDlgText.includes("Apunta la cámara del celular al código") && phoneDlgText.includes("Toca «Tomar foto» por cada hoja") && /El código vence en \d{1,2}:\d\d/.test(phoneDlgText), JSON.stringify(phoneCalls[0]) + " " + phoneDlgText.slice(0, 160));
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: join(OUT, "celular-qr-1440.png") });
+  await page.waitForFunction((n) => document.querySelectorAll(".ns-upload-grid .ns-list-item").length > n, (await page.locator(".ns-upload-grid .ns-list-item").count()), { timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  const phoneItem = (await page.locator(".ns-upload-grid .ns-list-item").allTextContents()).find((t) => t.includes("Foto del celular"));
+  const phoneRead = reads.slice(readsBefore).find((b) => b.photo_path?.includes("movil-"));
+  report.check("Celular: la foto que llega se marca como recogida, entra a la lista y se manda a leer sin volver a subirla",
+    !!phoneItem && / · \d\.\d/.test(phoneItem) && phoneRead?.evaluation_id === 101 && phoneCalls.some((c) => c[0] === "pick" && c[1].includes("id=in.(1)")) && (await phoneDlg.textContent()).includes("1 foto recibida"),
+    JSON.stringify({ phoneItem, phoneRead, calls: phoneCalls.map((c) => c[0]) }));
+  await phoneDlg.getByRole("button", { name: "Terminar" }).click();
+  report.check("Celular: «Terminar» cierra el permiso y la ventana", phoneCalls.some((c) => c[0] === "close" && c[1].p_session === "s-1") && (await page.locator("[role=dialog]").count()) === 0);
+
   const ownErrors = cons.filter((m) => !/status of (400|403|500|503)/.test(m));
   report.check("Subir fotografías: consola sin errores propios", ownErrors.length === 0, ownErrors.join(" | "));
   cons.length = 0;

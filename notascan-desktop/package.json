@@ -33,13 +33,16 @@
     "db:seed": "tsx scripts/gen-seed.ts",
     "verify:fields-edge": "node scripts/verify-fields-edge.mjs",
     "verify:desktop-scroll": "node scripts/verify-desktop-scroll.mjs",
-    "verify:print": "node scripts/verify-print.mjs"
+    "verify:print": "node scripts/verify-print.mjs",
+    "verify:phone-page": "node scripts/verify-phone-page.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
     "@tanstack/react-query": "^5.104.0",
     "@tauri-apps/api": "^2.12.1",
+    "@types/qrcode": "^1.5.6",
     "framer-motion": "^11.18.2",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "read-excel-file": "^9.3.10",

@@ -20,7 +20,9 @@ import { useAuth } from "../../app/AuthContext";
 import { DEMO } from "../../lib/supabase";
 import { useToast } from "../../components/organisms/Toast";
 import { useOverview } from "../../services/teacherOverview";
-import { readExamPhoto, type ExamResult } from "../../services/vision";
+import { readExamPhoto, readUploadedPhoto, type ExamResult } from "../../services/vision";
+import { closePhoneUpload, pickPhonePhotos, startPhoneUpload, type PhoneSession } from "../../services/phoneUpload";
+import { PhoneUploadDialog } from "../../components/organisms/PhoneUpload";
 import { assignmentsState, queryState } from "./states";
 
 /* 02 · Calificar: ¿qué detectó la IA y es correcto? Carga → procesamiento → revisión. */
@@ -31,7 +33,7 @@ export function UploadPage() {
   return DEMO ? <DemoUploadPage /> : <RealUploadPage />;
 }
 
-type QueueItem = { key: string; file: File; name: string; state: "queued" | "reading" | "done" | "review" | "unassigned" | "error"; note: string; result?: ExamResult };
+type QueueItem = { key: string; file?: File; path?: string; name: string; state: "queued" | "reading" | "done" | "review" | "unassigned" | "error"; note: string; result?: ExamResult };
 const QUEUE_DOT: Record<QueueItem["state"], ["success" | "processing" | "warning" | "error", string]> = {
   queued: ["warning", "En cola"], reading: ["processing", "Procesando"], done: ["success", "Listo"], review: ["warning", "Revisar"], unassigned: ["warning", "Sin estudiante"], error: ["error", "No se leyó"],
 };
@@ -46,6 +48,7 @@ function RealUploadPage() {
   const [evalId, setEvalId] = useState<string | undefined>();
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const running = useRef(false);
+  const pending = useRef<QueueItem[]>([]);
   const [showToast, toastNode] = useToast();
   const assignments = aq.data ?? [];
   const subjects = [...new Set(assignments.map((a) => a.subject))];
@@ -58,14 +61,15 @@ function RealUploadPage() {
 
   // La cola avanza de a una foto: así se respeta el límite del servicio y el panel muestra en qué va.
   async function run(items: QueueItem[]) {
+    pending.current.push(...items);
     if (running.current || !curEval || !profile) return;
     running.current = true;
     const evaluationId = curEval.id;
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
+    for (let i = 0; pending.current.length; i++) {
+      const it = pending.current.shift()!;
       setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state: "reading", note: "Leyendo código, nombre y nota…" } : x)));
       try {
-        const r = await readExamPhoto(profile.id, evaluationId, it.file, i);
+        const r = it.path ? await readUploadedPhoto(evaluationId, it.path) : await readExamPhoto(profile.id, evaluationId, it.file!, i);
         const g = r.detected === null ? "sin nota" : r.detected.toFixed(1);
         const state: QueueItem["state"] = !r.studentId ? "unassigned" : !r.saved || r.status === "needs-review" ? "review" : "done";
         const note = !r.studentId ? r.note + " No se guardó: anótala a mano en la planilla."
@@ -77,11 +81,47 @@ function RealUploadPage() {
         // Sin servicio configurado no tiene sentido seguir con las demás.
         if (/no está configurado|clave/.test(msg)) {
           showToast({ tone: "error", title: "El servicio de lectura no está listo", message: msg });
+          pending.current.forEach((x) => setQueue((q) => q.map((y) => (y.key === x.key ? { ...y, state: "error", note: msg } : y))));
+          pending.current = [];
           break;
         }
       }
     }
     running.current = false;
+  }
+
+  // Subir desde el celular: permiso de 20 minutos; cada 2,5 s se recogen las fotos nuevas y entran a la misma cola.
+  const [phone, setPhone] = useState<PhoneSession | null>(null);
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [phoneCount, setPhoneCount] = useState(0);
+  const [phoneErr, setPhoneErr] = useState<string | null>(null);
+  async function openPhone() {
+    if (!curEval) return;
+    setPhoneOpen(true); setPhoneErr(null);
+    if (phone && new Date(phone.expiresAt).getTime() > Date.now()) return;
+    try { setPhone(await startPhoneUpload(curEval.id)); setPhoneCount(0); } catch (e) { setPhoneErr(e instanceof Error ? e.message : "No pudimos generar el código."); }
+  }
+  async function renewPhone() { setPhone(null); if (curEval) { try { setPhone(await startPhoneUpload(curEval.id)); } catch (e) { setPhoneErr(e instanceof Error ? e.message : "No pudimos generar el código."); } } }
+  function finishPhone() { if (phone) void closePhoneUpload(phone.id); setPhone(null); setPhoneOpen(false); }
+  useEffect(() => {
+    if (!phone) return;
+    let stop = false;
+    const tick = async () => {
+      const paths = await pickPhonePhotos(phone.id);
+      if (stop || !paths.length) return;
+      setPhoneCount((n) => n + paths.length);
+      addPaths(paths);
+    };
+    const t = window.setInterval(() => { if (new Date(phone.expiresAt).getTime() + 30000 < Date.now()) { window.clearInterval(t); return; } void tick(); }, 2500);
+    return () => { stop = true; window.clearInterval(t); };
+  }, [phone?.id]);
+  // Cambiar de evaluación cierra el permiso: las fotos no pueden caer en otra.
+  useEffect(() => { if (phone) { void closePhoneUpload(phone.id); setPhone(null); setPhoneOpen(false); } }, [curEval?.id]);
+
+  function addPaths(paths: string[]) {
+    const fresh = paths.map((path, i) => ({ key: Date.now() + "-m" + i, path, name: "Foto del celular " + path.split("-").pop()!.replace(".jpg", ""), state: "queued" as const, note: "Llegó del celular · en espera" }));
+    setQueue((q) => q.concat(fresh));
+    void run(fresh);
   }
 
   function add(files: File[]) {
@@ -117,6 +157,13 @@ function RealUploadPage() {
             <Block label="Fotografías">
               <BlockTitle>2 · Fotografías</BlockTitle>
               {curEval ? <UploadZone hint="Arrastra las fotos del examen o haz clic. Una hoja por foto, con el código y el nombre del estudiante a la vista." onFiles={add} /> : null}
+              {curEval ? (
+                <div className="ns-phone-live">
+                  <Button variant="secondary" icon="qr" onClick={() => void openPhone()}>{phone ? "Ver el código del celular" : "Subir desde el celular"}</Button>
+                  {phone ? <StatusDot status="processing" label={"Celular conectado · " + (phoneCount === 1 ? "1 foto" : phoneCount + " fotos")} /> : <span className="ns-caption">Toma las fotos con el celular y llegan aquí solas.</span>}
+                  {phone ? <Button variant="ghost" size="sm" onClick={finishPhone}>Terminar</Button> : null}
+                </div>
+              ) : null}
               {queue.length ? (
                 <ul className="ns-list" style={{ marginTop: 16 }}>
                   {queue.map((f) => (
@@ -141,6 +188,8 @@ function RealUploadPage() {
           )}
         </div>
       )}
+      {curEval ? <PhoneUploadDialog open={phoneOpen} session={phone} received={phoneCount} evaluationName={curEval.name} error={phoneErr}
+        onClose={() => setPhoneOpen(false)} onRenew={() => void renewPhone()} onFinish={finishPhone} /> : null}
       {toastNode}
     </PageShell>
   );

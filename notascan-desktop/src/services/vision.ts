@@ -54,6 +54,13 @@ export async function readExamPhoto(userId: string, evaluationId: number, file: 
   return data as ExamResult;
 }
 
+/** Manda a leer una foto que ya está en la carpeta del docente (subida desde el celular). */
+export async function readUploadedPhoto(evaluationId: number, path: string): Promise<ExamResult> {
+  const { data, error } = await supabase().functions.invoke("read-exam", { body: { evaluation_id: evaluationId, photo_path: path } });
+  if (error) throw new Error(await functionMessage(error));
+  return data as ExamResult;
+}
+
 /** Secretaría · borra las fotos de exámenes de un periodo ya cerrado (las notas se conservan). */
 export async function purgePeriodPhotos(periodId: string): Promise<{ removed: number; grades: number }> {
   const { data, error } = await supabase().functions.invoke("purge-exam-photos", { body: { period_id: periodId } });

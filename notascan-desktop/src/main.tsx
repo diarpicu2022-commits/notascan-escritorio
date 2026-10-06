@@ -7,6 +7,7 @@ import "./styles/institution.css";
 import "./styles/platform.css";
 import "./styles/invitations.css";
 import "./styles/desktop.css";
+import "./styles/phone.css";
 import { App } from "./app/App";
 import { AuthProvider } from "./app/AuthContext";
 import { QueryClientProvider } from "@tanstack/react-query";

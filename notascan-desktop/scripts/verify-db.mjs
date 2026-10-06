@@ -562,6 +562,34 @@ try {
     !clearPhoto && after6e.photo_path === null && changeValue?.includes("está cerrada") && setPhoto?.includes("está cerrada"),
     JSON.stringify({ clearPhoto, changeValue, setPhoto, after6e }));
 
+  // ---------- Subir desde el celular (2026-10-06) ----------
+  {
+    const evAna = await one("select e.id from public.evaluations e join public.teaching_assignments a on a.id = e.assignment_id where a.teacher_email = 'ana.lucia@losandes.edu.co' and e.status <> 'cerrada' limit 1");
+    const evCarlos = await one("select e.id from public.evaluations e join public.teaching_assignments a on a.id = e.assignment_id where a.teacher_email <> 'ana.lucia@losandes.edu.co' limit 1") ?? (await db.query("insert into public.evaluations (assignment_id, name, kind, weight, status, institution_id) select a.id, 'Ajena', 'examen', 10, 'borrador', a.institution_id from public.teaching_assignments a where a.teacher_email <> 'ana.lucia@losandes.edu.co' limit 1 returning id")).rows[0];
+    const s1 = await as(ana, () => one("select * from public.start_phone_upload($1)", [evAna.id]));
+    check("Celular: el docente abre un permiso de 20 minutos con un código largo para su evaluación",
+      s1.token.length === 64 && /^[0-9a-f]+$/.test(s1.token) && Math.abs(new Date(s1.expires_at) - Date.now() - 20 * 60000) < 120000, JSON.stringify(s1));
+    const notMine = await as(ana, () => errorOf("select * from public.start_phone_upload($1)", [evCarlos.id]));
+    const notTeacher = await as(patricia, () => errorOf("select * from public.start_phone_upload($1)", [evAna.id]));
+    const anonStart = await as(null, () => errorOf("select * from public.start_phone_upload($1)", [evAna.id]));
+    check("Celular: no abre permiso para una evaluación ajena, ni lo pide Secretaría, ni alguien sin sesión",
+      notMine?.includes("no es tuya") && notTeacher?.includes("Solo un docente") && !!anonStart, JSON.stringify({ notMine, notTeacher, anonStart }));
+    const s2 = await as(ana, () => one("select * from public.start_phone_upload($1)", [evAna.id]));
+    const closedFirst = await one("select closed_at is not null c from public.phone_upload_sessions where id = $1", [s1.session_id]);
+    check("Celular: abrir un permiso nuevo cierra el anterior", closedFirst.c && s2.token !== s1.token);
+    await db.query("insert into public.phone_uploads (session_id, photo_path) values ($1, 'x/1/movil-1.jpg')", [s2.session_id]);
+    const anaSees = await as(ana, () => one("select count(*)::int n from public.phone_uploads"));
+    const carlosSees = await as(carlos, () => one("select (select count(*)::int from public.phone_uploads) u, (select count(*)::int from public.phone_upload_sessions) s"));
+    check("Celular: cada docente ve solo sus fotos y permisos", anaSees.n === 1 && carlosSees.u === 0 && carlosSees.s === 0, JSON.stringify({ anaSees, carlosSees }));
+    const pick = await as(ana, () => errorOf("update public.phone_uploads set picked_at = now()"));
+    const rewrite = await as(ana, () => errorOf("update public.phone_uploads set photo_path = 'otra.jpg'"));
+    check("Celular: el docente solo marca la foto como recogida (no cambia su ruta)", !pick && !!rewrite, JSON.stringify({ pick, rewrite }));
+    await as(ana, () => db.query("select public.close_phone_upload($1)", [s2.session_id]));
+    const closed2 = await one("select closed_at is not null c from public.phone_upload_sessions where id = $1", [s2.session_id]);
+    const tokenHidden = await as(carlos, () => one("select count(*)::int n from public.phone_upload_sessions where token = $1", [s2.token]));
+    check("Celular: cerrar el permiso lo cierra; otro docente no puede ver el código", closed2.c && tokenHidden.n === 0);
+  }
+
   // ---------- Rol de servicio: lo justo para invite-staff y purge-exam-photos (2026-10-06) ----------
   const svc = await one(`select
     has_table_privilege('service_role', 'public.staff_directory', 'select') sd, has_table_privilege('service_role', 'public.profiles', 'select') pr,

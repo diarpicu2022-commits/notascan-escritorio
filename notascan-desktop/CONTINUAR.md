@@ -204,3 +204,9 @@ Los textos legales que se redacten son borradores técnicos y los revisa un abog
   foco interior y sin el ojo de Edge (enmienda 7, `verify:fields-edge`). Si NotaScan está abierto, `tauri build` no puede
   reemplazar `notascan.exe`: compilar con `CARGO_TARGET_DIR=%LOCALAPPDATA%\notascan-build`.
 - **Siguiente:** alta del colegio y su Secretaría desde la consola de plataforma; prueba de punta a punta en escritorio.
+
+- **2026-10-06 · Subir desde el celular (hecho):** QR en Calificaciones → página pública
+  https://diarpicu2022-commits.github.io/notascan-subir/ (repo público `notascan-subir`, solo el HTML) → función
+  `phone-upload` (sin JWT; permiso de 20 min) → las fotos entran solas a la cola. Migración
+  `20261006200000_subir_desde_celular.sql` aplicada. Si cambia la página: editar `mobile-subir/index.html` y copiarla al
+  repo `notascan-subir`. Pendiente de Diego: clave de Anthropic (pestaña de Secrets lista con el nombre puesto).
