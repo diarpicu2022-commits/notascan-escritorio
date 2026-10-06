@@ -198,3 +198,9 @@ el art. 7 de la Ley 1581 exige respetar el interés superior del menor.
 - [ ] Cookies: no aplica a la app de escritorio (no hay rastreo); revisar si se publica una versión web.
 
 Los textos legales que se redacten son borradores técnicos y los revisa un abogado antes de usarlos.
+
+- **2026-10-06 · Correo y primera cuenta:** SMTP Brevo activo, 3 plantillas cargadas; Diego es administrador de
+  plataforma (`diarpicu2025@gmail.com`) y ya inició sesión. Arreglos: códigos de 6–10 dígitos; campos sin recuadro de
+  foco interior y sin el ojo de Edge (enmienda 7, `verify:fields-edge`). Si NotaScan está abierto, `tauri build` no puede
+  reemplazar `notascan.exe`: compilar con `CARGO_TARGET_DIR=%LOCALAPPDATA%\notascan-build`.
+- **Siguiente:** alta del colegio y su Secretaría desde la consola de plataforma; prueba de punta a punta en escritorio.
