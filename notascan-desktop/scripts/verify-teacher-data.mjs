@@ -35,7 +35,7 @@ const REVIEW = [
 let reminderSeen = false;
 const seenCalls = [];
 const writes = { grades: [], attendance: [], observations: [], period_concepts: [], evaluations: [], recoveries: [], director_messages: [] };
-const reject = { grades: null };
+const reject = { grades: null, abort: false };
 
 async function mockApi(page) {
   const user = { id: UID, aud: "authenticated", role: "authenticated", email: "ana.lucia@losandes.edu.co", app_metadata: {}, user_metadata: {} };
@@ -83,6 +83,7 @@ async function mockApi(page) {
     const req = r.request();
     if (req.method() === "POST") {
       writes.grades.push({ url: decodeURIComponent(req.url()), body: req.postDataJSON() });
+      if (reject.abort) return r.abort("failed"); // red caída a mitad de camino
       return reject.grades ? r.fulfill({ status: 400, json: { message: reject.grades } }) : r.fulfill({ status: 201, body: "" });
     }
     const u = decodeURIComponent(req.url());
@@ -322,6 +323,76 @@ try {
   const rw = writes.recoveries[0];
   report.check("Recuperaciones: guarda original y recuperación; el resultado y la firma los pone la base",
     rw && rw.url.includes("on_conflict=student_id,assignment_id") && rw.body.student_id === "20261189" && rw.body.assignment_id === 11 && rw.body.original === 2 && rw.body.recovery === 3.5 && !signed(rw.body), JSON.stringify(rw));
+
+  // ---------- Planilla sin conexión (6f): cola persistente en el equipo ----------
+  const queueInStorage = () => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("notascan.cola-planilla")).map((k) => JSON.parse(localStorage.getItem(k) ?? "[]")).flat());
+  const pill = page.locator(".ns-conn-pill");
+  await page.goto(URL_BASE + "#/teacher/gradebook");
+  await page.locator(".ns-gb").waitFor({ timeout: 10000 });
+  await page.waitForTimeout(400);
+  writes.grades.length = 0;
+  await ctx.setOffline(true);
+  await page.waitForTimeout(300);
+  report.check("Sin conexión: la píldora lo dice sola (sin interruptor de demostración)", (await pill.textContent()).includes("Modo offline"));
+  await page.locator(".ns-gb tbody tr").first().locator(".ns-gcell").nth(1).click();
+  await page.keyboard.press("3");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(400);
+  const q1 = await queueInStorage();
+  report.check("Sin conexión: la nota (María · Taller 3 · 3.0) queda en la cola de este equipo, marcada pendiente y sin enviarse",
+    writes.grades.length === 0 && q1.length === 1 && q1[0].studentId === "20261175" && q1[0].column === "102" && q1[0].value === 3
+      && (await page.locator(".ns-gb-status").textContent()).includes("Guardado en este equipo") && (await page.locator(".ns-gcell.is-pending").count()) === 1 && (await pill.textContent()).includes("1"),
+    JSON.stringify(q1));
+
+  // Vuelve la conexión pero la red falla al enviar: la nota sigue en la cola (error de sincronización).
+  reject.abort = true;
+  await ctx.setOffline(false);
+  await page.waitForTimeout(1500);
+  report.check("Al reconectar con la red fallando: «Error de sincronización» y la nota sigue en la cola", (await pill.textContent()).includes("Error de sincronización") && (await queueInStorage()).length === 1, await pill.textContent());
+
+  // Recargar la app: la cola sigue y la planilla muestra la nota pendiente.
+  await page.reload({ waitUntil: "networkidle" });
+  await page.locator(".ns-gb").waitFor({ timeout: 10000 });
+  await page.waitForTimeout(1200);
+  const cellAfter = await page.locator(".ns-gb tbody tr").first().locator(".ns-gcell").nth(1).textContent();
+  report.check("Tras recargar: la cola sigue en el equipo y la celda muestra 3.0 pendiente", cellAfter.startsWith("3.0") && (await page.locator(".ns-gcell.is-pending").count()) === 1 && (await queueInStorage()).length === 1, cellAfter);
+
+  // Sincronizar ahora con la red bien: se envía y la cola queda vacía.
+  reject.abort = false;
+  writes.grades.length = 0;
+  await pill.click();
+  await page.getByRole("button", { name: "Sincronizar ahora" }).click();
+  await page.waitForTimeout(1500);
+  const sent = writes.grades.at(-1);
+  report.check("«Sincronizar ahora» envía la nota a la base (verificada, sin firma del cliente) y vacía la cola",
+    sent && sent.body.evaluation_id === 102 && sent.body.student_id === "20261175" && sent.body.value === 3 && sent.body.status === "verified" && !signed(sent.body) && (await queueInStorage()).length === 0 && (await page.locator(".ns-gcell.is-pending").count()) === 0,
+    JSON.stringify(sent));
+  report.check("Después de sincronizar: conectado y con la hora de la última sincronización", (await pill.textContent()).includes("Conectado") && !(await page.locator(".ns-conn-pop").textContent()).includes("—"), await page.locator(".ns-conn-pop").textContent());
+  await page.keyboard.press("Escape");
+
+  // Si la base no acepta un cambio de la cola (evaluación cerrada), se quita y se dice cuál.
+  await ctx.setOffline(true);
+  await page.waitForTimeout(300);
+  await page.locator(".ns-gb tbody tr").first().locator(".ns-gcell").first().click();
+  await page.keyboard.press("2");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  reject.grades = "La evaluación está cerrada. Solicita el cambio de nota a Rectoría.";
+  await ctx.setOffline(false);
+  await page.waitForTimeout(1500);
+  if (!(await page.locator(".ns-conn-pop").isVisible())) await pill.click();
+  const pop = await page.locator(".ns-conn-pop").textContent();
+  report.check("Un cambio que la base rechaza se quita de la cola y la píldora dice cuál",
+    pop.includes("La base no aceptó 1 cambio") && pop.includes("María, Parcial 2: 2.0") && (await queueInStorage()).length === 0
+      && (await page.locator(".ns-gb-status").textContent()).includes("La base no aceptó 1 cambio") && !(await page.locator(".ns-gb-status").textContent()).includes("Se sincronizará"), pop);
+  reject.grades = null;
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: join(OUT, "paso6f-planilla-sin-conexion.png") });
+  await page.keyboard.press("Escape");
+  // Los errores de red de esta sección son el corte simulado (sin conexión y red caída), no fallos de la app.
+  const ownOffline = cons.filter((m) => !/ERR_FAILED|ERR_INTERNET_DISCONNECTED|Failed to fetch|status of (400|403|500)/.test(m));
+  report.check("Planilla sin conexión: consola sin errores propios", ownOffline.length === 0, ownOffline.join(" | "));
+  cons.length = 0;
 
   // ---------- Subir fotografías (6d): foto a la carpeta privada, lectura con read-exam y resultado por foto ----------
   // Imagen real (PNG 40×30) para que el equipo la pueda reducir antes de subirla.

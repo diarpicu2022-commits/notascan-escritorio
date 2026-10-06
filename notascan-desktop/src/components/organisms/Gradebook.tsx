@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useSync } from "../../app/SyncContext";
+import { isNetworkError } from "../../services/offlineQueue";
 import { cx } from "../../lib/cx";
 import { formatGrade, validateGrade } from "../../lib/grade";
 import { saveMessage, type GbColumn, type GbRow, type GradebookData } from "../../services/teacher";
@@ -63,9 +64,14 @@ interface GradebookProps {
 }
 
 export function Gradebook({ courses, course, onCourse, period, data, state, onSave }: GradebookProps) {
-  const { sync, setSync } = useSync();
+  const { sync, setSync, queue, enqueue, notice } = useSync();
   const cols = data?.columns ?? [];
-  const [rows, setRows] = useState<GbRow[]>(() => data?.rows ?? []);
+  // Con la cola real (paso 6f), lo que está guardado en este equipo y aún no llega a la base se ve en la planilla.
+  const overlay = (rs: GbRow[]) => (!queue?.length ? rs : rs.map((r) => {
+    const mine = queue.filter((q) => q.studentId === r.id);
+    return mine.length ? mine.reduce((acc, q) => (q.column in acc ? { ...acc, [q.column]: q.value } : acc), r) : r;
+  }));
+  const [rows, setRows] = useState<GbRow[]>(() => overlay(data?.rows ?? []));
   const [pos, setPos] = useState<Pos>({ r: 0, c: 0 });
   const [edit, setEdit] = useState<Pos | null>(null);
   const [draft, setDraft] = useState("");
@@ -78,7 +84,7 @@ export function Gradebook({ courses, course, onCourse, period, data, state, onSa
   useEffect(() => {
     if (lastData.current === data) return;
     lastData.current = data;
-    setRows(data?.rows ?? []); setPos({ r: 0, c: 0 }); setEdit(null);
+    setRows(overlay(data?.rows ?? [])); setPos({ r: 0, c: 0 }); setEdit(null);
   }, [data]);
   useEffect(() => {
     const el = refs.current[pos.r + "-" + pos.c];
@@ -116,7 +122,11 @@ export function Gradebook({ courses, course, onCourse, period, data, state, onSa
     setRows(rows.map((x, i) => (i !== pos.r ? x : { ...x, [k]: chk.value })));
     setEdit(null);
     const key = row.id + k;
-    if (offline) {
+    const queueIt = () => enqueue!({ studentId: row.id, column: k, value: chk.value, label: row.name.split(" ")[0] + ", " + cols[pos.c].label + ": " + formatGrade(chk.value), at: new Date().toISOString() });
+    if (enqueue && offline) {
+      queueIt();
+      setMsg({ tone: "warn", text: "Guardado en este equipo. Se sincronizará al reconectar." });
+    } else if (offline) {
       const p = { ...pend, [key]: true as const };
       setPend(p);
       setSync({ ...sync, pending: Object.keys(p).length });
@@ -124,6 +134,12 @@ export function Gradebook({ courses, course, onCourse, period, data, state, onSa
     } else {
       setMsg({ tone: "ok", text: "Guardado · " + row.name.split(" ")[0] + ", " + cols[pos.c].label + ": " + formatGrade(chk.value) });
       onSave?.(row.id, k, chk.value).catch((e) => {
+        // Sin red: la nota no se pierde, queda en la cola de este equipo.
+        if (enqueue && isNetworkError(e)) {
+          queueIt();
+          setMsg({ tone: "warn", text: "Sin conexión: " + row.name.split(" ")[0] + ", " + cols[pos.c].label + " quedó guardada en este equipo y se enviará al reconectar." });
+          return;
+        }
         setRows((rs) => rs.map((x) => (x.id === row.id ? { ...x, [k]: before } : x)));
         setMsg({ tone: "error", text: saveMessage(e) + " " + row.name.split(" ")[0] + ", " + cols[pos.c].label + " volvió a " + (isNaN(before as number) ? "—" : formatGrade(before as number)) + "." });
       });
@@ -131,6 +147,13 @@ export function Gradebook({ courses, course, onCourse, period, data, state, onSa
     return true;
   }
   useEffect(() => { if (sync.status === "online" && Object.keys(pend).length) setPend({}); }, [sync.status]);
+  // Marcas de «pendiente» de la cola real: celdas de esta planilla que aún no llegan a la base.
+  const queued: Record<string, true> = {};
+  (queue ?? []).forEach((q) => { queued[q.studentId + q.column] = true; });
+  const pendMarks = enqueue ? queued : pend;
+  // La barra no se queda diciendo «se sincronizará» cuando ya se envió, y avisa si la base no aceptó algo.
+  useEffect(() => { if (enqueue && !queue?.length) setMsg((m) => (m?.tone === "warn" ? null : m)); }, [enqueue, queue?.length]);
+  useEffect(() => { if (enqueue && notice) setMsg({ tone: "error", text: notice }); }, [enqueue, notice]);
 
   function onGridKey(e: KeyboardEvent) {
     if (edit) return;
@@ -186,7 +209,7 @@ export function Gradebook({ courses, course, onCourse, period, data, state, onSa
                     return (
                       <GradeCell
                         key={c.key} value={r[c.key] as number} label={r.name + ", " + c.label} active={active} editing={editing} draft={draft} onDraft={setDraft}
-                        error={editing && !!msg && msg.tone === "error"} pending={pend[r.id + c.key]}
+                        error={editing && !!msg && msg.tone === "error"} pending={pendMarks[r.id + c.key]}
                         cellRef={(el) => { refs.current[i + "-" + j] = el; }}
                         onSelect={() => { if (edit) commit(); setPos({ r: i, c: j }); }}
                         onEdit={() => { setPos({ r: i, c: j }); startEdit(); }}

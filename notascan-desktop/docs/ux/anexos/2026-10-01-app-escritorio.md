@@ -879,3 +879,35 @@ nueva. La lista final tiene exactamente tres funciones.
 Regresión completa en verde: read-exam 11/11, auth 20/20, data 8/8, teacher-data 53/53, admin-data 41/41,
 principal-data 41/41, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121,
 teacher 123/123, admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.
+
+### Paso 6f · Planilla sin conexión de verdad (2026-10-06)
+
+Diego aprueba 6e. Hasta aquí la «cola sin conexión» era la simulación del sistema: un interruptor de demostración,
+los pendientes en memoria (se perdían al recargar) y «Sincronizar» que esperaba un segundo sin enviar nada.
+Sin dirección nueva: la píldora de conexión y la planilla del sistema; en demostración no cambia (`verify:teacher`
+123/123, `verify:components` 121/121, `verify:shell` 62/62).
+
+- **Cola en el equipo** (`services/offlineQueue.ts`): `localStorage` por docente, sobrevive a recargar y a cerrar la
+  app; de cada celda se guarda la última nota escrita.
+- **Conexión real:** la píldora sigue los eventos `online`/`offline` del equipo (sin el interruptor de demostración
+  en la app conectada). Si un guardado falla por red estando «conectado», la nota pasa a la cola en vez de perderse
+  o revertirse.
+- **Sincronizar:** al volver la conexión, al abrir la app con pendientes o con «Sincronizar ahora», se envía cada nota
+  con la misma escritura de la planilla (la firma de «verificada» la pone la base). Red caída → «Error de
+  sincronización» y la cola se conserva. Regla de la base (evaluación cerrada, sin permiso) → se quita de la cola y
+  se dice cuál, en la píldora y en la barra de la planilla. Al terminar se recargan la planilla y la revisión, y la
+  «Última sincronización» es la hora real (antes, «08:42» fijo).
+- **Planilla:** muestra las notas de la cola sobre lo que trae la base, con su marca de pendiente; la barra no se queda
+  diciendo «se sincronizará» cuando ya se envió. De paso, «1 cambios pendientes» → «1 cambio pendiente».
+
+Verificación: `verify:teacher-data` 61/61 con la red del navegador cortada de verdad (`context.setOffline`): la nota
+queda en la cola sin enviarse y marcada; al reconectar con la red fallando, error y la cola intacta; tras recargar la
+app la nota sigue pendiente en su celda; «Sincronizar ahora» la envía verificada y vacía la cola; un cambio que la base
+rechaza se quita y se dice cuál.
+Fallos propios: la barra de la planilla seguía diciendo «Se sincronizará al reconectar» después de un rechazo
+(corregido); en la prueba, un clic que cerraba la ventana de la píldora y los errores de red del corte simulado que se
+contaban como errores de la app.
+
+Regresión completa en verde: read-exam 11/11, auth 20/20, data 8/8, teacher-data 61/61, admin-data 41/41,
+principal-data 41/41, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121,
+teacher 123/123, admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.

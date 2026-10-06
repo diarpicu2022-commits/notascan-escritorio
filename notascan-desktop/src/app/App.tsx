@@ -21,6 +21,7 @@ import type { SyncStatus } from "../types/domain";
 import { hrefFor, parseHash, type Route } from "./router";
 import { ShellContext } from "./ShellContext";
 import { SyncContext } from "./SyncContext";
+import { useRealSync } from "../services/offlineQueue";
 import { useAuth } from "./AuthContext";
 import { DEMO } from "../lib/supabase";
 import { ForbiddenPage } from "../pages/ForbiddenPage";
@@ -68,7 +69,8 @@ export function App() {
     return () => { window.removeEventListener("hashchange", on); window.clearTimeout(syncTimer.current); };
   }, []);
 
-  const syncValue = useMemo(() => ({
+  const realSync = useRealSync(auth.profile?.id);
+  const demoSync = useMemo(() => ({
     sync, setSync,
     onSync: () => {
       setSync((s) => ({ ...s, status: "syncing" }));
@@ -76,6 +78,8 @@ export function App() {
       syncTimer.current = window.setTimeout(() => setSync({ status: "online", last: hhmm(new Date()), pending: 0 }), 1200);
     },
   }), [sync]);
+  // Con sesión real, la conexión y la cola son las del equipo (paso 6f); en demostración, la simulación del sistema.
+  const syncValue = DEMO ? demoSync : realSync;
 
   // Vistas de verificación: solo en modo demostración (nunca en el build normal).
   if (route.kind === "dev" && DEMO) return route.view === "tokens" ? <TokenCheck /> : route.view === "components" ? <ComponentsCheck /> : route.view === "identity" ? <IdentityCheck /> : <CardCheck />;

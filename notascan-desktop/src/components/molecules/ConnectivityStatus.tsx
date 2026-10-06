@@ -20,10 +20,12 @@ interface ConnectivityStatusProps {
   defaultOpen?: boolean;
   onSync?: () => void;
   onToggleOffline?: (offline: boolean) => void;
+  /** Aviso de la última sincronización (p. ej. cambios que la base no aceptó). */
+  notice?: string;
 }
 
 /** Píldora de conexión del docente: trabajar sin conexión deja los cambios pendientes, nunca los pierde. */
-export function ConnectivityStatus({ status, lastSync, pending, defaultOpen, onSync, onToggleOffline }: ConnectivityStatusProps) {
+export function ConnectivityStatus({ status, lastSync, pending, defaultOpen, onSync, onToggleOffline, notice }: ConnectivityStatusProps) {
   const [open, setOpen] = useState(!!defaultOpen);
   const s = SYNC[status] || SYNC.online;
   return (
@@ -39,7 +41,8 @@ export function ConnectivityStatus({ status, lastSync, pending, defaultOpen, onS
           {status === "offline" ? <p>Tus cambios quedarán pendientes de sincronización.</p>
             : status === "error" ? <p>No pudimos sincronizar. Tus cambios siguen guardados en este equipo.</p> : null}
           <p className="ns-caption">Última sincronización: <strong>{lastSync || "08:42"}</strong></p>
-          {pending ? <p className="ns-caption">{pending + " cambios pendientes"}</p> : null}
+          {pending ? <p className="ns-caption">{pending + (pending === 1 ? " cambio pendiente" : " cambios pendientes")}</p> : null}
+          {notice ? <p className="ns-caption" role="status">{notice}</p> : null}
           <Button size="sm" icon="refresh" block loading={status === "syncing"} loadingText="Sincronizando…" disabled={status === "offline"} onClick={onSync}>Sincronizar ahora</Button>
           {onToggleOffline ? <Switch label="Trabajar sin conexión (demostración)" checked={status === "offline"} onChange={onToggleOffline} /> : null}
         </div>

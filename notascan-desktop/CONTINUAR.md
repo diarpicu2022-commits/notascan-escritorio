@@ -42,7 +42,7 @@ Lo primero que se lee al retomar.
       Comprobado en la base: 4 disparadores activos, funciones de firma no ejecutables por anon ni authenticated,
       `observations.author_id` con valor por defecto `auth.uid()`, orden en grades `closed > stamp > touch`.
     - Siguen con datos de demostración: Reportes y Subir fotografías (decisiones de formato y de servicio de visión).
-    - La cola sin conexión de la planilla sigue simulada (SyncContext). La asistencia usa una clase por día (hora 1).
+    - La cola sin conexión de la planilla es real desde 6f. La asistencia usa una clase por día (hora 1).
     - El encabezado del observador dice «El acudiente las ve en su aplicación.»: aún no es cierto (sin acceso del
       acudiente en la base); se cumple cuando exista la app móvil con su política.
   - **6b.3a (hecho y aprobado 2026-10-03, con sus cuatro decisiones):** Secretaría · Estructura, Malla, Periodos y Usuarios con datos
@@ -137,8 +137,11 @@ Lo primero que se lee al retomar.
 - **Paso 6e · Borrar fotos al cerrar el periodo (hecho 2026-10-06, esperando visto bueno):** función
   `purge-exam-photos` publicada, migración `20261006090000_borrado_fotos.sql` aplicada, Periodos borra al cerrar y
   permite reintentar. `verify:db` 146/146, `verify:admin-data` 41/41.
-- **Siguiente:** cola sin conexión real de la planilla, página de restablecimiento de contraseña, legal (política,
-  autorización del acudiente, transferencia de fotos a Anthropic, derechos del titular), compilar Tauri, cierre.
+- **6e aprobado (2026-10-06).**
+- **Paso 6f · Planilla sin conexión real (hecho 2026-10-06, esperando visto bueno):** cola persistente por docente,
+  conexión real, sincronización con rechazos explicados. `verify:teacher-data` 61/61. Sin migración.
+- **Siguiente:** página de restablecimiento de contraseña, legal (política, autorización del acudiente, transferencia
+  de fotos a Anthropic, derechos del titular), compilar Tauri, cierre.
   - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.
