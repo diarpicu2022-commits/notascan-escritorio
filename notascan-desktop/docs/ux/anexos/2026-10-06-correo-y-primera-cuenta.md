@@ -37,3 +37,20 @@ minúsculas; rechaza duplicado, inválido o si lo pide un colegio; quita solo a 
 `verify:platform` 30/30 (orden de bloques, vacío, validación, aviso), `verify:platform-auth` 15/15 (invita solo a esa
 persona, agrega y después invita, quitar pide confirmación y envía colegio + correo). Fallo propio: la primera prueba
 de quitar usaba una cuenta que otra prueba necesitaba más adelante.
+
+## Primera invitación real desde la consola: dos fallos de producción (2026-10-06)
+
+Hecha por el asistente con la sesión de plataforma de Diego en la app de escritorio (clics reales): se quitaron las
+tres secretarías ficticias de Los Andes y se agregó «Secretaría de prueba» (`firux386@gmail.com`).
+1. **«No pudimos consultar el directorio».** En este proyecto `service_role` no tenía permisos sobre las tablas de
+   `public` (medido: `has_table_privilege` → false). Fallaban `invite-staff` y también `purge-exam-photos` (cierre de
+   periodo). Migración `20261006170000_permisos_servicio.sql` (aplicada, `e04d764a905d`): solo lectura de directorio,
+   perfiles, asignaciones y evaluaciones, y en notas lectura + `update (photo_path)`. `invite-staff` devuelve ahora el
+   motivo en `detail` (publicada, `df97e85f9551`). Las pruebas con simuladores no podían ver esto.
+2. **La cuenta invitada aparecía «Activa» sin haber confirmado.** Supabase crea el usuario y marca `invited_at`
+   después; `handle_new_user` miraba `invited_at` al insertar. Migración `20261006180000_invitada_hasta_confirmar.sql`
+   (aplicada, `2eb9a4b175ec`): sin correo confirmado = invitada; corrige las cuentas ya creadas (firux386 → invited).
+`verify:db` 165/165 (nuevas: permisos exactos del rol de servicio; invitación con el orden real de Supabase).
+
+Resultado del envío: Brevo lo envió y **Gmail lo rechazó con rebote permanente** (hard bounce, 15:05): la dirección
+no existe o está mal escrita. La invitación de `diarpicu2025@gmail.com` (13:03) figura «Entregado».

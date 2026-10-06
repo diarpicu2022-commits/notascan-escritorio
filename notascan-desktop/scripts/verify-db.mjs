@@ -14,6 +14,7 @@ const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail }
 const SUPABASE_STUBS = `
   create role anon nologin;
   create role authenticated nologin;
+  create role service_role nologin bypassrls;
   create schema auth;
   create table auth.users (id uuid primary key default gen_random_uuid(), email text not null, invited_at timestamptz, email_confirmed_at timestamptz);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
@@ -66,7 +67,8 @@ try {
   check("Todas las tablas públicas tienen RLS activo", rlsOff.length === 0, rlsOff.join(", "));
 
   // ---------- 2. Cuentas: solo personal registrado ----------
-  const mk = async (email) => (await db.query("insert into auth.users (email) values ($1) returning id", [email])).rows[0].id;
+  // Cuentas ya confirmadas (Add user con confirmación automática). Las invitadas se prueban aparte (12b).
+  const mk = async (email) => (await db.query("insert into auth.users (email, email_confirmed_at) values ($1, now()) returning id", [email])).rows[0].id;
   const ana = await mk("ana.lucia@losandes.edu.co");          // docente de Matemáticas en los 6 cursos
   const carlos = await mk("carlos.perez@losandes.edu.co");    // docente de Física
   const patricia = await mk("patricia@losandes.edu.co");      // Secretaría
@@ -468,6 +470,13 @@ try {
   const inv1 = await one("select status from public.profiles where id = $1", [invited]);
   const invRole = await as(invited, () => one("select public.current_app_role()::text r, (select count(*)::int from public.students) n"));
   check("Invitación: el perfil queda «invitado», sin rol ni datos, hasta aceptar", inv1.status === "invited" && invRole.r === null && invRole.n === 0, JSON.stringify({ inv1, invRole }));
+  // Orden real de Supabase al invitar: crea el usuario sin invited_at y lo marca después (2026-10-06).
+  await db.query("insert into public.staff_directory (email, full_name, role, area, institution_id) values ('real@losandes.edu.co', 'Orden Real', 'admin', 'Secretaría académica', $1)", [A]);
+  const realInv = (await db.query("insert into auth.users (email) values ('real@losandes.edu.co') returning id")).rows[0].id;
+  await db.query("update auth.users set invited_at = now() where id = $1", [realInv]);
+  const realSt = await one("select status from public.profiles where id = $1", [realInv]);
+  const realRole = await as(realInv, () => one("select public.current_app_role()::text r"));
+  check("Invitación con el orden real de Supabase (invited_at después): queda invitada y sin rol hasta confirmar", realSt.status === "invited" && realRole.r === null, JSON.stringify({ realSt, realRole }));
   await db.query("update auth.users set email_confirmed_at = now() where id = $1", [invited]);
   const inv2 = await one("select status from public.profiles where id = $1", [invited]);
   const invRole2 = await as(invited, () => one("select public.current_app_role()::text r"));
@@ -552,6 +561,16 @@ try {
   check("Evaluación cerrada: se puede quitar la referencia a la foto, pero no cambiar la nota ni poner otra foto",
     !clearPhoto && after6e.photo_path === null && changeValue?.includes("está cerrada") && setPhoto?.includes("está cerrada"),
     JSON.stringify({ clearPhoto, changeValue, setPhoto, after6e }));
+
+  // ---------- Rol de servicio: lo justo para invite-staff y purge-exam-photos (2026-10-06) ----------
+  const svc = await one(`select
+    has_table_privilege('service_role', 'public.staff_directory', 'select') sd, has_table_privilege('service_role', 'public.profiles', 'select') pr,
+    has_table_privilege('service_role', 'public.teaching_assignments', 'select') ta, has_table_privilege('service_role', 'public.evaluations', 'select') ev,
+    has_table_privilege('service_role', 'public.grades', 'select') gs, has_column_privilege('service_role', 'public.grades', 'photo_path', 'update') gp,
+    has_column_privilege('service_role', 'public.grades', 'value', 'update') gv, has_table_privilege('service_role', 'public.staff_directory', 'insert') sdi,
+    has_table_privilege('service_role', 'public.students', 'select') st`);
+  check("Rol de servicio: lee directorio, perfiles, asignaciones, evaluaciones y notas, y solo cambia la ruta de la foto",
+    svc.sd && svc.pr && svc.ta && svc.ev && svc.gs && svc.gp && !svc.gv && !svc.sdi && !svc.st, JSON.stringify(svc));
 
   // ---------- 13. «supabase db reset»: todas las migraciones y después la semilla ----------
   {

@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     query = query.eq("email", email).eq("institution_id", myInstitution);
   }
   const { data: staff, error: staffErr } = await query;
-  if (staffErr) return reply(500, { error: "No pudimos consultar el directorio." });
+  if (staffErr) { console.error("staff_directory", staffErr); return reply(500, { error: "No pudimos consultar el directorio.", detail: staffErr.message }); }
   if (!staff?.length) return reply(404, { error: role === "platform" ? (body.email ? "Esa persona no es de la Secretaría de este colegio." : "El colegio no tiene una cuenta de Secretaría registrada.") : "Esa persona no está registrada en el directorio de tu colegio." });
 
   const { data: existing } = await admin.from("profiles").select("email, status").in("email", staff.map((s) => s.email));
