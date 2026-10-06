@@ -11,9 +11,32 @@
   },
   "app": {
     "windows": [
-      { "title": "NotaScan.", "width": 1440, "height": 900, "minWidth": 1024, "minHeight": 700, "center": true }
+      {
+        "title": "NotaScan.",
+        "width": 1280,
+        "height": 760,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "center": true,
+        "maximized": true
+      }
     ],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   },
-  "bundle": { "active": true, "targets": "all", "icon": [] }
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "shortDescription": "Calificaciones con IA: la IA detecta, el docente verifica.",
+    "publisher": "NotaScan",
+    "category": "Education"
+  }
 }

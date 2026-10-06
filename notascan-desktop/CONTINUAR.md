@@ -150,7 +150,11 @@ Lo primero que se lee al retomar.
   sin autorización; salud solo con autorización expresa; revocar con motivo), matrícula/importación con autorización,
   perfil con autorización y exportación de datos, aceptación de la política al entrar. `verify:db` 155/155,
   `verify:admin-data` 51/51, `verify:principal-data` 46/46. **Pendiente:** revisión de un abogado; supresión de datos.
-- **Siguiente:** compilar la app de escritorio con Tauri (instalar Rust + MSVC Build Tools) y el cierre.
+- **6g aprobado (2026-10-06).**
+- **Paso 6h · Tauri (hecho 2026-10-06, esperando visto bueno):** Rust 1.99 instalado; ícono con la marca del sistema;
+  ventana maximizada; `npm run tauri build` → `src-tauri/target/release/bundle/nsis/NotaScan_0.1.0_x64-setup.exe` y
+  `.../msi/NotaScan_0.1.0_x64_en-US.msi`. El ejecutable abre y muestra el inicio de sesión.
+- **Siguiente:** cierre (verificación completa en la app de escritorio con una cuenta de prueba, material de sustentación).
   Pendientes de Diego: clave de Anthropic; SMTP propio (después pego las plantillas); revisión del abogado.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.
@@ -175,7 +179,8 @@ npm run build && npm run verify:tokens
 npm run tauri dev        # ventana nativa: requiere Rust (rustup) y, en Windows, MSVC Build Tools + WebView2
 ```
 
-Rust no está instalado en este equipo (2026-10-01): `src-tauri/` está configurado pero no se ha compilado.
+Rust 1.99 instalado el 2026-10-06 (rustup, MSVC). `npm run tauri build` produce los instaladores en
+`src-tauri/target/release/bundle/` (NSIS y MSI). Ícono: `node scripts/make-icon.mjs && npx tauri icon src-tauri/icons/app-icon.png`.
 
 ## Privacidad y legal (desde el diseño, aún sin hacer)
 

@@ -960,3 +960,26 @@ qué se conserva por el deber legal del registro académico).
 Regresión completa en verde: read-exam 11/11, auth 20/20, data 8/8, teacher-data 61/61, admin-data 51/51,
 principal-data 46/46, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121,
 teacher 123/123, admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.
+
+### Paso 6h · App de escritorio compilada con Tauri (2026-10-06)
+
+Diego aprueba 6g y autoriza instalar las herramientas. **Rust 1.99** (rustup 1.29.1, `winget install Rustlang.Rustup`,
+hash verificado por winget, desde static.rust-lang.org); las **Build Tools de C++ ya estaban** (Visual Studio Build
+Tools 2026) y WebView2 viene con Windows 11 — no hubo que descargar los ~5 GB.
+
+- **Ícono:** la marca «N» del sistema (`.ns-logo-mark`: dorado, borde navy, Fraunces) dibujada a 1024 px con los
+  estilos de la app (`scripts/make-icon.mjs`), con el borde y la esquina engrosados y peso 800 para que se lea pequeña;
+  `tauri icon` genera los tamaños (se quitaron los de Android e iOS). A 16 px el trazo fino de la «N» se pierde, pero
+  el cuadro dorado con borde navy sigue siendo reconocible.
+- **Ventana:** abre **maximizada** (en 1536×816 útiles —pantalla 1920×1080 al 125 %— una ventana de 900 px de alto no
+  cabía); restaurada queda en 1280×760 (cabe en 1366×768); mínimo 1024×700 como antes.
+- **Compilación:** `npm run tauri build` compila la app conectada a Supabase (`npm run build`) y produce
+  `NotaScan_0.1.0_x64-setup.exe` (NSIS, 2,04 MB) y `NotaScan_0.1.0_x64_en-US.msi` (2,96 MB) en
+  `src-tauri/target/release/bundle/` (no se suben al repositorio). Sin errores; solo el aviso de Vite por el tamaño del
+  paquete JavaScript.
+
+Verificación: el ejecutable abre la ventana «NotaScan.» con su ícono, se mantiene en ejecución (26 MB de memoria) y
+muestra el inicio de sesión completo maximizado (captura a resolución física `verify-out/paso6h-tauri-maximizada.png`).
+Fallo propio en la verificación: la primera captura salía cortada porque el script no tenía en cuenta la escala de
+pantalla (125 %); con `SetProcessDPIAware` se ve completa. **Pendiente:** probar dentro de la app de escritorio el
+inicio de sesión real, la impresión a PDF y las descargas (Excel, CSV, JSON) — requiere una cuenta de prueba.
