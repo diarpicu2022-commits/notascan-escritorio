@@ -133,8 +133,12 @@ Lo primero que se lee al retomar.
   código + nombre siempre, `match.ts`), subida a la carpeta privada, resultado por foto. `verify:read-exam` 11/11,
   `verify:teacher-data` 53/53.
   - **Pendiente de Diego:** clave en console.anthropic.com → Supabase → Edge Functions → Secrets → `ANTHROPIC_API_KEY`.
-- **Siguiente:** borrar las fotos al cerrar el periodo; después cola sin conexión real, página de restablecimiento,
-  legal (incluye la transferencia de fotos a Anthropic), compilar Tauri, cierre.
+- **6d aprobado (2026-10-06).** La clave de Anthropic la crea y la pega Diego (no la manejo yo: cuentas, pagos y claves).
+- **Paso 6e · Borrar fotos al cerrar el periodo (hecho 2026-10-06, esperando visto bueno):** función
+  `purge-exam-photos` publicada, migración `20261006090000_borrado_fotos.sql` aplicada, Periodos borra al cerrar y
+  permite reintentar. `verify:db` 146/146, `verify:admin-data` 41/41.
+- **Siguiente:** cola sin conexión real de la planilla, página de restablecimiento de contraseña, legal (política,
+  autorización del acudiente, transferencia de fotos a Anthropic, derechos del titular), compilar Tauri, cierre.
   - Después: Reportes del Docente y Subir fotografías.
   - Verificación: `npm run build:demo` antes de `verify:tokens|card|shell|components|teacher|admin|principal|states`;
     `npm run build` antes de `verify:auth|data|teacher-data|admin-data`.

@@ -849,3 +849,33 @@ pruebas, ruta equivocada (`grade` en vez de `grades`), selector ambiguo y un PNG
 Regresión completa en verde: read-exam 11/11, auth 20/20, data 8/8, teacher-data 53/53, admin-data 39/39,
 principal-data 41/41, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121,
 teacher 123/123, admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.
+
+### Paso 6e · Borrar las fotos al cerrar el periodo (2026-10-06)
+
+Diego aprueba 6d y autoriza ejecutar en Supabase. Pide además que cree la clave de Anthropic: **no lo hago** —crear
+cuentas, cargar saldo con un medio de pago y copiar o pegar claves de API son acciones que me corresponde no hacer
+aunque haya autorización; la clave da acceso a su dinero—; queda como pendiente suyo (tres pasos, ~5 min).
+
+- **Función `purge-exam-photos`** (publicada desde el editor, cotejada `58359567…`; sin sesión, 401): solo Secretaría,
+  solo un periodo de su colegio que ya esté **cerrado** (comprobado con su sesión). Con la clave de servicio (dentro de
+  la función) borra la carpeta completa `<docente>/<evaluación>/` de cada evaluación del periodo —también las fotos que
+  no se pudieron asignar— y quita `photo_path` de las notas. **Las notas se conservan.**
+- **Migración `20261006090000_borrado_fotos.sql`** (aplicada, cotejada `c6cbb95b…`, comprobada en el catálogo): la
+  evaluación cerrada protege la **nota** (valor, lectura, estado, estudiante) y no la referencia a la foto; antes el
+  disparador bloqueaba cualquier cambio y el borrado habría fallado justo al cerrar el periodo. Poner otra foto en una
+  evaluación cerrada sigue bloqueado.
+- **En Secretaría → Periodos:** guardar un periodo como «Cerrado» borra sus fotos y lo dice («Se borraron 7 fotos de
+  exámenes. Las notas se conservan.»). Si el borrado falla, el periodo cerrado ofrece «Borrar fotos de exámenes del
+  periodo» para reintentar (botón secundario del sistema, solo en la app conectada; antes el aviso pedía «volver a
+  guardar», imposible con el periodo bloqueado — corregido antes de entregar).
+
+Verificación: `verify:db` 146/146 (quitar la foto de una nota cerrada sí; cambiar la nota o poner otra foto, no),
+`verify:admin-data` 41/41 (cerrar llama a `purge-exam-photos` con el periodo y avisa cuántas; el reintento informa el
+error), la función compila sin errores de tipos.
+Fallo propio en Supabase: un intento de abrir el editor de funciones quedó bloqueado por cambios sin guardar en el SQL
+Editor y el código de la función se cargó **en el editor SQL, sin ejecutarse**; se vació y se publicó desde una pestaña
+nueva. La lista final tiene exactamente tres funciones.
+
+Regresión completa en verde: read-exam 11/11, auth 20/20, data 8/8, teacher-data 53/53, admin-data 41/41,
+principal-data 41/41, platform-auth 9/9, invite 14/14, tokens 26/26, card 51/51, shell 62/62, components 121/121,
+teacher 123/123, admin 105/105, principal 76/76, states 98/98, identity 25/25, platform 26/26, principal-viewports 18/18.

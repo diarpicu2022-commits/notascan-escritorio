@@ -490,6 +490,20 @@ try {
   const repAnon = await as(null, () => errorOf("select * from public.generated_reports"));
   check("Sin sesión no se lee el historial de reportes", repAnon?.includes("permission denied"), repAnon || "leyó");
 
+  // ---------- 12f. Evaluación cerrada: protege la nota, no la referencia a la foto (borrado de fotos, 6e) ----------
+  const cg = await one("select g.id, g.evaluation_id from public.grades g join public.evaluations e on e.id = g.evaluation_id where e.status = 'cerrada' limit 1");
+  await db.query("update public.grades set photo_path = 'x/1/foto.jpg' where id = $1", [cg.id]).catch(() => null);
+  await db.query("update public.evaluations set status = 'en-revision' where id = $1", [cg.evaluation_id]);
+  await db.query("update public.grades set photo_path = 'x/1/foto.jpg' where id = $1", [cg.id]);
+  await db.query("update public.evaluations set status = 'cerrada' where id = $1", [cg.evaluation_id]);
+  const clearPhoto = await errorOf("update public.grades set photo_path = null where id = $1", [cg.id]);
+  const changeValue = await errorOf("update public.grades set value = 1.0 where id = $1", [cg.id]);
+  const setPhoto = await errorOf("update public.grades set photo_path = 'x/1/otra.jpg' where id = $1", [cg.id]);
+  const after6e = await one("select photo_path from public.grades where id = $1", [cg.id]);
+  check("Evaluación cerrada: se puede quitar la referencia a la foto, pero no cambiar la nota ni poner otra foto",
+    !clearPhoto && after6e.photo_path === null && changeValue?.includes("está cerrada") && setPhoto?.includes("está cerrada"),
+    JSON.stringify({ clearPhoto, changeValue, setPhoto, after6e }));
+
   // ---------- 13. «supabase db reset»: todas las migraciones y después la semilla ----------
   {
     const fresh = new PGlite();

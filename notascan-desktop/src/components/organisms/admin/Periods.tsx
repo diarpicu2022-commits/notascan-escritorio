@@ -13,6 +13,7 @@ import { EmptyState } from "../EmptyState";
 import { ErrorState, LoadingBlocks } from "../QueryState";
 import { useToast } from "../Toast";
 import { useMyInstitution, useSaveGoal } from "../../../services/institution";
+import { purgePeriodPhotos } from "../../../services/vision";
 
 export type { WeightItem };
 
@@ -108,6 +109,17 @@ export function PeriodConfigurator() {
     setSel((cur) => (list.some((x) => x.id === cur) ? cur : initialSel(list)));
   }, [q.data]);
   const [showToast, toastNode] = useToast();
+  const [purging, setPurging] = useState(false);
+  // Borra las fotos de un periodo cerrado; también se puede reintentar desde el periodo cerrado.
+  async function purge(periodId: string, closing = false) {
+    setPurging(true);
+    try {
+      const r = await purgePeriodPhotos(periodId);
+      showToast({ tone: "success", title: closing ? "Periodo cerrado" : "Fotos borradas", message: r.removed ? "Se borraron " + r.removed + (r.removed === 1 ? " foto" : " fotos") + " de exámenes. Las notas se conservan." : "No había fotos de exámenes para borrar." });
+    } catch (e) {
+      showToast({ tone: "error", title: closing ? "Periodo cerrado, pero las fotos no se borraron" : "No se borraron las fotos", message: (e instanceof Error ? e.message + " " : "") + "Usa «Borrar fotos de exámenes del periodo» para intentarlo de nuevo." });
+    } finally { setPurging(false); }
+  }
   const pwTotal = pw.reduce((a, x) => a + (Number(x.weight) || 0), 0);
   const p = periods.find((x) => x.id === sel);
 
@@ -152,6 +164,9 @@ export function PeriodConfigurator() {
         <Block className="ns-period-editor">
           <BlockTitle action={<Badge tone={PST[p.status][1]} icon={PST[p.status][2]}>{PST[p.status][0]}</Badge>}>{p.name + " · " + p.year}</BlockTitle>
           {locked ? <p className="ns-sensitive"><Icon name="lock" size={16} />Este periodo está cerrado. Sus porcentajes se conservan como parte del historial.</p> : null}
+          {locked && !DEMO ? (
+            <div><Button variant="secondary" size="sm" icon="trash" loading={purging} loadingText="Borrando…" onClick={() => purge(p.id)}>Borrar fotos de exámenes del periodo</Button></div>
+          ) : null}
           <div className="ns-form-grid">
             <Select label="Año lectivo" value={String(p.year)} options={[String(p.year)]} disabled={locked} />
             <Select label="Estado" value={p.status} onChange={(v) => upd({ status: v as PeriodStatus })} options={[{ value: "draft", label: "Borrador" }, { value: "open", label: "Abierto" }, { value: "closed", label: "Cerrado" }]} />
@@ -163,10 +178,17 @@ export function PeriodConfigurator() {
           {locked ? null : (
             <div className="ns-reg-actions">
               <span />
-              <Button icon="check" disabled={total !== 100 || badDates} loading={saveMut.isPending} onClick={() => saveMut.mutateAsync(p).then(
-                () => showToast({ tone: "success", title: "Periodo guardado", message: p.name + " · " + p.items.map((x) => x.weight + "% " + x.name).join(" · ") }),
-                (e) => showToast({ tone: "error", title: "No pudimos guardar el periodo", message: adminMessage(e) }),
-              )}>Guardar periodo</Button>
+              <Button icon="check" disabled={total !== 100 || badDates} loading={saveMut.isPending || purging} onClick={() => {
+                // Cerrar el periodo borra sus fotos de exámenes (decisión de Diego); las notas se conservan.
+                const closing = p.status === "closed" && stored?.status !== "closed";
+                saveMut.mutateAsync(p).then(
+                  async () => {
+                    if (!closing || DEMO) return showToast({ tone: "success", title: "Periodo guardado", message: p.name + " · " + p.items.map((x) => x.weight + "% " + x.name).join(" · ") });
+                    await purge(p.id, true);
+                  },
+                  (e) => showToast({ tone: "error", title: "No pudimos guardar el periodo", message: adminMessage(e) }),
+                );
+              }}>Guardar periodo</Button>
             </div>
           )}
         </Block>

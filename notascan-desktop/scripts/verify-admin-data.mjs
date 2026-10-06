@@ -21,6 +21,7 @@ const PERIODS = [
 const COMPONENTS = PERIODS.flatMap((p) => [["Actividades", 40], ["Exámenes", 30], ["Talleres", 20], ["Actitudinal", 10]].map(([name, weight], i) => ({ period_id: p.id, name, weight, position: i + 1 })));
 
 const writes = [];
+let purgeFails = false;
 const record = (r) => { const q = r.request(); writes.push({ method: q.method(), url: decodeURIComponent(q.url()), body: q.postDataJSON() }); };
 const last = (method, table) => writes.filter((w) => w.method === method && w.url.includes("/rest/v1/" + table)).pop();
 
@@ -32,12 +33,15 @@ async function mockApi(page) {
   await page.route("**/auth/v1/token**", (r) => r.fulfill({ json: { access_token: jwt, token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: "r", user } }));
   await page.route("**/auth/v1/user**", (r) => r.fulfill({ json: user }));
   await page.route("**/auth/v1/recover**", (r) => { record(r); r.fulfill({ json: {} }); });
+  await page.route("**/functions/v1/purge-exam-photos**", (r) => { record(r); return purgeFails ? r.fulfill({ status: 500, json: { error: "No pudimos borrar todas las fotos." } }) : r.fulfill({ json: { removed: 7, grades: 5 } }); });
   await page.route("**/functions/v1/invite-staff**", (r) => { record(r); r.fulfill({ json: { sent: [r.request().postDataJSON().email] } }); });
   await page.route("**/rest/v1/rpc/**", (r) => {
     record(r);
     const u = r.request().url();
     if (u.includes("enroll_students")) return r.fulfill({ json: r.request().postDataJSON().p.length });
     if (u.includes("enroll_student")) return r.fulfill({ json: "20261211" });
+    // save_period cambia el estado del periodo simulado (para ver el periodo cerrado al recargar).
+    if (u.includes("save_period")) { const b = r.request().postDataJSON(); const per = PERIODS.find((x) => x.id === b.p_id); if (per) per.status = b.p_status; }
     return r.fulfill({ status: 204, body: "" });
   });
   await page.route("**/rest/v1/profiles**", (r) => {
@@ -316,6 +320,27 @@ try {
   await page.locator(".ns-sidebar-course").waitFor({ timeout: 10000 });
   await page.waitForFunction(() => document.querySelector(".ns-sidebar-course")?.textContent?.includes("Periodo"), null, { timeout: 8000 }).catch(() => {});
   report.check("Menú (Secretaría): año lectivo con el periodo abierto de la base", (await page.locator(".ns-sidebar-course").textContent()) === "Año lectivo2026 · Periodo 3", await page.locator(".ns-sidebar-course").textContent());
+
+  // ---------- Cerrar el periodo borra sus fotos de exámenes (6e) ----------
+  await page.goto(URL_BASE + "#/admin/periods");
+  await page.locator(".ns-period-editor").waitFor({ timeout: 10000 });
+  await page.getByRole("tab", { name: /Periodo 3/ }).click();
+  await page.locator(".ns-period-editor").getByLabel("Estado").selectOption("closed");
+  await page.locator(".ns-period-editor").getByRole("button", { name: "Guardar periodo" }).click();
+  await toastTitle(page, "Periodo cerrado");
+  const purgeCall = writes.filter((w) => w.url.includes("/functions/v1/purge-exam-photos")).pop();
+  report.check("Cerrar el periodo borra sus fotos (purge-exam-photos con el periodo) y dice cuántas, con las notas a salvo",
+    JSON.stringify(purgeCall?.body) === JSON.stringify({ period_id: "2026-p3" }) && (await page.locator(".ns-toast-text").last().textContent()) === "Se borraron 7 fotos de exámenes. Las notas se conservan.", JSON.stringify(purgeCall?.body));
+  const retry = page.locator(".ns-period-editor").getByRole("button", { name: "Borrar fotos de exámenes del periodo" });
+  await retry.waitFor({ timeout: 8000 });
+  purgeFails = true;
+  await retry.click();
+  await toastTitle(page, "No se borraron las fotos");
+  report.check("Periodo cerrado: si el borrado falla lo dice y se puede reintentar desde el periodo",
+    (await page.locator(".ns-toast-text").last().textContent()) === "No pudimos borrar todas las fotos. Usa «Borrar fotos de exámenes del periodo» para intentarlo de nuevo.");
+  purgeFails = false;
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: join(OUT, "paso6e-periodo-cerrado.png") });
 
   // ---------- Meta institucional (6b.4b, enmienda 5) ----------
   await page.goto(URL_BASE + "#/admin/periods");
