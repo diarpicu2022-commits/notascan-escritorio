@@ -16,3 +16,7 @@
 
 /* Gráfico de actividad: el SVG del sistema escala con el ancho; se limita para que el texto quede a su tamaño. */
 .ns-plat-chart { max-width: 640px; }
+
+/* Secretaría del colegio (2026-10-06): la columna de acciones reserva el ancho de dos botones de icono (34 + 2 + 34)
+   aunque la fila no tenga acciones, para que las insignias de estado queden alineadas. */
+.ns-sec-actions { flex: none; width: 70px; }

@@ -92,7 +92,7 @@ export function useSchools() {
 
 /* ---------- Requiere atención ---------- */
 
-export interface Attention { key: string; tone: "gold" | "burgundy"; title: string; detail: string; target: "identity" | "service" | "usage" }
+export interface Attention { key: string; tone: "gold" | "burgundy"; title: string; detail: string; target: "identity" | "service" | "usage" | "secretaries" }
 
 const daysUntil = (iso: string) => Math.ceil((new Date(iso + "T23:59:59").getTime() - Date.now()) / 86400000);
 
@@ -107,8 +107,8 @@ export function attentionOf(s: SchoolRow): Attention[] {
   }
   if (i.status === "active" && s.weekly.length && s.weekly.slice(-2).every((n) => n === 0)) out.push({ key: "idle", tone: "burgundy", title: "Sin uso en las últimas dos semanas", detail: "No hay notas verificadas ni asistencia tomada.", target: "usage" });
   if (s.adoption === "drops" && i.status === "active") out.push({ key: "drops", tone: "gold", title: "El uso viene cayendo", detail: "Las últimas 4 semanas tienen más de un 20 % menos de actividad que las 4 anteriores.", target: "usage" });
-  if (!s.secretaries) out.push({ key: "no-admin", tone: "burgundy", title: "Sin cuenta de Secretaría registrada", detail: "Nadie del colegio puede configurar la estructura ni matricular.", target: "service" });
-  else if (!s.accounts && i.status !== "suspended") out.push({ key: "no-login", tone: "gold", title: "Nadie del colegio ha entrado todavía", detail: "La Secretaría registrada aún no activa su cuenta. Puedes reenviarle la invitación.", target: "service" });
+  if (!s.secretaries) out.push({ key: "no-admin", tone: "burgundy", title: "Sin cuenta de Secretaría registrada", detail: "Nadie del colegio puede configurar la estructura ni matricular.", target: "secretaries" });
+  else if (!s.accounts && i.status !== "suspended") out.push({ key: "no-login", tone: "gold", title: "Nadie del colegio ha entrado todavía", detail: "La Secretaría registrada aún no activa su cuenta. Puedes reenviarle la invitación.", target: "secretaries" });
   if (!i.logoUrl) out.push({ key: "no-logo", tone: "gold", title: "Sin logo", detail: "Los boletines salen con las iniciales del colegio.", target: "identity" });
   if (!i.resolution.trim() || !i.dane.trim()) out.push({ key: "no-legal", tone: "gold", title: "Faltan resolución o DANE", detail: "El encabezado de los boletines sale incompleto.", target: "identity" });
   return out;
@@ -176,7 +176,9 @@ export function useSaveService() {
 /** Pide a la función invite-staff que envíe la invitación (código numérico por correo). */
 export async function sendInvitation(target: { institutionId?: string; email?: string }): Promise<string[]> {
   if (DEMO) { await new Promise((r) => window.setTimeout(r, 600)); return [target.email ?? "secretaria@colegio.edu.co"]; }
-  const { data, error } = await supabase().functions.invoke("invite-staff", { body: target.institutionId ? { institution_id: target.institutionId } : { email: target.email } });
+  // Plataforma: colegio y, si se indica, la persona concreta. Secretaría: solo el correo (siempre de su colegio).
+  const body = target.institutionId ? { institution_id: target.institutionId, ...(target.email ? { email: target.email } : {}) } : { email: target.email };
+  const { data, error } = await supabase().functions.invoke("invite-staff", { body });
   if (error) {
     // El cuerpo de la respuesta trae el motivo en español (sin cuenta de Secretaría, ya activa, límite de correos…).
     const ctx = (error as { context?: Response }).context;
@@ -184,4 +186,56 @@ export async function sendInvitation(target: { institutionId?: string; email?: s
     throw new Error(detail || "No pudimos enviar la invitación. Revisa tu conexión e inténtalo de nuevo.");
   }
   return (data as { sent?: string[] }).sent ?? [];
+}
+
+/* ---------- Cuentas de Secretaría de un colegio (2026-10-06) ---------- */
+
+export type SecretaryAccount = "none" | "invited" | "active" | "inactive";
+export interface Secretary { email: string; name: string; account: SecretaryAccount; lastSeen: string | null }
+
+const DEMO_SECRETARIES: Record<string, Secretary[]> = {
+  "00000000-0000-4000-8000-000000000001": [
+    { email: "claudia@losandes.edu.co", name: "Claudia Enríquez", account: "active", lastSeen: new Date().toISOString() },
+    { email: "patricia@losandes.edu.co", name: "Patricia Ortega", account: "invited", lastSeen: null },
+  ],
+  "demo-lm": [{ email: "secretaria@lamerced.edu.co", name: "Rosa Erazo", account: "none", lastSeen: null }],
+};
+
+/** Quiénes son la Secretaría de un colegio y en qué estado está su cuenta (solo la plataforma). */
+export function useSecretaries(institutionId: string | undefined) {
+  return useQuery({
+    queryKey: ["secretaries", institutionId, forcedState()],
+    enabled: !!institutionId,
+    queryFn: async (): Promise<Secretary[]> => {
+      if (DEMO) return demoData(DEMO_SECRETARIES[institutionId!] ?? [], []);
+      const r = await supabase().rpc("platform_secretaries", { p_institution: institutionId });
+      throwIf(r);
+      return ((r.data ?? []) as Array<{ email: string; full_name: string; account: SecretaryAccount; last_seen: string | null }>)
+        .map((x) => ({ email: x.email, name: x.full_name, account: x.account, lastSeen: x.last_seen }));
+    },
+  });
+}
+
+/** Registra una cuenta de Secretaría en el directorio del colegio (después se le envía la invitación). */
+export function useAddSecretary(institutionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { name: string; email: string }) => {
+      if (DEMO) { await new Promise((r) => window.setTimeout(r, 400)); return; }
+      throwIf(await supabase().rpc("platform_add_secretary", { p_institution: institutionId, p_email: v.email, p_name: v.name }));
+    },
+    onSuccess: () => { if (!DEMO) { qc.invalidateQueries({ queryKey: ["secretaries", institutionId] }); qc.invalidateQueries({ queryKey: ["schools"] }); } },
+  });
+}
+
+/** Quita del directorio a quien nunca activó su cuenta (correo mal escrito, cuentas de prueba). */
+export function useRemoveSecretary(institutionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (email: string) => {
+      if (DEMO) { await new Promise((r) => window.setTimeout(r, 400)); return; }
+      throwIf(await supabase().rpc("platform_remove_secretary", { p_institution: institutionId, p_email: email }));
+    },
+    onSuccess: () => { if (!DEMO) { qc.invalidateQueries({ queryKey: ["secretaries", institutionId] }); qc.invalidateQueries({ queryKey: ["schools"] }); } },
+  });
 }

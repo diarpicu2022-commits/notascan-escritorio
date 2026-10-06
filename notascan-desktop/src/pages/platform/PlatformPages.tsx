@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useShell } from "../../app/ShellContext";
 import { Badge, type BadgeTone } from "../../components/atoms/Badge";
 import { Button } from "../../components/atoms/Button";
-import { SegmentedTabs } from "../../components/atoms/Controls";
+import { Avatar } from "../../components/atoms/Avatar";
+import { IconAction, SegmentedTabs } from "../../components/atoms/Controls";
 import { Input, Select } from "../../components/atoms/Field";
 import { Icon, type IconName } from "../../components/atoms/Icon";
 import { BarChart } from "../../components/organisms/Charts";
@@ -19,7 +20,8 @@ import { DEMO } from "../../lib/supabase";
 import { lastSeen } from "../../services/admin";
 import type { Institution, InstitutionStatus } from "../../services/institution";
 import {
-  attentionOf, platformMessage, sendInvitation, useCreateSchool, useSaveIdentity, useSaveService, useSchools, type Adoption, type NewSchool, type SchoolRow,
+  attentionOf, platformMessage, sendInvitation, useAddSecretary, useCreateSchool, useRemoveSecretary, useSaveIdentity, useSaveService, useSchools, useSecretaries,
+  type Adoption, type NewSchool, type SchoolRow, type Secretary, type SecretaryAccount,
 } from "../../services/platform";
 
 /*
@@ -162,8 +164,7 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
   const [tried, setTried] = useState(false);
   const [svc, setSvc] = useState<{ status: InstitutionStatus; plan: string; contractUntil: string } | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
-  const [inviting, setInviting] = useState(false);
-  const identityRef = useRef<HTMLDivElement>(null), serviceRef = useRef<HTMLDivElement>(null), usageRef = useRef<HTMLDivElement>(null);
+  const identityRef = useRef<HTMLDivElement>(null), serviceRef = useRef<HTMLDivElement>(null), usageRef = useRef<HTMLDivElement>(null), secretariesRef = useRef<HTMLDivElement>(null);
   // Al llegar (o recargar) los datos del colegio, el formulario parte de lo guardado.
   useEffect(() => {
     if (!school) return;
@@ -187,7 +188,7 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
   const dirty = JSON.stringify({ ...value, logoUrl: null }) !== JSON.stringify({ ...i, logoUrl: null }) || !!logo || removeLogo;
   const errs = identityErrors(value);
   const invalid = !!(errs.name || errs.shortName || errs.dane);
-  const go = (t: "identity" | "service" | "usage") => ({ identity: identityRef, service: serviceRef, usage: usageRef })[t].current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const go = (t: "identity" | "service" | "usage" | "secretaries") => ({ identity: identityRef, service: serviceRef, usage: usageRef, secretaries: secretariesRef })[t].current?.scrollIntoView({ behavior: "smooth", block: "start" });
   function saveIdentity() {
     setTried(true);
     if (invalid || !value) return;
@@ -220,7 +221,7 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
               <li key={a.key} className="ns-list-item">
                 <span className={"ns-file-icon ns-attn-" + a.tone} aria-hidden><Icon name={a.tone === "burgundy" ? "warning" : "clock"} size={18} /></span>
                 <div className="ns-list-main"><strong>{a.title}</strong><span className="ns-caption">{a.detail}</span></div>
-                <Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go(a.target)}>{a.target === "identity" ? "Ir a identidad" : a.target === "service" ? "Ir a servicio" : "Ver uso"}</Button>
+                <Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go(a.target)}>{a.target === "identity" ? "Ir a identidad" : a.target === "service" ? "Ir a servicio" : a.target === "secretaries" ? "Ir a Secretaría" : "Ver uso"}</Button>
               </li>
             ))}
           </ul>
@@ -263,16 +264,6 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
             <Input label="Plan" value={svc.plan} onChange={(ev) => setSvc({ ...svc, plan: ev.target.value })} />
             <Input label="Contrato hasta" type="date" value={svc.contractUntil} onChange={(ev) => setSvc({ ...svc, contractUntil: ev.target.value })} />
             <div className="ns-reg-actions ns-span-2">
-              <span className="ns-caption">{school.secretaries ? school.secretaries + (school.secretaries === 1 ? " cuenta de Secretaría registrada." : " cuentas de Secretaría registradas.") : "Sin cuenta de Secretaría registrada."}</span>
-              {school.secretaries ? (
-                <Button variant="ghost" icon="mail" loading={inviting} loadingText="Enviando…" onClick={() => {
-                  setInviting(true);
-                  sendInvitation({ institutionId: i.id }).then(
-                    (sent) => showToast({ tone: "success", title: "Invitación enviada", message: "Enviamos un código de activación a " + sent.join(", ") + "." }),
-                    (x) => showToast({ tone: "error", title: "No enviamos la invitación", message: x instanceof Error ? x.message : "" }),
-                  ).finally(() => setInviting(false));
-                }}>Enviar invitación a Secretaría</Button>
-              ) : null}
               <Button variant="secondary" icon="check" loading={saveSvc.isPending}
                 onClick={() => (svc.status === "suspended" && i.status !== "suspended" ? setConfirmSuspend(true) : saveService())}>Guardar servicio</Button>
             </div>
@@ -280,10 +271,115 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
         </Block>
       </div>
 
+      <div ref={secretariesRef}>
+        <SecretariesBlock institutionId={i.id} schoolName={i.name} showToast={showToast} />
+      </div>
+
       <ConfirmAction open={confirmSuspend} danger icon="lock" onCancel={() => setConfirmSuspend(false)} title={"¿Suspender a " + i.name + "?"}
         description="Nadie del colegio podrá entrar hasta que lo reactives. Sus datos y boletines se conservan." confirmLabel="Suspender"
         onConfirm={() => { setConfirmSuspend(false); saveService("suspended"); }} />
       {toastNode}
     </PageShell>
+  );
+}
+
+/* ---------- Secretaría del colegio (2026-10-06, pedido de Diego) ----------
+ * Antes, agregar o cambiar la Secretaría de un colegio exigía SQL. Mismas piezas que el directorio de usuarios de la
+ * Secretaría (avatar, insignia de estado, acciones con icono, panel lateral): invitar es por persona, nunca a todas
+ * de una vez, para no escribir a correos que nadie revisa. */
+
+const ACCOUNT: Record<SecretaryAccount, [string, BadgeTone, IconName]> = {
+  active: ["Activa", "verified", "check"], invited: ["Invitación enviada", "pending", "mail"], none: ["Sin invitar", "neutral", "user"], inactive: ["Desactivada", "neutral", "minus"],
+};
+const MAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+function SecretariesBlock({ institutionId, schoolName, showToast }: { institutionId: string; schoolName: string; showToast: ReturnType<typeof useToast>[0] }) {
+  const q = useSecretaries(institutionId);
+  const add = useAddSecretary(institutionId);
+  const remove = useRemoveSecretary(institutionId);
+  const [form, setForm] = useState<{ name: string; email: string } | null>(null);
+  const [tried, setTried] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [inviting, setInviting] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<Secretary | null>(null);
+  const rows = q.data ?? [];
+
+  function invite(s: Secretary) {
+    setInviting(s.email);
+    sendInvitation({ institutionId, email: s.email }).then(
+      () => { showToast({ tone: "success", title: s.account === "invited" ? "Invitación reenviada" : "Invitación enviada", message: "Enviamos a " + s.email + " un código para activar su cuenta de Secretaría." }); void q.refetch(); },
+      (x) => showToast({ tone: "error", title: "No enviamos la invitación", message: x instanceof Error ? x.message : "" }),
+    ).finally(() => setInviting(null));
+  }
+  const fe = {
+    name: form && !form.name.trim() ? "Escribe el nombre de la persona de Secretaría." : undefined,
+    email: form && !MAIL_OK.test(form.email.trim()) ? "Escribe un correo válido." : undefined,
+  };
+  function submit() {
+    setTried(true); setErr(null);
+    if (!form || fe.name || fe.email) return;
+    const v = { name: form.name.trim(), email: form.email.trim().toLowerCase() };
+    add.mutateAsync(v).then(
+      () => {
+        setForm(null); setTried(false);
+        // Registrada: se le envía su invitación de una vez (es lo que se espera al agregarla).
+        invite({ email: v.email, name: v.name, account: "none", lastSeen: null });
+      },
+      (x) => setErr(platformMessage(x)),
+    );
+  }
+
+  return (
+    <Block label="Secretaría">
+      <BlockTitle action={<Button variant="secondary" size="sm" icon="plus" onClick={() => { setForm({ name: "", email: "" }); setTried(false); setErr(null); }}>Agregar cuenta de Secretaría</Button>}>Secretaría</BlockTitle>
+      {q.isPending && !q.data ? <LoadingBlocks rows={2} label="Cargando las cuentas de Secretaría" />
+        : q.isError && !q.data ? <ErrorState title="No pudimos cargar las cuentas de Secretaría." onRetry={() => q.refetch()} />
+        : !rows.length ? <EmptyState icon="user" title="Sin cuenta de Secretaría" message={"Nadie de " + schoolName + " puede configurar la estructura ni matricular. Agrega a la persona encargada y le enviamos su invitación."} />
+        : (
+          <ul className="ns-list">
+            {rows.map((s) => (
+              <li key={s.email} className="ns-list-item">
+                <Avatar name={s.name} size="sm" />
+                <div className="ns-list-main"><strong>{s.name}</strong><span className="ns-caption">{s.email + (s.account === "active" ? " · último acceso: " + lastSeen(s.lastSeen) : "")}</span></div>
+                {badge(ACCOUNT[s.account])}
+                {/* Columna de acciones siempre presente (como la de las tablas): así las insignias quedan alineadas. */}
+                <div className="ns-grid-actions ns-sec-actions"><div>
+                  {s.account === "none" || s.account === "invited"
+                    ? <IconAction icon="mail" label={(s.account === "invited" ? "Reenviar invitación a " : "Enviar invitación a ") + s.name} disabled={inviting === s.email} onClick={() => invite(s)} />
+                    : null}
+                  {s.account === "none"
+                    ? <IconAction icon="trash" tone="danger" label={"Quitar a " + s.name} onClick={() => setRemoving(s)} />
+                    : null}
+                </div></div>
+              </li>
+            ))}
+          </ul>
+        )}
+      <p className="ns-caption" style={{ margin: 0 }}>Solo se quita a quien nunca recibió su invitación. Una cuenta activa la desactiva el propio colegio desde Usuarios.</p>
+
+      <Drawer
+        open={!!form} onClose={() => setForm(null)} eyebrow={schoolName} title="Agregar cuenta de Secretaría"
+        footer={[<Button key="c" variant="secondary" onClick={() => setForm(null)}>Cancelar</Button>, <Button key="s" icon="mail" loading={add.isPending} onClick={submit}>Agregar y enviar invitación</Button>]}
+      >
+        {form ? (
+          <div className="ns-form-grid">
+            <Input label="Nombre completo" required value={form.name} onChange={(ev) => setForm({ ...form, name: ev.target.value })} error={tried ? fe.name : undefined} className="ns-span-2" />
+            <Input label="Correo" type="email" required value={form.email} onChange={(ev) => setForm({ ...form, email: ev.target.value })} error={tried ? fe.email : undefined}
+              hint="Le enviamos un código para activar su cuenta; desde ahí registra al resto del colegio." className="ns-span-2" />
+            {err ? <span className="ns-field-error ns-span-2" role="alert"><Icon name="error" size={16} />{err}</span> : null}
+          </div>
+        ) : null}
+      </Drawer>
+
+      <ConfirmAction open={!!removing} danger icon="trash" onCancel={() => setRemoving(null)} title={removing ? "¿Quitar a " + removing.name + "?" : ""}
+        description={removing ? removing.email + " deja de estar registrada en la Secretaría de " + schoolName + ". Nunca recibió su invitación, así que no pierde nada." : ""} confirmLabel="Quitar"
+        onConfirm={() => {
+          const s = removing!; setRemoving(null);
+          remove.mutateAsync(s.email).then(
+            () => showToast({ tone: "success", title: "Cuenta quitada", message: s.email + " ya no está en la Secretaría de " + schoolName + "." }),
+            (x) => showToast({ tone: "error", title: "No pudimos quitarla", message: platformMessage(x) }),
+          );
+        }} />
+    </Block>
   );
 }

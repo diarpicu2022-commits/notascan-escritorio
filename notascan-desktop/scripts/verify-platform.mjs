@@ -71,8 +71,8 @@ try {
     await page.locator(".ns-header-title", { hasText: "Colegio San Felipe Neri" }).waitFor();
     report.check("Ficha: se abre desde la lista", page.url().endsWith("#/platform/school/demo-sf"));
     const blocks = await page.locator(".ns-app-main .ns-block-title").allTextContents();
-    const order = ["Requiere atención", "Uso", "Identidad", "Servicio"].map((t) => blocks.findIndex((x) => x.startsWith(t)));
-    report.check("Ficha: «Requiere atención» primero, luego Uso, Identidad y Servicio", order.every((x, k) => x >= 0 && (k === 0 || x > order[k - 1])), blocks.join(" | "));
+    const order = ["Requiere atención", "Uso", "Identidad", "Servicio", "Secretaría"].map((t) => blocks.findIndex((x) => x.startsWith(t)));
+    report.check("Ficha: «Requiere atención» primero, luego Uso, Identidad, Servicio y Secretaría", order.every((x, k) => x >= 0 && (k === 0 || x > order[k - 1])), blocks.join(" | "));
     const alerts = await page.locator(".ns-block--gold .ns-list-item strong").allTextContents();
     report.check("Ficha: atención con sin uso, caída y logo faltante", ["Sin uso en las últimas dos semanas", "El uso viene cayendo", "Sin logo"].every((t) => alerts.includes(t)), alerts.join(" | "));
     report.check("Ficha: uso con cifras y gráfico de 8 semanas", (await page.locator(".ns-plat-stat").count()) === 4 && (await page.locator(".ns-app-main svg").count()) >= 1);
@@ -92,6 +92,19 @@ try {
     report.check("Servicio: suspender pide confirmación y explica qué pasa", (await page.locator("[role=alertdialog]").textContent()).includes("Nadie del colegio podrá entrar hasta que lo reactives"));
     await page.locator("[role=alertdialog]").getByRole("button", { name: "Suspender" }).click();
     report.check("Servicio: confirma la suspensión", await toast(page, "Colegio suspendido"));
+
+    // Secretaría (2026-10-06): sin cuentas, lo dice; agregar valida y envía la invitación a esa persona.
+    const secBlock = page.locator(".ns-block", { has: page.locator(".ns-block-title", { hasText: /^Secretaría/ }) });
+    report.check("Secretaría: sin cuentas, lo dice y explica qué falta", (await secBlock.locator(".ns-empty-title").textContent()) === "Sin cuenta de Secretaría");
+    report.check("Secretaría: ya no hay botón para invitar a todas de una vez", (await page.getByRole("button", { name: "Enviar invitación a Secretaría" }).count()) === 0);
+    await secBlock.getByRole("button", { name: "Agregar cuenta de Secretaría" }).click();
+    await page.locator(".ns-drawer").getByRole("button", { name: "Agregar y enviar invitación" }).click();
+    report.check("Secretaría: sin datos marca nombre y correo", (await page.locator(".ns-drawer .ns-field-error").count()) === 2);
+    await page.locator(".ns-drawer").getByLabel(/^Nombre completo/).fill("Secretaría de prueba");
+    await page.locator(".ns-drawer").getByLabel(/^Correo/).fill("firux386@gmail.com");
+    await page.locator(".ns-drawer").getByRole("button", { name: "Agregar y enviar invitación" }).click();
+    report.check("Secretaría: agregar envía la invitación y dice a quién", await toast(page, "Invitación enviada") && (await page.locator(".ns-toast-text").last().textContent()).includes("firux386@gmail.com"));
+    await page.screenshot({ path: join(OUT, "secretaria-plataforma-1440.png"), fullPage: true, animations: "disabled" });
 
     // Contraste medido sobre el render.
     for (const [loc, label, min] of [
@@ -123,8 +136,14 @@ try {
       await p.route("**/rest/v1/institutions**", (r) => { if (r.request().method() !== "GET") { rec(r); return r.fulfill({ status: 204, body: "" }); } return r.fulfill({ json: [SCHOOL] }); });
       await p.route("**/rest/v1/rpc/platform_stats**", (r) => r.fulfill({ json: [{ institution_id: SCHOOL.id, students: 41, teachers: 4, secretaries: 1, accounts: 5, last_seen: null, grades_7d: 3, grades_30d: 36, attendance_7d: 10, observations_30d: 2, weekly: [140, 150, 120, 130, 60, 20, 5, 8] }] }));
       await p.route("**/rest/v1/rpc/create_institution**", (r) => { rec(r); return r.fulfill({ json: "22222222-2222-4222-8222-222222222222" }); });
+      await p.route("**/rest/v1/rpc/platform_secretaries**", (r) => r.fulfill({ json: [
+        { email: "claudia@sanfelipe.edu.co", full_name: "Claudia Enríquez", account: "none", last_seen: null },
+        { email: "rosa@sanfelipe.edu.co", full_name: "Rosa Erazo", account: "active", last_seen: new Date().toISOString() },
+      ] }));
+      await p.route("**/rest/v1/rpc/platform_add_secretary**", (r) => { rec(r); return r.fulfill({ status: 204, body: "" }); });
+      await p.route("**/rest/v1/rpc/platform_remove_secretary**", (r) => { rec(r); return r.fulfill({ status: 204, body: "" }); });
       await p.route("**/storage/v1/object/institution-logos/**", (r) => { rec(r); return r.fulfill({ json: { Key: "institution-logos/x" } }); });
-      await p.route("**/functions/v1/invite-staff**", (r) => { rec(r); return r.fulfill({ json: { sent: ["secretaria@champagnat.edu.co"] } }); });
+      await p.route("**/functions/v1/invite-staff**", (r) => { rec(r); let b = {}; try { b = r.request().postDataJSON() ?? {}; } catch { b = {}; } return r.fulfill({ json: { sent: [b.email ?? "secretaria@champagnat.edu.co"] } }); });
     });
     await login(page, "Docente", "diarpicu2022@gmail.com");
     await page.waitForURL(/#\/platform\/dashboard$/, { timeout: 8000 }).catch(() => {});
@@ -156,6 +175,35 @@ try {
     const patch = writes.filter((w) => w.method === "PATCH" && w.url.includes("institutions")).pop();
     report.check("Identidad: sube el logo a la carpeta del colegio y guarda su ruta con el DANE",
       up && up.url.includes("institution-logos/" + SCHOOL.id + "/logo-") && patch?.body.dane === "152356000123" && patch.body.logo_path?.startsWith(SCHOOL.id + "/logo-") && patch.url.includes("id=eq." + SCHOOL.id), JSON.stringify({ up: up?.url, patch: patch?.body }));
+
+    // Secretaría: invitar es por persona; agregar registra y luego invita solo a esa; quitar pide confirmación.
+    const sec = page.locator(".ns-block", { has: page.locator(".ns-block-title", { hasText: /^Secretaría/ }) });
+    await sec.locator(".ns-list-item").first().waitFor({ timeout: 8000 });
+    const items = await sec.locator(".ns-list-item").allTextContents();
+    report.check("Secretaría: lista cada cuenta con su estado (sin invitar / activa)", items.length === 2 && items[0].includes("Sin invitar") && items[1].includes("Activa"), items.join(" | "));
+    report.check("Secretaría: una cuenta activa no se invita ni se quita desde aquí", (await sec.getByRole("button", { name: /Rosa Erazo/ }).count()) === 0);
+    const before = writes.length;
+    await sec.getByRole("button", { name: "Enviar invitación a Claudia Enríquez" }).click();
+    await toast(page, "Invitación enviada");
+    const one = writes.slice(before).find((w) => w.url.includes("/functions/v1/invite-staff"));
+    report.check("Secretaría: invita solo a esa persona (colegio + correo)", one?.body.institution_id === SCHOOL.id && one.body.email === "claudia@sanfelipe.edu.co", JSON.stringify(one?.body));
+    await sec.getByRole("button", { name: "Agregar cuenta de Secretaría" }).click();
+    await page.locator(".ns-drawer").getByLabel(/^Nombre completo/).fill("Secretaría de prueba");
+    await page.locator(".ns-drawer").getByLabel(/^Correo/).fill(" Firux386@Gmail.com ");
+    const before2 = writes.length;
+    await page.locator(".ns-drawer").getByRole("button", { name: "Agregar y enviar invitación" }).click();
+    for (let k = 0; k < 40 && !writes.slice(before2).some((w) => w.url.includes("/functions/v1/invite-staff")); k++) await page.waitForTimeout(100);
+    const addW = writes.slice(before2).find((w) => w.url.includes("platform_add_secretary"));
+    const invW = writes.slice(before2).find((w) => w.url.includes("/functions/v1/invite-staff"));
+    report.check("Secretaría: agregar registra en el colegio (correo limpio) y después invita solo a esa persona",
+      addW?.body.p_institution === SCHOOL.id && addW.body.p_email === "firux386@gmail.com" && addW.body.p_name === "Secretaría de prueba" && invW?.body.email === "firux386@gmail.com" && writes.indexOf(addW) < writes.indexOf(invW),
+      JSON.stringify({ add: addW?.body, inv: invW?.body }));
+    await sec.getByRole("button", { name: "Quitar a Claudia Enríquez" }).click();
+    report.check("Secretaría: quitar pide confirmación y explica que no pierde nada", (await page.locator("[role=alertdialog]").textContent()).includes("Nunca recibió su invitación"));
+    await page.locator("[role=alertdialog]").getByRole("button", { name: "Quitar" }).click();
+    await toast(page, "Cuenta quitada");
+    const rmW = writes.find((w) => w.url.includes("platform_remove_secretary"));
+    report.check("Secretaría: quitar llama a la base con el colegio y el correo", rmW?.body.p_institution === SCHOOL.id && rmW.body.p_email === "claudia@sanfelipe.edu.co", JSON.stringify(rmW?.body));
 
     await page.locator(".ns-block", { hasText: "Servicio" }).getByLabel(/^Estado/).selectOption("suspended");
     await page.getByRole("button", { name: "Guardar servicio" }).click();

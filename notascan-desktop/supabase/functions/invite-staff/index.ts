@@ -1,9 +1,10 @@
 // NotaScan · invitar al personal por correo (paso 7e, 2026-10-04).
 // La invitación usa la clave de servicio, que Supabase pone dentro de la función (SUPABASE_SERVICE_ROLE_KEY): nunca
 // llega a la app. Antes de invitar se comprueba con la sesión de quien llama:
-//   · Plataforma: invita a la Secretaría registrada de un colegio ({ institution_id }).
+//   · Plataforma: invita a una persona de la Secretaría de un colegio ({ institution_id, email }) o, sin correo, a
+//     todas las que aún no tienen cuenta ({ institution_id }, el alta de un colegio nuevo).
 //   · Secretaría: invita a una persona registrada en el directorio de SU colegio ({ email }).
-// Solo se invita a quien ya está en el directorio y aún no tiene cuenta. El correo trae un código de 6 dígitos
+// Solo se invita a quien ya está en el directorio y aún no tiene cuenta. El correo trae un código numérico
 // (plantilla «Invite user» con {{ .Token }}) que la persona escribe en la app para crear su contraseña.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -44,6 +45,8 @@ Deno.serve(async (req) => {
   if (role === "platform") {
     if (!body.institution_id) return reply(400, { error: "Falta el colegio." });
     query = query.eq("institution_id", body.institution_id).eq("role", "admin");
+    const one = (body.email ?? "").trim().toLowerCase();
+    if (one) query = query.eq("email", one);
   } else {
     const email = (body.email ?? "").trim().toLowerCase();
     if (!email) return reply(400, { error: "Falta el correo." });
@@ -51,7 +54,7 @@ Deno.serve(async (req) => {
   }
   const { data: staff, error: staffErr } = await query;
   if (staffErr) return reply(500, { error: "No pudimos consultar el directorio." });
-  if (!staff?.length) return reply(404, { error: role === "platform" ? "El colegio no tiene una cuenta de Secretaría registrada." : "Esa persona no está registrada en el directorio de tu colegio." });
+  if (!staff?.length) return reply(404, { error: role === "platform" ? (body.email ? "Esa persona no es de la Secretaría de este colegio." : "El colegio no tiene una cuenta de Secretaría registrada.") : "Esa persona no está registrada en el directorio de tu colegio." });
 
   const { data: existing } = await admin.from("profiles").select("email, status").in("email", staff.map((s) => s.email));
   const active = new Set((existing ?? []).filter((p) => p.status === "active").map((p) => p.email));

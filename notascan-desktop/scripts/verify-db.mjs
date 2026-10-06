@@ -430,6 +430,29 @@ try {
   check("Alta: un colegio no da de alta colegios", schoolCreates?.includes("Solo la plataforma"), schoolCreates || "creó");
   const secStats = await as(diego, () => one("select secretaries from public.platform_stats() where institution_id = $1", [newSchool.id]));
   check("Cifras: cuentan las cuentas de Secretaría registradas", secStats.secretaries === 1, JSON.stringify(secStats));
+
+  // ---------- Secretaría de cada colegio desde la consola (2026-10-06) ----------
+  const secA = await as(diego, () => db.query("select email, account from public.platform_secretaries($1)", [A]).then((r) => r.rows));
+  const accA = Object.fromEntries(secA.map((r) => [r.email, r.account]));
+  check("Secretaría: la plataforma ve solo las cuentas de Secretaría del colegio y su estado (activa / sin invitar)",
+    secA.length > 0 && accA["patricia@losandes.edu.co"] === "active" && !secA.some((r) => r.email === "ana.lucia@losandes.edu.co"), JSON.stringify(secA));
+  const secLeak = await as(patricia, () => errorOf("select * from public.platform_secretaries($1)", [A]));
+  check("Secretaría: un colegio no consulta la lista de la plataforma", secLeak?.includes("Solo la plataforma"), secLeak || "consultó");
+  const addSec = await as(diego, () => errorOf("select public.platform_add_secretary($1, ' Firux386@Gmail.com ', 'Secretaría de prueba')", [newSchool.id]));
+  const added = await one("select role::text r, area from public.staff_directory where email = 'firux386@gmail.com' and institution_id = $1", [newSchool.id]);
+  check("Secretaría: la plataforma agrega una cuenta de Secretaría a un colegio que ya existe (correo en minúsculas)", !addSec && added?.r === "admin", addSec || JSON.stringify(added));
+  const addDup = await as(diego, () => errorOf("select public.platform_add_secretary($1, 'ana.lucia@losandes.edu.co', 'X')", [newSchool.id]));
+  const addBad = await as(diego, () => errorOf("select public.platform_add_secretary($1, 'sin-arroba', 'X')", [newSchool.id]));
+  const addSchool = await as(patricia, () => errorOf("select public.platform_add_secretary($1, 'pirata@x.co', 'X')", [A]));
+  check("Secretaría: no se agrega un correo ya registrado, uno inválido, ni lo hace un colegio",
+    addDup?.includes("ya está registrado") && addBad?.includes("correo válido") && addSchool?.includes("Solo la plataforma"), JSON.stringify({ addDup, addBad, addSchool }));
+  await as(diego, () => db.query("select public.platform_add_secretary($1, 'mal.escrito@lamerced.edu.co', 'Correo mal escrito')", [newSchool.id]));
+  const rmNone = await as(diego, () => errorOf("select public.platform_remove_secretary($1, 'mal.escrito@lamerced.edu.co')", [newSchool.id]));
+  const rmActive = await as(diego, () => errorOf("select public.platform_remove_secretary($1, 'patricia@losandes.edu.co')", [A]));
+  const rmOther = await as(diego, () => errorOf("select public.platform_remove_secretary($1, 'patricia@losandes.edu.co')", [newSchool.id]));
+  const stillPatricia = await one("select count(*)::int n from public.staff_directory where email = 'patricia@losandes.edu.co'");
+  check("Secretaría: se quita a quien nunca recibió invitación; a quien ya tiene cuenta, o es de otro colegio, no",
+    !rmNone && rmActive?.includes("no se quita desde aquí") && rmOther?.includes("no es de la Secretaría de este colegio") && stillPatricia.n === 1, JSON.stringify({ rmNone, rmActive, rmOther }));
   const firstLogin = await mk("secretaria@lamerced.edu.co");
   const firstProfile = await one("select role::text r, institution_id from public.profiles where id = $1", [firstLogin]);
   check("Alta: cuando la Secretaría crea su acceso, entra a su colegio", firstProfile.r === "admin" && firstProfile.institution_id === newSchool.id, JSON.stringify(firstProfile));
