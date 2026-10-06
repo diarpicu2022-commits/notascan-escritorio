@@ -1,3 +1,4 @@
+import { scrollToTop } from "../lib/scroll";
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import type { DesktopRole } from "../data/roles";
 import { CardCheck } from "../dev/CardCheck";
@@ -65,7 +66,7 @@ export function App() {
   const syncTimer = useRef<number>();
 
   useEffect(() => {
-    const on = () => { setRoute(parseHash()); window.scrollTo(0, 0); };
+    const on = () => { setRoute(parseHash()); scrollToTop(); };
     window.addEventListener("hashchange", on);
     return () => { window.removeEventListener("hashchange", on); window.clearTimeout(syncTimer.current); };
   }, []);

@@ -19,12 +19,18 @@
 .ns-titlebar-btn--close:hover { background: var(--burgundy); color: var(--paper); }
 .ns-titlebar-btn:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: -4px; }
 
-/* El contenido empieza debajo de la barra. */
-.ns-in-desktop body { padding-top: var(--titlebar-h); }
+/* El contenido se desplaza en su propio contenedor, debajo de la barra (enmienda 8, 2026-10-06): antes se desplazaba
+   la ventana entera y su barra de desplazamiento corría por detrás de la barra de título, como saliéndose del marco. */
+.ns-in-desktop, .ns-in-desktop body { height: 100%; overflow: hidden; }
+.ns-in-desktop #root { position: fixed; inset: var(--titlebar-h) 0 0 0; overflow: auto; overscroll-behavior: contain; }
 .ns-in-desktop .ns-app, .ns-in-desktop .ns-auth, .ns-in-desktop .ns-auth-panel { min-height: calc(100vh - var(--titlebar-h)); }
-.ns-in-desktop .ns-app-side { top: var(--titlebar-h); height: calc(100vh - var(--titlebar-h)); }
+.ns-in-desktop .ns-app-side { top: 0; height: calc(100vh - var(--titlebar-h)); }
 .ns-in-desktop .ns-scrim { top: var(--titlebar-h); }
 .ns-in-desktop .ns-modal { max-height: calc(100vh - 32px - var(--titlebar-h)); }
 
 @media (prefers-reduced-motion: reduce) { .ns-titlebar-btn { transition: none; } }
-@media print { .ns-titlebar { display: none; } .ns-in-desktop body { padding-top: 0; } }
+@media print {
+  .ns-titlebar { display: none; }
+  .ns-in-desktop, .ns-in-desktop body { height: auto; overflow: visible; }
+  .ns-in-desktop #root { position: static; overflow: visible; }
+}

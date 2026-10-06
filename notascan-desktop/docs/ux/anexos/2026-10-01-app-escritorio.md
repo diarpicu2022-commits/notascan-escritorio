@@ -1017,3 +1017,23 @@ Verificación en Microsoft Edge (`verify:fields-edge`, 7/7): sin recuadro en cor
 marca el foco, el ojo de Edge se quita (la imagen del campo cambia al forzarlo), un solo botón de mostrar, y con
 el teclado el foco sigue visible. `verify:shell` 62/62 (la referencia recibe la misma regla para la búsqueda; el resto
 sigue comparado píxel a píxel); regresión completa en verde. Instaladores reemplazados en la Release v0.1.0.
+
+#### Enmienda 8 (2026-10-06, pedida por Diego): barras de desplazamiento del sistema
+
+Diego: la barra de Windows (gris, con flechas) «se ve horrible, no cuadra con el diseño», y la de la derecha «se sale
+de la ventana». Medido: la ventana maximizada sí cabe (cliente 1920×1020 = área útil); lo que pasaba es que se
+desplazaba la página entera y su barra corría por detrás de la barra de título propia. Además, con la barra vertical
+el menú lateral quedaba en 248 px para un contenido de 250 y aparecía una barra horizontal.
+- **Barra del sistema** (`notascan.css`): cápsula navy al 30 % sobre fondo transparente, sin flechas; navy-soft al pasar
+  y navy al arrastrar; 12 px para agarrarla (6 px a la vista). En el menú lateral 8 px (4 a la vista) y sin
+  desplazamiento horizontal. Firefox: `scrollbar-width: thin` con el mismo color.
+- **Escritorio** (`desktop.css`): el contenido se desplaza dentro de `#root`, que empieza bajo la barra de título; la
+  ventana no se desplaza. `scrollToTop()` (`src/lib/scroll.ts`) sube el contenedor correcto al cambiar de pantalla.
+  Al imprimir se libera el contenedor.
+
+Verificación en Microsoft Edge (`verify:desktop-scroll`, 8/8, con las barras visibles —Playwright las oculta por
+defecto—): la ventana no se desplaza, la barra va de 32 px al borde inferior, mide 12 px, el menú usa 8 px y no tiene
+barra horizontal, el menú queda fijo al desplazar, al cambiar de pantalla vuelve arriba, la barra no es la de Windows
+y al imprimir no se recorta. Regresión de la demostración en verde (shell 62, componentes 121, Secretaría 105, docente
+123, Rectoría 76, estados 98, plataforma 30). Fallos propios: la primera prueba ponía la clase antes de existir el
+documento y medía con las barras ocultas; una regresión corrió mientras la compilación reemplazaba `dist` y se repitió.

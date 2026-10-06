@@ -1,3 +1,4 @@
+import { scrollToTop } from "../../../lib/scroll";
 import { useEffect, useRef, useState } from "react";
 import type { Assignment } from "../../../data/admin";
 import { DEMO } from "../../../lib/supabase";
@@ -74,7 +75,7 @@ export function CurriculumManager() {
   }
   function edit(a: Assignment) {
     setEditing(a.id); setForm({ teacher: a.teacher, subject: a.subject, course: a.course, period: a.period }); setErr(null);
-    window.scrollTo?.({ top: 0, behavior: "smooth" });
+    scrollToTop(true);
   }
   const cellFor = (c: string, s: string) => list.find((a) => a.course === c && a.subject === s && a.period === form.period);
   const courses = courseF === "all" ? opts.courses : [courseF];

@@ -12,6 +12,26 @@ body { margin: 0; background: var(--ivory); font-family: var(--font-ui); color: 
 .ns-overline { font: 700 11px/14px var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--gold-ink); }
 .ns-caption { font: 500 12px/16px var(--font-ui); color: var(--muted); }
 
+/* ---------- Barras de desplazamiento (enmienda 8, 2026-10-06, pedida por Diego) ----------
+   La de Windows (gris, con flechas) no pertenecía al sistema. Cápsula navy fina sobre fondo transparente, sin flechas:
+   en reposo navy al 30 % (se ve sin competir con el contenido), al pasar navy-soft y al arrastrar navy pleno.
+   12 px de ancho para poder agarrarla; el borde transparente la deja en 6 px a la vista. */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--navy) 30%, transparent); background-clip: padding-box;
+  border: 3px solid transparent; border-radius: var(--radius-full); min-height: 40px;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--navy-soft); }
+::-webkit-scrollbar-thumb:active { background-color: var(--navy); }
+/* En el menú lateral la barra es más delgada (8 px, 4 px a la vista): con 12 px su contenido (250 px) no cabía en los
+   248 px que quedaban y aparecía además una barra horizontal. Nunca se desplaza de lado. */
+.ns-app-side .ns-sidebar { overflow-x: hidden; }
+.ns-app-side .ns-sidebar::-webkit-scrollbar { width: 8px; }
+.ns-app-side .ns-sidebar::-webkit-scrollbar-thumb { border-width: 2px; }
+@supports not selector(::-webkit-scrollbar) { * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--navy) 30%, transparent) transparent; } }
+
 /* ---------- Focus (shared) ---------- */
 /* Edge/WebView2 añade su propio botón de mostrar contraseña y una «x» de borrar: el sistema ya tiene el suyo (ojo
    dentro de la cápsula). Se ocultan para que no haya dos controles (pedido de Diego, 2026-10-06). */
