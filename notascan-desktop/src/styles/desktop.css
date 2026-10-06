@@ -1,0 +1,30 @@
+/* App de escritorio sin bordes de Windows (paso 6h, enmienda 6): barra de título propia de 32 px.
+   Solo aplica dentro de Tauri (.ns-in-desktop en <html>); en el navegador no cambia nada. Solo tokens del sistema. */
+:root { --titlebar-h: 32px; }
+
+.ns-titlebar {
+  position: fixed; inset: 0 0 auto 0; height: var(--titlebar-h); z-index: calc(var(--z-toast) + 10);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--paper); border-bottom: 1px solid var(--ivory-deep);
+  user-select: none; -webkit-user-select: none;
+}
+.ns-titlebar-brand { display: inline-flex; align-items: center; gap: 8px; height: 100%; padding-left: 12px; flex: 1; font: 600 12px/1 var(--font-ui); color: var(--muted); }
+.ns-titlebar-brand .ns-logo-mark { margin-right: 0; box-shadow: none; }
+.ns-titlebar-controls { display: flex; height: 100%; }
+.ns-titlebar-btn {
+  width: 46px; height: 100%; display: grid; place-items: center; border: 0; padding: 0; background: transparent;
+  color: var(--navy); cursor: default; transition: background-color var(--duration-fast, 120ms) var(--ease-out), color var(--duration-fast, 120ms) var(--ease-out);
+}
+.ns-titlebar-btn:hover { background: var(--ivory-deep); }
+.ns-titlebar-btn--close:hover { background: var(--burgundy); color: var(--paper); }
+.ns-titlebar-btn:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: -4px; }
+
+/* El contenido empieza debajo de la barra. */
+.ns-in-desktop body { padding-top: var(--titlebar-h); }
+.ns-in-desktop .ns-app, .ns-in-desktop .ns-auth, .ns-in-desktop .ns-auth-panel { min-height: calc(100vh - var(--titlebar-h)); }
+.ns-in-desktop .ns-app-side { top: var(--titlebar-h); height: calc(100vh - var(--titlebar-h)); }
+.ns-in-desktop .ns-scrim { top: var(--titlebar-h); }
+.ns-in-desktop .ns-modal { max-height: calc(100vh - 32px - var(--titlebar-h)); }
+
+@media (prefers-reduced-motion: reduce) { .ns-titlebar-btn { transition: none; } }
+@media print { .ns-titlebar { display: none; } .ns-in-desktop body { padding-top: 0; } }

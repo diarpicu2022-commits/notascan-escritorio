@@ -151,7 +151,7 @@ Lo primero que se lee al retomar.
   perfil con autorización y exportación de datos, aceptación de la política al entrar. `verify:db` 155/155,
   `verify:admin-data` 51/51, `verify:principal-data` 46/46. **Pendiente:** revisión de un abogado; supresión de datos.
 - **6g aprobado (2026-10-06).**
-- **Paso 6h · Tauri (hecho 2026-10-06, esperando visto bueno):** Rust 1.99 instalado; ícono con la marca del sistema;
+- **Paso 6h · Tauri (aprobado 2026-10-06; ventana sin bordes con barra propia):** Rust 1.99 instalado; ícono con la marca del sistema;
   ventana maximizada; `npm run tauri build` → `src-tauri/target/release/bundle/nsis/NotaScan_0.1.0_x64-setup.exe` y
   `.../msi/NotaScan_0.1.0_x64_en-US.msi`. El ejecutable abre y muestra el inicio de sesión.
 - **Siguiente:** cierre (verificación completa en la app de escritorio con una cuenta de prueba, material de sustentación).

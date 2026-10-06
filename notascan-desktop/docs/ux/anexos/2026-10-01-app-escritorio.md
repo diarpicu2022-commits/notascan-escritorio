@@ -983,3 +983,20 @@ muestra el inicio de sesión completo maximizado (captura a resolución física 
 Fallo propio en la verificación: la primera captura salía cortada porque el script no tenía en cuenta la escala de
 pantalla (125 %); con `SetProcessDPIAware` se ve completa. **Pendiente:** probar dentro de la app de escritorio el
 inicio de sesión real, la impresión a PDF y las descargas (Excel, CSV, JSON) — requiere una cuenta de prueba.
+
+#### Enmienda 6 (2026-10-06, pedida por Diego): ventana sin bordes de Windows
+
+Diego aprueba 6h y pide la ventana sin la barra de Windows («se nota más elegante») con los botones propios.
+- `decorations: false` (conserva la sombra y el redimensionado por los bordes que da Windows); permisos explícitos en
+  `src-tauri/capabilities/default.json` (mover, minimizar, maximizar/restaurar, cerrar).
+- **`TitleBar`** (solo dentro de Tauri; en el navegador y en las pruebas no existe): 32 px, `--paper` con filete
+  `--ivory-deep`, marca «N» + «NotaScan» en `--muted`; botones de 46 px (ancho de Windows) con iconos de la familia —se
+  añadieron `maximize` y `restore` con el mismo trazo—; hover `--ivory-deep`, y **cerrar en `--burgundy`** (el rojo del
+  sistema, no el de Windows). Arrastrar mueve, doble clic maximiza; Windows 11 muestra su menú de acomodar ventanas al
+  pasar por maximizar. Foco visible; no se imprime. El contenido baja 32 px (`desktop.css`, solo `.ns-in-desktop`).
+
+Verificación medida con clics reales sobre la app compilada: abre maximizada → Restaurar (no maximizada) → Maximizar
+(maximizada) → Minimizar (minimizada) → doble clic en la barra (restaura) → Cerrar (el proceso termina). Capturas
+`verify-out/paso6h-sin-bordes-*.png`. Regresión web y demostración igual (auth 20, docente 61/123, Secretaría 51/105,
+Rectoría 46/76, shell 62, componentes 121, estados 98). Fallo propio: el primer guion de clics no contaba el borde
+invisible de redimensionado ni el menú de acomodar de Windows 11 y daba falsos negativos; corregido.
