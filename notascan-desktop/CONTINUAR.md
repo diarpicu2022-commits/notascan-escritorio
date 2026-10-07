@@ -210,3 +210,15 @@ Los textos legales que se redacten son borradores técnicos y los revisa un abog
   `phone-upload` (sin JWT; permiso de 20 min) → las fotos entran solas a la cola. Migración
   `20261006200000_subir_desde_celular.sql` aplicada. Si cambia la página: editar `mobile-subir/index.html` y copiarla al
   repo `notascan-subir`. Pendiente de Diego: clave de Anthropic (pestaña de Secrets lista con el nombre puesto).
+
+## Pendientes anotados (2026-10-06, a pedido de Diego)
+
+1. **Créditos de Anthropic:** la cuenta tiene 0,00 US$. Diego compra créditos (mínimo 5 US$) en
+   console.anthropic.com → Facturación. Después: repetir la prueba de lectura con IA con `hoja-prueba.jpg` en
+   Calificaciones (Ana Lucía · 7A · Parcial 2); debe salir 20261210 · Antonella Ordóñez Guerrero · 4,5. La clave
+   `ANTHROPIC_API_KEY` ya está guardada en Supabase. Para probar con clics automáticos, NotaScan debe estar en el
+   monitor principal (en el segundo monitor los clics no entran).
+2. **App de Android de NotaScan:** por hacer (proyecto aparte).
+3. **App de smartwatch de NotaScan:** por hacer (proyecto aparte).
+4. Abogado: revisión de los textos legales y la supresión de datos de estudiantes.
+5. Cierre: material de la sustentación.
