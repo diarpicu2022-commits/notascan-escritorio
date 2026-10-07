@@ -79,3 +79,11 @@ Diego pidió no gastar en más investigación y usar el sistema tal cual. Contra
   clave de Anthropic). «Terminar» → el código responde 410 «venció». Función `phone-upload` sin JWT: responde sus
   propios errores (404 código inválido) y el preflight CORS (204).
 
+
+## 6. Primera lectura con la clave real (2026-10-06)
+
+Con `ANTHROPIC_API_KEY` guardada, la foto ya no da «falta la clave», pero Anthropic responde 400 y la app lo mostraba
+como «formato o tamaño». Causa medida en la consola: **la cuenta tiene 0,00 US$ de créditos** (Anthropic responde 400
+también por saldo). `read-exam` (publicada, `afe920ddfaf8`) ahora distingue el saldo («La cuenta de Anthropic no tiene
+saldo. Carga créditos en … Billing») y devuelve el motivo en `detail`; la cola se detiene con ese aviso en vez de
+gastar intentos. Pendiente de Diego: cargar créditos (mínimo 5 US$) y repetir la prueba.

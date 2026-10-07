@@ -118,7 +118,12 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) return reply(503, { error: "La clave del servicio de lectura no es válida. Revísala en Supabase." });
     if (e instanceof Anthropic.RateLimitError) return reply(429, { error: "El servicio de lectura está ocupado. Inténtalo en un momento." });
-    if (e instanceof Anthropic.BadRequestError) return reply(400, { error: "La foto no se pudo procesar (formato o tamaño). Prueba con otra foto." });
+    if (e instanceof Anthropic.BadRequestError) {
+      console.error("read-exam 400", e.message);
+      // Anthropic responde 400 también cuando la cuenta no tiene saldo: se dice tal cual para que se resuelva en Billing.
+      if (/credit balance/i.test(e.message)) return reply(402, { error: "La cuenta de Anthropic no tiene saldo. Carga créditos en console.anthropic.com → Billing.", detail: e.message });
+      return reply(400, { error: "La foto no se pudo procesar (formato o tamaño). Prueba con otra foto.", detail: e.message });
+    }
     if (e instanceof Anthropic.APIError) return reply(502, { error: "El servicio de lectura falló. Inténtalo de nuevo." });
     return reply(502, { error: "No pudimos conectar con el servicio de lectura." });
   }

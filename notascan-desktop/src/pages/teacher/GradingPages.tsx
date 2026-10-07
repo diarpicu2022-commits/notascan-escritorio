@@ -79,7 +79,7 @@ function RealUploadPage() {
         const msg = e instanceof Error ? e.message : "No pudimos leer la foto.";
         setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state: "error", note: msg } : x)));
         // Sin servicio configurado no tiene sentido seguir con las demás.
-        if (/no está configurado|clave/.test(msg)) {
+        if (/no está configurado|clave|no tiene saldo/.test(msg)) {
           showToast({ tone: "error", title: "El servicio de lectura no está listo", message: msg });
           pending.current.forEach((x) => setQueue((q) => q.map((y) => (y.key === x.key ? { ...y, state: "error", note: msg } : y))));
           pending.current = [];
