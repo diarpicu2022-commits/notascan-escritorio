@@ -222,3 +222,5 @@ Los textos legales que se redacten son borradores técnicos y los revisa un abog
 3. **App de smartwatch de NotaScan:** por hacer (proyecto aparte).
 4. Abogado: revisión de los textos legales y la supresión de datos de estudiantes.
 5. Cierre: material de la sustentación.
+
+- **Pedido del profe (2026-10-07), pendiente**: modo claro/oscuro a elección y cambio de idioma (es/en). Detalle en `Proyectos Finales/PENDIENTES-PROFE.md`.
