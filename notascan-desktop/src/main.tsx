@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { MotionConfig } from "framer-motion";
+import "./styles/fonts.css";
 import "./styles/index.css";
 import "./styles/print.css";
 import "./styles/institution.css";

@@ -63,7 +63,9 @@ try {
   const refConsole = watchConsole(ref);
   await ref.goto(URL_BASE + "#/dev/tokens", { waitUntil: "networkidle" });
   await ref.evaluate(() => {
-    document.head.querySelectorAll("style,link[rel=stylesheet]:not([href*=fonts])").forEach((n) => n.remove());
+    document.head.querySelectorAll("style,link[rel=stylesheet]").forEach((n) => n.remove());
+    // La referencia carga sus fuentes como notascan-ui/index.html (Google Fonts); la app ya las trae dentro.
+    const fl = document.createElement("link"); fl.rel = "stylesheet"; fl.href = "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700;800&display=swap"; document.head.appendChild(fl);
     const m = document.createElement("div"); m.id = "ref"; document.body.replaceChildren(m);
   });
   await ref.addStyleTag({ path: join(DS, "css/tokens.css") });

@@ -4,6 +4,11 @@ Lo primero que se lee al retomar.
 
 ## Estado
 
+- **Multiplataforma (desde 2026-11-08, rama `feature/multiplataforma`)**: el profe pidió Windows, Linux y macOS. Rama base
+  `develop` creada ese día y puesta como rama por defecto. Paso A (fuentes dentro de la app) hecho, `verify:fonts` 28/28.
+  Siguen B (barra de título nativa en macOS, enmienda 10) y C (GitHub Actions que compila y prueba en los tres sistemas).
+  Después: modo oscuro, selector de tema e idiomas es/en/pt. Detalle en el anexo, sección «Multiplataforma».
+
 - Contrato de diseño: design system `../notascan-ui/` (no se sale de él). Anexo: `docs/ux/anexos/2026-10-01-app-escritorio.md`.
 - Paso 1 · Tokens: hecho y aprobado (2026-10-01).
 - Paso 2 · `StudentGradeCard`: hecho y aprobado (2026-10-01); botones de 36 px aceptados como excepción.

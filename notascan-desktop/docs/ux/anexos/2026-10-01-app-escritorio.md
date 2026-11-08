@@ -1075,3 +1075,26 @@ página (`box-decoration-break: clone`); el encabezado de la tabla se repite y l
 Verificación: `verify:print` 5/5 imprime a PDF real una tabla de 60 filas y la mide con PyMuPDF (A4 595×842 pt,
 3 páginas, ≥ 14 mm a cada lado también arriba en las páginas 2 y 3, encabezado en cada página); `verify:teacher-data`
 62/62 (la hoja cabe en los 794 px del A4). En la app de escritorio, el diálogo de impresión muestra la hoja limpia.
+
+## Multiplataforma: Windows, Linux y macOS (2026-11-08)
+
+Pedido del profesor: NotaScan debe funcionar en Windows, Linux y macOS. Decisiones de Diego del 2026-11-08:
+
+- **Barra de título según el sistema (enmienda 10, aprobada por Diego el 2026-11-08).** En macOS se usa la barra nativa transparente con los tres botones del sistema a la izquierda y el diseño de NotaScan detrás. En Windows y Linux sigue la barra propia del paso 6h. Motivo: en macOS los controles de ventana van a la izquierda y una barra al estilo de Windows se ve ajena.
+- **Verificación en las máquinas de GitHub.** Diego no tiene Mac ni Linux a mano. Se compila y se abre la app en los equipos macOS y Linux de GitHub Actions y se sacan capturas de ahí. Lo que no se pueda medir así (impresora real, firma de Apple) queda pendiente y se dice.
+
+### Paso A · Fuentes dentro de la app (hecho 2026-11-08)
+
+Hasta hoy Fraunces e Inter se pedían a Google Fonts desde `index.html`. Sin internet caían a Georgia y a la letra del sistema, y cada arranque le enviaba la IP del equipo a Google, algo que la política de datos no declara. Ahora van dentro del instalador (`src/styles/fonts.css`, paquetes `@fontsource-variable/fraunces` e `@fontsource-variable/inter`, licencia OFL 1.1).
+
+El contrato no cambia. Se usan los mismos nombres de familia que los tokens y los mismos ejes que la petición anterior (Fraunces con opsz y wght, Inter con wght). No se añadió cursiva real, porque antes tampoco se cargaba y cambiaría el aspecto. Solo latín y latín extendido, que cubren español, inglés y portugués.
+
+Verificación (`npm run verify:fonts`, 28/28):
+
+- Sin internet, las cuatro pantallas principales cargan Fraunces e Inter desde la app y no sale ninguna petición a Google.
+- Comparadas contra la versión anterior con Google Fonts, salen iguales: 0,000 % de píxeles distintos en Login, Secretaría y Rectoría, y 0,016 % en Docente.
+- Control: la versión anterior sí descarga de Google, y una versión sin fuentes da entre 3,4 % y 6,7 % de diferencia, así que la comparación detecta un cambio de letra.
+
+Las pruebas de fidelidad armaban la referencia del sistema encima de la página de la app y conservaban su enlace a Google Fonts. Al quitarlo, la referencia quedó sin fuentes y fallaron decenas de comparaciones. Se corrigió el arnés (`harness`, `verify-card`, `verify-components`, `verify-shell`, `verify-teacher`) para que la referencia cargue sus fuentes como `notascan-ui/index.html`. Con eso la regresión queda como antes del cambio: shell 61/62, components 120/121, card 50/51, teacher 122/123, admin 104/105, principal 75/76, print 5/5, states 98/98. La única falla común ya estaba antes del cambio: colores literales en `PhoneUpload.tsx:33` y `print.css:12`.
+
+La página pública `mobile-subir/` sigue con Google Fonts. Es una web aparte y se revisa cuando toque el paso de cookies y rastreo de la web.
