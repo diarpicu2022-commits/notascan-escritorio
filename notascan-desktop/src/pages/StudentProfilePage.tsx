@@ -24,6 +24,7 @@ import { Checkbox, Input, Select, Textarea } from "../components/atoms/Field";
 import { Modal } from "../components/organisms/Overlays";
 import { useToast } from "../components/organisms/Toast";
 import { useI18n } from "../i18n/I18nProvider";
+import { enrolledText } from "../components/organisms/admin/StudentTable";
 
 /* Enmienda 2026-10-01 (anexo): notascan-ui pintaba este texto con un color propio fuera de
    tokens.json. Diego eligió pasarlo a un token; --ivory-deep es el más cercano al original. */
@@ -39,7 +40,7 @@ function DemoProfile({ studentId, tab: initialTab }: { studentId?: string; tab?:
   const { role, navigate } = useShell();
   const s = findStudent(studentId);
   const canInfo = role === "admin" || role === "principal";
-  const { t: tr, shownGrade } = useI18n();
+  const { t: tr, shownGrade, lang } = useI18n();
   const p = tr.tch.prof;
   const TABS: Array<[string, string]> = (["summary", "grades", "attendance", "observer", "reportcards", ...(canInfo ? ["info"] as const : [])] as const).map((k) => [k, p.tabs[k]]);
   const map: Record<string, string> = { profile: "summary", history: "grades" };
@@ -97,11 +98,11 @@ function DemoProfile({ studentId, tab: initialTab }: { studentId?: string; tab?:
     body = (
       <Block>
         <dl className="ns-dl ns-dl--2">
-          {[["Documento", s.document], ["Fecha de matrícula", s.enrolled], ["Acudiente", s.guardian + " (" + s.guardianRel + ")"], ["Teléfono del acudiente", s.guardianPhone]].map((x) => (
+          {[[tr.adm.info.document, s.document], [tr.adm.info.enrolled, enrolledText(lang, s)], [tr.adm.info.guardian, s.guardian + " (" + tr.adm.fixed(s.guardianRel) + ")"], [tr.adm.info.guardianPhone, s.guardianPhone]].map((x) => (
             <Fragment key={x[0]}><dt>{x[0]}</dt><dd>{x[1]}</dd></Fragment>
           ))}
         </dl>
-        {canInfo ? <p className="ns-sensitive"><Icon name="lock" size={16} />Información médica: sin alergias registradas. Visible solo para Secretaría y Rectoría.</p> : null}
+        {canInfo ? <p className="ns-sensitive"><Icon name="lock" size={16} />{tr.adm.info.demoMedical}</p> : null}
       </Block>
     );
   }
@@ -161,7 +162,7 @@ function RealProfile({ studentId, tab: initialTab }: { studentId?: string; tab?:
 function RealProfileBody({ d, role, tab, setTab, onBack }: { d: ProfileData; role: string; tab: string; setTab: (t: string) => void; onBack: () => void }) {
   const s = d.student;
   const canInfo = role === "admin" || role === "principal";
-  const { t: tr, shownGrade } = useI18n();
+  const { t: tr, shownGrade, lang } = useI18n();
   const p = tr.tch.prof;
   const TABS: Array<[string, string]> = (["summary", "grades", "attendance", "observer", "reportcards", ...(canInfo ? ["info"] as const : [])] as const).map((k) => [k, p.tabs[k]]);
   const t = TABS.some((x) => x[0] === tab) ? tab : "summary";
@@ -221,16 +222,17 @@ function RealProfileBody({ d, role, tab, setTab, onBack }: { d: ProfileData; rol
       : role === "teacher" ? <EmptyState icon="file" title={p.teacherCardTitle} message={p.teacherCardText} />
         : d.period ? <ProfileReportCard studentId={s.id} course={s.course} period={d.period.name} /> : <EmptyState icon="file" title={p.noPeriodsTitle} message={p.noPeriodsText} />;
   } else {
-    const m = d.medical;
-    const parts = m ? [m.allergies ? "alergias: " + m.allergies : "sin alergias registradas", m.conditions ? "condiciones: " + m.conditions : "", m.notes, m.emergency ? "contacto de emergencia: " + m.emergency : ""].filter(Boolean) : ["sin información registrada"];
+    const m = d.medical, n = tr.adm.info;
+    // Lo que escribió el colegio (alergias, condiciones, notas) no se traduce (I6); sí los rótulos.
+    const parts = m ? [m.allergies ? n.allergies(m.allergies) : n.noAllergies, m.conditions ? n.conditions(m.conditions) : "", m.notes, m.emergency ? n.emergency(m.emergency) : ""].filter(Boolean) : [n.noInfo];
     body = (
       <Block>
         <dl className="ns-dl ns-dl--2">
-          {[["Documento", s.document], ["Fecha de matrícula", s.enrolled], ["Acudiente", s.guardian ? s.guardian + (s.guardianRel ? " (" + s.guardianRel + ")" : "") : "Sin registrar"], ["Teléfono del acudiente", s.guardianPhone || "Sin registrar"]].map((x) => (
+          {[[n.document, s.document], [n.enrolled, enrolledText(lang, s)], [n.guardian, s.guardian ? s.guardian + (s.guardianRel ? " (" + tr.adm.fixed(s.guardianRel) + ")" : "") : n.notRegistered], [n.guardianPhone, s.guardianPhone || n.notRegistered]].map((x) => (
             <Fragment key={x[0]}><dt>{x[0]}</dt><dd>{x[1]}</dd></Fragment>
           ))}
         </dl>
-        <p className="ns-sensitive"><Icon name="lock" size={16} />{"Información médica: " + parts.join(" · ") + ". Visible solo para Secretaría y Rectoría."}</p>
+        <p className="ns-sensitive"><Icon name="lock" size={16} />{n.medical(parts.join(" · "))}</p>
         <AuthorizationPanel studentId={s.id} guardian={s.guardian} relationship={s.guardianRel} canEdit={role === "admin"} />
       </Block>
     );
@@ -268,6 +270,8 @@ function AuthorizationPanel({ studentId, guardian, relationship, canEdit }: { st
   const [revoking, setRevoking] = useState<number | null>(null);
   const [reason, setReason] = useState("");
   const [exporting, setExporting] = useState(false);
+  const { t } = useI18n();
+  const x = t.adm.auth, fx = t.adm.fixed;
   const active = (q.data ?? []).find((a) => !a.revokedAt);
   const history = (q.data ?? []).filter((a) => a.revokedAt);
   async function doExport() {
@@ -276,58 +280,59 @@ function AuthorizationPanel({ studentId, guardian, relationship, canEdit }: { st
       const { name, blob } = await exportStudentData(studentId);
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
-      showToast({ tone: "success", title: "Datos exportados", message: name + ": todo lo que el colegio tiene de este estudiante." });
+      showToast({ tone: "success", title: x.exported, message: x.exportedText(name) });
     } catch (e) {
-      showToast({ tone: "error", title: "No pudimos exportar los datos", message: e instanceof Error && /No encontramos/.test(e.message) ? e.message : "Revisa tu conexión e inténtalo de nuevo." });
+      showToast({ tone: "error", title: x.exportError, message: e instanceof Error && /No encontramos/.test(e.message) ? x.notFound(e.message) : t.common.retryHint });
     } finally { setExporting(false); }
   }
   return (
-    <section className="ns-col" style={{ gap: 12, marginTop: 16 }} aria-label="Autorización del acudiente">
-      <h3 className="ns-subhead">Autorización del acudiente</h3>
-      {q.isPending && !q.data ? <LoadingBlocks rows={1} height={40} label="Cargando la autorización" />
-        : q.isError && !q.data ? <ErrorState title="No pudimos cargar la autorización." onRetry={() => q.refetch()} />
+    <section className="ns-col" style={{ gap: 12, marginTop: 16 }} aria-label={x.title}>
+      <h3 className="ns-subhead">{x.title}</h3>
+      {q.isPending && !q.data ? <LoadingBlocks rows={1} height={40} label={x.loading} />
+        : q.isError && !q.data ? <ErrorState title={x.loadError} onRetry={() => q.refetch()} />
           : active ? (
             <dl className="ns-dl ns-dl--2">
-              {[["Firmó", active.guardianName + " (" + active.relationship + ")"], ["Recibida", dmy(active.receivedOn) + " · " + (active.method === "firma-digital" ? "firma digital" : "firma física")],
-                ["Política", "Versión " + active.policyVersion], ["Datos de salud", active.health ? "Autorizados" : "No autorizados"]].map((x) => (
-                <Fragment key={x[0]}><dt>{x[0]}</dt><dd>{x[1]}</dd></Fragment>
+              {[[x.signed, active.guardianName + " (" + fx(active.relationship) + ")"], [x.received, dmy(active.receivedOn) + " · " + (active.method === "firma-digital" ? x.digital : x.physical)],
+                [x.policy, x.version(active.policyVersion)], [x.health, active.health ? x.authorized : x.notAuthorized]].map((y) => (
+                <Fragment key={y[0]}><dt>{y[0]}</dt><dd>{y[1]}</dd></Fragment>
               ))}
             </dl>
-          ) : <p className="ns-sensitive"><Icon name="warning" size={16} />Sin autorización registrada. El colegio debe tener la autorización firmada del acudiente para tratar estos datos.</p>}
-      {history.length ? <span className="ns-caption">{"Revocadas: " + history.map((h) => dmy(h.revokedAt!.slice(0, 10)) + " — " + h.revokedReason).join(" · ")}</span> : null}
+          ) : <p className="ns-sensitive"><Icon name="warning" size={16} />{x.none}</p>}
+      {history.length ? <span className="ns-caption">{x.revoked(history.map((h) => dmy(h.revokedAt!.slice(0, 10)) + " — " + h.revokedReason).join(" · "))}</span> : null}
       <div className="ns-row">
-        {canEdit && !active && q.data ? <Button size="sm" icon="check" onClick={() => setForm({ name: guardian, rel: relationship || "Acudiente", health: false, on: isoToday() })}>Registrar autorización</Button> : null}
-        {canEdit && active ? <Button size="sm" variant="secondary" icon="close" onClick={() => { setReason(""); setRevoking(active.id); }}>Revocar autorización</Button> : null}
-        <Button size="sm" variant="secondary" icon="download" loading={exporting} loadingText="Exportando…" onClick={doExport}>Exportar datos del estudiante</Button>
+        {canEdit && !active && q.data ? <Button size="sm" icon="check" onClick={() => setForm({ name: guardian, rel: relationship || "Acudiente", health: false, on: isoToday() })}>{x.register}</Button> : null}
+        {canEdit && active ? <Button size="sm" variant="secondary" icon="close" onClick={() => { setReason(""); setRevoking(active.id); }}>{x.revoke}</Button> : null}
+        <Button size="sm" variant="secondary" icon="download" loading={exporting} loadingText={x.exporting} onClick={doExport}>{x.export}</Button>
       </div>
-      <Modal open={!!form} onClose={() => setForm(null)} icon="check" title="Registrar autorización del acudiente"
-        description="Registra la autorización firmada que entregó el acudiente (política vigente)."
+      <Modal open={!!form} onClose={() => setForm(null)} icon="check" title={x.registerTitle}
+        description={x.registerText}
         actions={[
-          <Button key="c" variant="secondary" onClick={() => setForm(null)}>Cancelar</Button>,
+          <Button key="c" variant="secondary" onClick={() => setForm(null)}>{x.cancel}</Button>,
           <Button key="g" icon="check" disabled={!form?.name.trim()} loading={register.isPending} onClick={() => form && register.mutateAsync({ studentId, guardianName: form.name, relationship: form.rel, health: form.health, receivedOn: form.on }).then(
-            () => { setForm(null); showToast({ tone: "success", title: "Autorización registrada", message: "Quedó con la versión vigente de la política y la fecha." }); },
-            (e) => showToast({ tone: "error", title: "No se registró la autorización", message: privacyMessage(e) }),
-          )}>Registrar</Button>,
+            () => { setForm(null); showToast({ tone: "success", title: x.registered, message: x.registeredText }); },
+            (e) => showToast({ tone: "error", title: x.registerError, message: privacyMessage(e, t) }),
+          )}>{x.registerBtn}</Button>,
         ]}>
         {form ? (
           <div className="ns-form-grid">
-            <Input label="Quién firma" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={!form.name.trim() ? "Escribe el nombre de quien firmó." : null} />
-            <Select label="Parentesco" value={form.rel} onChange={(x) => setForm({ ...form, rel: x })} options={["Madre", "Padre", "Abuela", "Abuelo", "Tía", "Tío", "Tutor legal", "Acudiente"]} />
-            <Input label="Fecha en que se recibió" type="date" value={form.on} onChange={(e) => setForm({ ...form, on: e.target.value })} />
-            <Checkbox label="Autorizó expresamente los datos de salud" checked={form.health} onChange={(x) => setForm({ ...form, health: x })} />
+            <Input label={x.who} required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={!form.name.trim() ? x.whoError : null} />
+            {/* Parentesco: se guarda en español (lista fija) y se muestra en el idioma de la app. */}
+            <Select label={x.rel} value={form.rel} onChange={(y) => setForm({ ...form, rel: y })} options={["Madre", "Padre", "Abuela", "Abuelo", "Tía", "Tío", "Tutor legal", "Acudiente"].map((y) => ({ value: y, label: fx(y) }))} />
+            <Input label={x.receivedOn} type="date" value={form.on} onChange={(e) => setForm({ ...form, on: e.target.value })} />
+            <Checkbox label={x.healthCheck} checked={form.health} onChange={(y) => setForm({ ...form, health: y })} />
           </div>
         ) : null}
       </Modal>
-      <Modal open={revoking !== null} onClose={() => setRevoking(null)} alert icon="close" tone="burgundy" title="¿Revocar la autorización?"
-        description="Queda en el historial con el motivo. Si ya no hay autorización para datos de salud, esos datos se borran; el registro académico se conserva."
+      <Modal open={revoking !== null} onClose={() => setRevoking(null)} alert icon="close" tone="burgundy" title={x.revokeTitle}
+        description={x.revokeText}
         actions={[
-          <Button key="c" variant="secondary" onClick={() => setRevoking(null)} data-autofocus>Cancelar</Button>,
+          <Button key="c" variant="secondary" onClick={() => setRevoking(null)} data-autofocus>{x.cancel}</Button>,
           <Button key="r" variant="danger" icon="close" disabled={!reason.trim()} loading={revoke.isPending} onClick={() => revoke.mutateAsync({ id: revoking!, studentId, reason }).then(
-            () => { setRevoking(null); showToast({ tone: "success", title: "Autorización revocada", message: "Quedó en el historial con el motivo." }); },
-            (e) => showToast({ tone: "error", title: "No se revocó la autorización", message: privacyMessage(e) }),
-          )}>Revocar</Button>,
+            () => { setRevoking(null); showToast({ tone: "success", title: x.revokedOk, message: x.revokedOkText }); },
+            (e) => showToast({ tone: "error", title: x.revokeError, message: privacyMessage(e, t) }),
+          )}>{x.revokeBtn}</Button>,
         ]}>
-        <Textarea label="Motivo" required value={reason} onChange={setReason} rows={2} hint="Obligatorio. Por ejemplo: «El acudiente retiró la autorización de salud»." />
+        <Textarea label={x.reason} required value={reason} onChange={setReason} rows={2} hint={x.reasonHint} />
       </Modal>
       {toastNode}
     </section>

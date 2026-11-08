@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEMO, supabase } from "../lib/supabase";
 import { SUBJECTS, subjectGrades } from "../data/academic";
-import { IMPORT_ISSUES, PERIODS, type ImportIssue } from "../data/admin";
+import { IMPORT_ISSUES, PERIODS, type ImportIssue, type IssueCode } from "../data/admin";
 import { ALL_STUDENTS, COURSES, type StudentRecord } from "../data/students";
+import { es, type Messages } from "../i18n/es";
 import { demoData, demoInitial, forcedState, allRows } from "./client";
 
 /*
@@ -14,11 +15,18 @@ import { demoData, demoInitial, forcedState, allRows } from "./client";
 const throwIf = (r: { error: unknown }) => { if (r.error) throw r.error; };
 const msgOf = (e: unknown) => (e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "");
 
-/** Mensaje para la persona: las reglas de la base tal cual; lo demás, genérico. */
-export function enrollMessage(e: unknown): string {
+/** Mensaje para la persona: las reglas de la base tal cual (llegan en español); lo demás, genérico en el idioma. */
+export function enrollMessage(e: unknown, t: Messages = es): string {
   const m = msgOf(e);
+  if (e instanceof EnrollError) return t.adm.err[e.code];
   if (/Ya existe un estudiante|no existe en la estructura|Faltan nombres|Solo Secretaría|autorización/.test(m)) return m;
-  return "No pudimos guardar la matrícula. Revisa tu conexión e inténtalo de nuevo.";
+  return t.adm.err.enrollFailed;
+}
+
+/** Error propio de la lectura del archivo, con código: la pantalla pone el texto en el idioma (idiomas, paso 4). */
+export class EnrollError extends Error {
+  code: "xlsOld" | "onlyXlsx" | "unreadable" | "noRows";
+  constructor(code: EnrollError["code"]) { super(es.adm.err[code]); this.code = code; }
 }
 
 export const DOC_ABBR: Record<string, string> = { "Tarjeta de identidad": "TI", "Registro civil": "RC", "Cédula de ciudadanía": "CC", "Cédula de extranjería": "CE", "Pasaporte": "PA" };
@@ -136,14 +144,16 @@ export function validateRows(rows: ImportRow[], courses: string[], existingDocs:
     const key = docNum ? docOf(r) : "";
     const dupOf = key ? seen.get(key) : undefined;
     if (key && !seen.has(key)) seen.set(key, r.row);
-    if (!r.first || !r.last) issues.push({ ...base, state: "error", msg: "Faltan nombres o apellidos", field: null });
-    else if (!docNum) issues.push({ ...base, state: "error", msg: "Documento vacío", field: "doc" });
-    else if (docNum.length < 8) issues.push({ ...base, state: "error", msg: "Documento incompleto (mínimo 8 dígitos)", field: "doc" });
-    else if (!courses.includes(r.course.toUpperCase())) issues.push({ ...base, state: "error", msg: "El curso " + (r.course || "(vacío)") + " no existe en la estructura académica", field: "course" });
-    else if (r.birth && !toIsoDate(r.birth)) issues.push({ ...base, state: "error", msg: "Fecha de nacimiento inválida: " + r.birth, field: "birth" });
-    else if (existingDocs.has(key)) issues.push({ ...base, state: "duplicate", msg: "Ya existe un estudiante con este documento", field: null });
-    else if (dupOf !== undefined) issues.push({ ...base, state: "duplicate", msg: "Fila repetida (igual a la fila " + dupOf + ")", field: null });
-    else if (!r.phone) issues.push({ ...base, state: "warning", msg: "Falta el teléfono del acudiente", field: null });
+    // El texto español sale del diccionario; el código permite escribirlo en el idioma de la app.
+    const add = (state: ImportIssue["state"], code: IssueCode, field: string | null, arg?: string) => issues.push({ ...base, state, msg: es.adm.issue(code, arg), field, code, arg });
+    if (!r.first || !r.last) add("error", "noName", null);
+    else if (!docNum) add("error", "docEmpty", "doc");
+    else if (docNum.length < 8) add("error", "docShort", "doc");
+    else if (!courses.includes(r.course.toUpperCase())) add("error", "courseMissing", "course", r.course || "(vacío)");
+    else if (r.birth && !toIsoDate(r.birth)) add("error", "birthBad", "birth", r.birth);
+    else if (existingDocs.has(key)) add("duplicate", "duplicateDoc", null);
+    else if (dupOf !== undefined) add("duplicate", "duplicateRow", null, String(dupOf));
+    else if (!r.phone) add("warning", "noPhone", null);
   });
   return issues;
 }
@@ -164,15 +174,15 @@ async function readXlsx(file: File): Promise<string[][]> {
 
 /** Lee el archivo (.xlsx o CSV), valida contra los cursos y los documentos que ya existen en la base. */
 export async function readImportFile(file: File): Promise<ImportResult> {
-  if (/\.xls$/i.test(file.name)) throw new Error("Los archivos .xls antiguos no se pueden leer. En Excel: Archivo → Guardar como → «Libro de Excel (.xlsx)» o «CSV UTF-8».");
-  if (!/\.(xlsx|csv)$/i.test(file.name)) throw new Error("Solo se aceptan archivos Excel (.xlsx) o CSV.");
+  if (/\.xls$/i.test(file.name)) throw new EnrollError("xlsOld");
+  if (!/\.(xlsx|csv)$/i.test(file.name)) throw new EnrollError("onlyXlsx");
   let table: string[][];
   try {
     table = /\.xlsx$/i.test(file.name) ? await readXlsx(file) : parseCsv(await file.text());
   } catch {
-    throw new Error("No pudimos leer el archivo. Revisa que sea un .xlsx o CSV válido y que no esté protegido con contraseña.");
+    throw new EnrollError("unreadable");
   }
-  if (table.length < 2) throw new Error("El archivo no tiene filas de estudiantes debajo del encabezado.");
+  if (table.length < 2) throw new EnrollError("noRows");
   const rows: ImportRow[] = table.slice(1).map((c, i) => ({
     row: i + 2, first: c[0] ?? "", last: c[1] ?? "", docType: c[2] || "Tarjeta de identidad", doc: c[3] ?? "", birth: c[4] ?? "", course: (c[5] ?? "").toUpperCase(),
     guardian: c[6] ?? "", rel: c[7] ?? "", phone: c[8] ?? "",

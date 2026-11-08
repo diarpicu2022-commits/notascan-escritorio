@@ -11,6 +11,7 @@ export type UserRole = "teacher" | "guardian" | "staff" | "director";
 export type UserStatus = "active" | "inactive" | "invited" | "none";
 export interface DirectoryUser { id: string; name: string; email: string; role: UserRole; status: UserStatus; last: string }
 
+/** Etiquetas en español (las pantallas usan t.adm.roles, t.adm.userStatus y t.adm.rowState); se conservan los tonos. */
 export const USER_ROLES: Record<UserRole, string> = { teacher: "Docente", guardian: "Acudiente", staff: "Administrativo", director: "Directivo" };
 export const USER_STATUS: Record<UserStatus, [string, BadgeTone, IconName]> = { active: ["Activo", "verified", "check"], inactive: ["Desactivado", "neutral", "minus"], invited: ["Invitación enviada", "pending", "mail"], none: ["Sin cuenta", "neutral", "user"] };
 
@@ -48,17 +49,22 @@ export const INITIAL_ASSIGN: Assignment[] = (() => {
 })();
 
 export type ImportState = "valid" | "warning" | "error" | "duplicate" | "fixed" | "skipped";
-export interface ImportIssue { row: number; name: string; doc: string; course: string; state: ImportState; msg: string; field: string | null }
+/**
+ * Problema de una fila. `msg` es el texto en español de siempre; `code` y `arg` permiten escribirlo en el idioma de la
+ * app (idiomas, paso 4). Sin `code` (mensajes que llegan escritos de la base) se muestra `msg` tal cual.
+ */
+export type IssueCode = "noName" | "docEmpty" | "docShort" | "courseMissing" | "birthBad" | "duplicateDoc" | "duplicateRow" | "noPhone" | "docFixed" | "courseFixed" | "skipped";
+export interface ImportIssue { row: number; name: string; doc: string; course: string; state: ImportState; msg: string; field: string | null; code?: IssueCode; arg?: string }
 
 export const IMPORT_STEPS = ["Seleccionar archivo", "Previsualizar", "Validar", "Corregir errores", "Confirmar importación", "Resultados"];
 export const IMPORT_ISSUES: ImportIssue[] = [
-  { row: 12, name: "Samuel Ortiz Bravo", doc: "TI 10843", course: "6A", state: "error", msg: "Documento incompleto (mínimo 8 dígitos)", field: "doc" },
-  { row: 37, name: "Luciana Paz Mora", doc: "TI 1084412233", course: "6C", state: "error", msg: "El curso 6C no existe en la estructura académica", field: "course" },
-  { row: 58, name: "Tomás Riascos", doc: "TI 1084523310", course: "7A", state: "warning", msg: "Falta el teléfono del acudiente", field: null },
-  { row: 91, name: "María Fernanda López Rosero", doc: "TI 1084655210", course: "7A", state: "duplicate", msg: "Ya existe un estudiante con este documento", field: null },
-  { row: 120, name: "Gabriela Zambrano", doc: "", course: "7B", state: "error", msg: "Documento vacío", field: "doc" },
-  { row: 166, name: "Nicolás Cabrera", doc: "TI 1084812290", course: "8A", state: "duplicate", msg: "Fila repetida (igual a la fila 165)", field: null },
-  { row: 203, name: "Antonella Burbano", doc: "TI 1084933302", course: "8B", state: "error", msg: "Fecha de nacimiento inválida: 31/02/2014", field: "birth" },
+  { row: 12, name: "Samuel Ortiz Bravo", doc: "TI 10843", course: "6A", state: "error", msg: "Documento incompleto (mínimo 8 dígitos)", field: "doc", code: "docShort" },
+  { row: 37, name: "Luciana Paz Mora", doc: "TI 1084412233", course: "6C", state: "error", msg: "El curso 6C no existe en la estructura académica", field: "course", code: "courseMissing", arg: "6C" },
+  { row: 58, name: "Tomás Riascos", doc: "TI 1084523310", course: "7A", state: "warning", msg: "Falta el teléfono del acudiente", field: null, code: "noPhone" },
+  { row: 91, name: "María Fernanda López Rosero", doc: "TI 1084655210", course: "7A", state: "duplicate", msg: "Ya existe un estudiante con este documento", field: null, code: "duplicateDoc" },
+  { row: 120, name: "Gabriela Zambrano", doc: "", course: "7B", state: "error", msg: "Documento vacío", field: "doc", code: "docEmpty" },
+  { row: 166, name: "Nicolás Cabrera", doc: "TI 1084812290", course: "8A", state: "duplicate", msg: "Fila repetida (igual a la fila 165)", field: null, code: "duplicateRow", arg: "165" },
+  { row: 203, name: "Antonella Burbano", doc: "TI 1084933302", course: "8B", state: "error", msg: "Fecha de nacimiento inválida: 31/02/2014", field: "birth", code: "birthBad", arg: "31/02/2014" },
 ];
 export const ROW_STATE: Record<ImportState, [string, BadgeTone, IconName]> = {
   valid: ["Válido", "verified", "check"], warning: ["Advertencia", "medium", "warning"], error: ["Error", "review", "error"],

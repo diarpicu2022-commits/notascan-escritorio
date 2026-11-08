@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../app/AuthContext";
 import { DEMO, supabase } from "../lib/supabase";
 import { allRows } from "./client";
+import { es, type Messages } from "../i18n/es";
 
 /*
  * Privacidad y derechos del titular (paso 6g · Ley 1581 de 2012, Decreto 1377 de 2013).
@@ -14,10 +15,11 @@ import { allRows } from "./client";
 const throwIf = (r: { error: unknown }) => { if (r.error) throw r.error; };
 const msgOf = (e: unknown) => (e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "");
 
-export function privacyMessage(e: unknown): string {
+/** Las reglas de la base llegan en español y se muestran tal cual; lo demás, en el idioma de la app. */
+export function privacyMessage(e: unknown, t: Messages = es): string {
   const m = msgOf(e);
   if (/Solo Secretaría|motivo|ya estaba revocada|autorización/.test(m)) return m;
-  return "No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.";
+  return t.adm.err.failed;
 }
 
 export interface GuardianAuthorization {

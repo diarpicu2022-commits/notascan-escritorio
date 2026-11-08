@@ -6,6 +6,7 @@
  * Modo oscuro, paso 2: grupo Tema de Preferencias.
  */
 import { docenteEs } from "./docente.es";
+import { secretariaEs } from "./secretaria.es";
 
 export const es = {
   lang: {
@@ -190,6 +191,8 @@ export const es = {
   },
   /* Paso 3: pantallas del Docente. */
   tch: docenteEs,
+  /* Paso 4: pantallas de Secretaría. */
+  adm: secretariaEs,
 };
 
 export type Messages = typeof es;
