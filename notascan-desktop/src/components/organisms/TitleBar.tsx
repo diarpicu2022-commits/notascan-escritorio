@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
+import { createPortal } from "react-dom";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Icon } from "../atoms/Icon";
 import { Logo } from "../atoms/Logo";
@@ -20,6 +21,13 @@ export const IN_DESKTOP = typeof window !== "undefined" && "__TAURI_INTERNALS__"
  */
 export const IS_MAC = typeof navigator !== "undefined" && /Macintosh|Mac OS X/.test(navigator.userAgent);
 
+/*
+ * La barra va directo en <body>, fuera de #root (2026-11-08). #root es la caja que desplaza la app y empieza debajo de
+ * la barra. En macOS, WebKit desplaza esas cajas en su propia capa gráfica y recorta lo fijo que llevan dentro, así
+ * que en el Mac de la CI la barra existía pero no se veía. Fuera de #root no la recorta nadie, en ningún sistema.
+ */
+const toBody = (bar: ReactElement) => createPortal(bar, document.body);
+
 export function TitleBar() {
   const [max, setMax] = useState(false);
   useEffect(() => {
@@ -33,7 +41,7 @@ export function TitleBar() {
   }, []);
   if (!IN_DESKTOP) return null;
   const w = getCurrentWindow();
-  if (IS_MAC) return (
+  if (IS_MAC) return toBody(
     <header className="ns-titlebar ns-titlebar--mac" data-tauri-drag-region>
       <span className="ns-titlebar-brand" data-tauri-drag-region>
         <Logo size={13} markOnly />
@@ -41,7 +49,7 @@ export function TitleBar() {
       </span>
     </header>
   );
-  return (
+  return toBody(
     <header className="ns-titlebar" data-tauri-drag-region>
       <span className="ns-titlebar-brand" data-tauri-drag-region>
         <Logo size={13} markOnly />

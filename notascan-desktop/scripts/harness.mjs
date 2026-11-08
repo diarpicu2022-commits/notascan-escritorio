@@ -9,7 +9,9 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const DS = join(ROOT, "..", "notascan-ui");
 export const OUT = join(ROOT, "verify-out");
 mkdirSync(OUT, { recursive: true });
-export const URL_BASE = "http://localhost:4173/";
+/** Puerto de la vista previa. `NS_PORT` permite correr dos copias de las pruebas a la vez (dos ramas). */
+export const PORT = process.env.NS_PORT || "4173";
+export const URL_BASE = `http://localhost:${PORT}/`;
 
 export function createReport() {
   const results = [];
@@ -55,10 +57,10 @@ export function findOffSystemValues() {
 
 /** Arranca `vite preview` sobre dist/ y Chromium; devuelve un cierre que limpia ambos. */
 export async function startPreview() {
-  const server = spawn(process.execPath, [join(ROOT, "node_modules/vite/bin/vite.js"), "preview", "--port", "4173", "--strictPort"], { cwd: ROOT });
+  const server = spawn(process.execPath, [join(ROOT, "node_modules/vite/bin/vite.js"), "preview", "--port", PORT, "--strictPort"], { cwd: ROOT });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error("vite preview no arrancó")), 30000);
-    server.stdout.on("data", (d) => { if (String(d).includes("4173")) { clearTimeout(t); res(); } });
+    server.stdout.on("data", (d) => { if (String(d).includes(PORT)) { clearTimeout(t); res(); } });
     server.stderr.on("data", (d) => { if (/in use|error/i.test(String(d))) { clearTimeout(t); rej(new Error(String(d))); } });
   });
   // Mismo modo de suavizado de texto en todas las páginas: si no, Chromium alterna LCD y gris
