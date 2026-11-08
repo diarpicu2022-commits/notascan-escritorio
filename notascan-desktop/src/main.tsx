@@ -18,6 +18,9 @@ import { IN_DESKTOP, TitleBar } from "./components/organisms/TitleBar";
 // App de escritorio sin bordes de Windows: la barra de título es de la app (paso 6h).
 if (IN_DESKTOP) document.documentElement.classList.add("ns-in-desktop");
 
+// Solo en la CI de macOS (VITE_DIAG=1): panel que escribe en pantalla lo que ve la app (src/dev/diagnostico.ts).
+if (import.meta.env.VITE_DIAG === "1") void import("./dev/diagnostico").then((m) => m.startDiagnostic());
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <MotionConfig reducedMotion="user">
