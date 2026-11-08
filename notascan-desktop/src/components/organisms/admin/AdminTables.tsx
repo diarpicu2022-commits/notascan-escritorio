@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { formatGrade } from "../../../lib/grade";
 import { GRADE_NAME } from "../../../data/academic";
 import { PERIODS, exportCSV } from "../../../data/admin";
 import { COURSES, type StudentRecord } from "../../../data/students";
@@ -20,10 +19,12 @@ import { ConfirmAction, Modal } from "../Overlays";
 import { ReportCardView } from "../ReportCardDocument";
 import { PrintDocuments } from "../PrintDocuments";
 import { useToast } from "../Toast";
+import { useI18n } from "../../../i18n/I18nProvider";
 
 /* ---------- Boletines ---------- */
 
-const RC: Record<RcState, [string, BadgeTone, IconName]> = { pending: ["Pendiente", "pending", "clock"], generated: ["Generado", "verified", "check"], blocked: ["Bloqueado · paz y salvo", "review", "lock"] };
+/** Tono e icono de cada estado; la palabra sale del diccionario (t.adm.rcState). */
+const RC: Record<RcState, [BadgeTone, IconName]> = { pending: ["pending", "clock"], generated: ["verified", "check"], blocked: ["review", "lock"] };
 
 /** Previsualiza y genera boletines; los estudiantes sin paz y salvo quedan bloqueados. El PDF sale de la impresión. */
 export function ReportCardManager() {
@@ -37,6 +38,8 @@ export function ReportCardManager() {
   const [printing, setPrinting] = useState<RcRow[] | null>(null);
   const q = useReportCards({ course, period });
   const mark = useMarkGenerated();
+  const { t, shownGrade } = useI18n();
+  const x = t.adm.rc, pn = t.tch.periodName;
   const d = q.data;
   // Modo normal: al llegar los datos, el curso y el periodo se ajustan a los que existen (el abierto por defecto).
   useEffect(() => {
@@ -46,8 +49,8 @@ export function ReportCardManager() {
   }, [d]);
   const rows: RcRow[] = (d?.rows ?? []).map((r) => (r.rc === "pending" && gen[r.id] ? { ...r, rc: "generated" as RcState } : r)).filter((s) => status === "all" || s.rc === status);
   const gradeOf = (c: string) => (DEMO ? c.charAt(0) : d?.courses.find((x) => x.id === c)?.gradeId ?? "");
-  const grades = DEMO ? ["6", "7", "8"].map((g) => ({ value: g, label: GRADE_NAME[g] }))
-    : (d?.courses ?? []).filter((c, i, all) => all.findIndex((x) => x.gradeId === c.gradeId) === i).map((c) => ({ value: c.gradeId, label: c.gradeName }));
+  const grades = DEMO ? ["6", "7", "8"].map((g) => ({ value: g, label: t.adm.gradeName(GRADE_NAME[g]) }))
+    : (d?.courses ?? []).filter((c, i, all) => all.findIndex((y) => y.gradeId === c.gradeId) === i).map((c) => ({ value: c.gradeId, label: t.adm.gradeName(c.gradeName) }));
   const courseIds = DEMO ? COURSES : (d?.courses ?? []).map((c) => c.id);
   function generate(list: RcRow[]) {
     const ok = list.filter((s) => s.rc !== "blocked");
@@ -55,59 +58,61 @@ export function ReportCardManager() {
       const o = { ...gen };
       ok.forEach((s) => { o[s.id] = true; });
       setGen(o);
-      showToast({ tone: "success", title: ok.length + (ok.length === 1 ? " boletín generado" : " boletines generados"), message: "PDF listos para descargar · " + period });
+      showToast({ tone: "success", title: x.generated(ok.length), message: x.readyDemo(pn(period)) });
       return;
     }
-    if (!ok.length) { showToast({ tone: "info", title: "Nada que generar", message: "Los estudiantes seleccionados tienen el paz y salvo bloqueado." }); return; }
+    if (!ok.length) { showToast({ tone: "info", title: x.nothing, message: x.nothingText }); return; }
     setPrinting(ok);
   }
   function afterPrint() {
     const ok = printing ?? [];
     setPrinting(null);
     mark.mutateAsync({ ids: ok.map((r) => r.id), period }).then(
-      () => showToast({ tone: "success", title: ok.length + (ok.length === 1 ? " boletín generado" : " boletines generados"), message: "Si elegiste «Guardar como PDF», el archivo quedó donde lo guardaste · " + period }),
-      () => showToast({ tone: "error", title: "No pudimos marcar los boletines como generados", message: "La impresión se hizo; vuelve a intentarlo para registrar el estado." }),
+      () => showToast({ tone: "success", title: x.generated(ok.length), message: x.savedPdf(pn(period)) }),
+      () => showToast({ tone: "error", title: x.markError, message: x.markErrorText }),
     );
   }
   return (
     <>
       <DataGrid<RcRow>
-        caption="Boletines por estudiante" rows={rows} selectable pageSize={12} density="compact" resetKey={course + status + period}
-        loading={q.isPending && !d} error={q.isError && !d ? "No pudimos cargar los boletines." : undefined} onRetry={() => q.refetch()}
-        emptyTitle={d?.rows.length ? "No hay boletines con este estado." : "No hay estudiantes activos en este curso."} emptyIcon="book"
+        caption={x.caption} rows={rows} selectable pageSize={12} density="compact" resetKey={course + status + period}
+        loading={q.isPending && !d} error={q.isError && !d ? x.loadError : undefined} onRetry={() => q.refetch()}
+        emptyTitle={d?.rows.length ? x.noState : x.noActive} emptyIcon="book"
         toolbar={<>
-          <FilterGroup as="select" label="Grado" value={gradeOf(course)} onChange={(g) => setCourse(DEMO ? g + "A" : courseIds.find((c) => gradeOf(c) === g) ?? course)} options={grades} />
-          <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={courseIds.filter((c) => gradeOf(c) === gradeOf(course)).map((c) => ({ value: c, label: c }))} />
-          <FilterGroup as="select" label="Periodo" value={period} onChange={setPeriod} options={(d?.periods ?? PERIODS).map((p) => ({ value: p, label: p }))} />
-          <FilterGroup label="Estado" value={status} onChange={setStatus} options={[{ value: "all", label: "Todos" }, { value: "pending", label: "Pendiente" }, { value: "generated", label: "Generado" }, { value: "blocked", label: "Bloqueado" }]} />
+          <FilterGroup as="select" label={t.adm.f.grade} value={gradeOf(course)} onChange={(g) => setCourse(DEMO ? g + "A" : courseIds.find((c) => gradeOf(c) === g) ?? course)} options={grades} />
+          <FilterGroup as="select" label={t.adm.f.course} value={course} onChange={setCourse} options={courseIds.filter((c) => gradeOf(c) === gradeOf(course)).map((c) => ({ value: c, label: c }))} />
+          <FilterGroup as="select" label={t.adm.f.period} value={period} onChange={setPeriod} options={(d?.periods ?? PERIODS).map((p) => ({ value: p, label: pn(p) }))} />
+          <FilterGroup label={t.adm.f.state} value={status} onChange={setStatus} options={[{ value: "all", label: t.adm.f.all }, { value: "pending", label: x.stateFilter.pending }, { value: "generated", label: x.stateFilter.generated }, { value: "blocked", label: x.stateFilter.blocked }]} />
         </>}
-        bulkActions={(sel, clear) => <Button size="sm" icon="book" onClick={() => { generate(sel); clear(); }}>Generar selección</Button>}
+        bulkActions={(sel, clear) => <Button size="sm" icon="book" onClick={() => { generate(sel); clear(); }}>{x.generateSel}</Button>}
         columns={[
-          { key: "name", label: "Estudiante", header: true, sortable: true, render: (r) => <div className="ns-cell-link ns-cell-link--static"><Avatar name={r.name} size="sm" />{r.name}</div> },
-          { key: "course", label: "Curso", render: (r) => <span className="ns-course-tag">{r.course}</span> },
-          { key: "avg", label: "Promedio", numeric: true, sortable: true, render: (r) => <span className="ns-table-grade">{formatGrade(r.avg)}</span> },
-          { key: "rc", label: "Estado", sortable: true, render: (r) => { const s = RC[r.rc]; return <Badge tone={s[1]} icon={s[2]}>{s[0]}</Badge>; } },
+          { key: "name", label: t.adm.f.student, header: true, sortable: true, render: (r) => <div className="ns-cell-link ns-cell-link--static"><Avatar name={r.name} size="sm" />{r.name}</div> },
+          { key: "course", label: t.adm.f.course, render: (r) => <span className="ns-course-tag">{r.course}</span> },
+          { key: "avg", label: x.avg, numeric: true, sortable: true, render: (r) => <span className="ns-table-grade">{shownGrade(r.avg)}</span> },
+          { key: "rc", label: t.adm.f.state, sortable: true, render: (r) => { const s = RC[r.rc]; return <Badge tone={s[0]} icon={s[1]}>{t.adm.rcState[r.rc]}</Badge>; } },
         ]}
         rowActions={(r) => [
-          <Button key="p" size="sm" variant="ghost" icon="eye" onClick={() => setPreview(r)}>Previsualizar</Button>,
-          <IconAction key="g" icon="download" label={"Generar PDF de " + r.name} disabled={r.rc === "blocked"} onClick={() => generate([r])} />,
+          <Button key="p" size="sm" variant="ghost" icon="eye" onClick={() => setPreview(r)}>{x.preview}</Button>,
+          <IconAction key="g" icon="download" label={x.pdfOf(r.name)} disabled={r.rc === "blocked"} onClick={() => generate([r])} />,
         ]}
       />
-      <ConfirmAction open={confirmAll} icon="book" onCancel={() => setConfirmAll(false)} title={"¿Generar todos los boletines de " + course + "?"}
-        description={DEMO ? "Los estudiantes con paz y salvo bloqueado se omiten automáticamente." : "Se abrirá la impresión con un boletín por página: elige «Guardar como PDF». Los estudiantes con paz y salvo bloqueado se omiten."}
-        confirmLabel="Generar todos" onConfirm={() => { setConfirmAll(false); generate(rows); }} />
+      <ConfirmAction open={confirmAll} icon="book" onCancel={() => setConfirmAll(false)} title={x.allTitle(course)}
+        description={DEMO ? x.allDescDemo : x.allDesc}
+        confirmLabel={x.generateAll} onConfirm={() => { setConfirmAll(false); generate(rows); }} />
       <Modal
-        open={!!preview} onClose={() => setPreview(null)} size="doc" title="Vista previa del boletín" description={preview ? preview.name + " · " + period : ""}
+        open={!!preview} onClose={() => setPreview(null)} size="doc" title={x.previewTitle} description={preview ? preview.name + " · " + pn(period) : ""}
         actions={[
-          <Button key="c" variant="secondary" onClick={() => setPreview(null)} data-autofocus>Cerrar</Button>,
+          <Button key="c" variant="secondary" onClick={() => setPreview(null)} data-autofocus>{x.close}</Button>,
           preview && preview.rc !== "blocked"
-            ? <Button key="g" icon="download" onClick={() => { generate([preview]); setPreview(null); }}>Generar PDF</Button>
-            : <Badge key="b" tone="review" icon="lock">Bloqueado por paz y salvo</Badge>,
+            ? <Button key="g" icon="download" onClick={() => { generate([preview]); setPreview(null); }}>{x.generatePdf}</Button>
+            : <Badge key="b" tone="review" icon="lock">{x.blockedBadge}</Badge>,
         ]}
       >
+        {/* D2: el boletín es documento oficial y sale en español; en inglés y portugués una línea lo dice. */}
+        {preview && x.paperNote ? <p className="ns-caption" style={{ margin: 0 }}>{x.paperNote}</p> : null}
         {preview ? <div className="ns-paper-scroll"><ReportCardView data={cardOf(preview, period)} /></div> : null}
       </Modal>
-      <div className="ns-sticky-cta"><Button size="lg" icon="book" disabled={!rows.some((r) => r.rc !== "blocked")} onClick={() => setConfirmAll(true)}>Generar todos</Button></div>
+      <div className="ns-sticky-cta"><Button size="lg" icon="book" disabled={!rows.some((r) => r.rc !== "blocked")} onClick={() => setConfirmAll(true)}>{x.generateAll}</Button></div>
       {printing ? <PrintDocuments docs={printing.map((r) => cardOf(r, period))} onDone={afterPrint} /> : null}
       {toastNode}
     </>
@@ -126,6 +131,8 @@ export function PazYSalvosTable() {
   const [course, setCourse] = useState("7A");
   const [only, setOnly] = useState("all");
   const [showToast, toastNode] = useToast();
+  const { t } = useI18n();
+  const x = t.adm.clr;
   const courses = DEMO ? COURSES : [...new Set(rows.map((r) => r.course))].filter(Boolean).sort();
   // Guardado optimista: el interruptor cambia al instante y vuelve atrás si la base lo rechaza.
   function change(ids: string[], k: ClearKey, v: boolean, done?: () => void) {
@@ -137,35 +144,35 @@ export function PazYSalvosTable() {
       done?.();
     }, () => {
       setRows(before);
-      showToast({ tone: "error", title: "No pudimos guardar el paz y salvo", message: "Revisa tu conexión e inténtalo de nuevo. No se modificó ningún registro." });
+      showToast({ tone: "error", title: x.saveError, message: x.saveErrorText });
     });
   }
   const list = rows.filter((r) => { const ok = r.library && r.fees && r.documents; return (course === "all" || r.course === course) && (only === "all" || (only === "blocked" ? !ok : ok)); });
   const blocked = rows.filter((r) => (course === "all" || r.course === course) && !(r.library && r.fees && r.documents)).length;
-  const sw = (r: StudentRecord, k: ClearKey, label: string) => <Switch ariaLabel={label + " de " + r.name} checked={r[k]} onChange={(v) => change([r.id], k, v)} onText="Al día" offText="Pendiente" />;
+  const sw = (r: StudentRecord, k: ClearKey, label: string) => <Switch ariaLabel={x.of(label, r.name)} checked={r[k]} onChange={(v) => change([r.id], k, v)} onText={x.upToDate} offText={x.pending} />;
   return (
     <>
       <DataGrid<StudentRecord>
-        caption="Paz y salvos por estudiante" rows={list} selectable pageSize={12} density="compact" resetKey={course + only}
-        loading={q.isPending && !q.data} error={q.isError && !q.data ? "No pudimos cargar los paz y salvos." : undefined} onRetry={() => q.refetch()}
-        emptyTitle={rows.length ? "No hay estudiantes con este filtro." : "No hay estudiantes activos."} emptyIcon="shield"
+        caption={x.caption} rows={list} selectable pageSize={12} density="compact" resetKey={course + only}
+        loading={q.isPending && !q.data} error={q.isError && !q.data ? x.loadError : undefined} onRetry={() => q.refetch()}
+        emptyTitle={rows.length ? x.noMatch : x.noActive} emptyIcon="shield"
         toolbar={<>
-          <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={[{ value: "all", label: "Todos" }, ...courses.map((c) => ({ value: c, label: c }))]} />
-          <FilterGroup label="Acceso" value={only} onChange={setOnly} options={[{ value: "all", label: "Todos" }, { value: "blocked", label: "Bloqueado", count: blocked }, { value: "ok", label: "Habilitado" }]} />
+          <FilterGroup as="select" label={t.adm.f.course} value={course} onChange={setCourse} options={[{ value: "all", label: t.adm.f.all }, ...courses.map((c) => ({ value: c, label: c }))]} />
+          <FilterGroup label={x.access} value={only} onChange={setOnly} options={[{ value: "all", label: t.adm.f.all }, { value: "blocked", label: x.blocked, count: blocked }, { value: "ok", label: x.enabled }]} />
         </>}
         bulkActions={(sel, clear) => [
           <Button key="d" size="sm" variant="secondary" icon="check" onClick={() => {
-            change(sel.map((x) => x.id), "documents", true, () => showToast({ tone: "success", title: "Documentos al día", message: sel.length + " estudiantes actualizados." }));
+            change(sel.map((y) => y.id), "documents", true, () => showToast({ tone: "success", title: x.docsOk, message: x.updated(sel.length) }));
             clear();
-          }}>Marcar documentos al día</Button>,
+          }}>{x.markDocs}</Button>,
         ]}
         columns={[
-          { key: "name", label: "Estudiante", header: true, sortable: true, render: (r) => <div className="ns-cell-link ns-cell-link--static"><Avatar name={r.name} size="sm" /><span>{r.name}<small className="ns-caption" style={{ display: "block" }}>{r.course}</small></span></div> },
-          { key: "library", label: "Biblioteca", render: (r) => sw(r, "library", "Biblioteca") },
-          { key: "fees", label: "Pensiones", render: (r) => sw(r, "fees", "Pensiones") },
-          { key: "documents", label: "Documentos", render: (r) => sw(r, "documents", "Documentos") },
-          { key: "general", label: "Estado general", render: (r) => { const n = [r.library, r.fees, r.documents].filter(Boolean).length; return <span className="ns-caption" style={{ color: "var(--navy)", fontWeight: 700 }}>{n + " de 3 al día"}</span>; } },
-          { key: "access", label: "Reportes y boletines", sortValue: (r) => (r.library && r.fees && r.documents ? 1 : 0), sortable: true, render: (r) => { const ok = r.library && r.fees && r.documents; return <Badge tone={ok ? "verified" : "review"} icon={ok ? "check" : "lock"}>{ok ? "Habilitado" : "Bloqueado"}</Badge>; } },
+          { key: "name", label: t.adm.f.student, header: true, sortable: true, render: (r) => <div className="ns-cell-link ns-cell-link--static"><Avatar name={r.name} size="sm" /><span>{r.name}<small className="ns-caption" style={{ display: "block" }}>{r.course}</small></span></div> },
+          { key: "library", label: x.library, render: (r) => sw(r, "library", x.library) },
+          { key: "fees", label: x.fees, render: (r) => sw(r, "fees", x.fees) },
+          { key: "documents", label: x.documents, render: (r) => sw(r, "documents", x.documents) },
+          { key: "general", label: x.general, render: (r) => { const n = [r.library, r.fees, r.documents].filter(Boolean).length; return <span className="ns-caption" style={{ color: "var(--navy)", fontWeight: 700 }}>{x.nOf3(n)}</span>; } },
+          { key: "access", label: x.reports, sortValue: (r) => (r.library && r.fees && r.documents ? 1 : 0), sortable: true, render: (r) => { const ok = r.library && r.fees && r.documents; return <Badge tone={ok ? "verified" : "review"} icon={ok ? "check" : "lock"}>{ok ? x.enabled : x.blocked}</Badge>; } },
         ]}
       />
       {toastNode}
@@ -184,38 +191,41 @@ export function RankingTable() {
   const [period, setPeriod] = useState("Periodo 3");
   const [subject, setSubject] = useState("all");
   const [showToast, toastNode] = useToast();
+  const { t, shownGrade } = useI18n();
+  const x = t.adm.rank, pn = t.tch.periodName;
   // En modo normal el periodo por defecto es el abierto.
   useEffect(() => { if (!DEMO && d) { const open = d.periods.find((p) => p.status === "open") ?? d.periods[d.periods.length - 1]; if (open) setPeriod(open.name); } }, [d]);
   const list: RankRow[] = d ? rankRows(d, { period, subject, grade, course }) : [];
-  const grades = DEMO ? [["6", "Sexto"], ["7", "Séptimo"], ["8", "Octavo"]] : (d?.courses ?? []).filter((c, i, all) => all.findIndex((x) => x.gradeId === c.gradeId) === i).map((c) => [c.gradeId, c.gradeName]);
+  const grades = (DEMO ? [["6", "Sexto"], ["7", "Séptimo"], ["8", "Octavo"]] : (d?.courses ?? []).filter((c, i, all) => all.findIndex((y) => y.gradeId === c.gradeId) === i).map((c) => [c.gradeId, c.gradeName]))
+    .map(([value, label]) => [value, t.adm.gradeName(label)]);
   const courseIds = DEMO ? COURSES : (d?.courses ?? []).map((c) => c.id);
   const gradeOfCourse = (c: string) => (DEMO ? c.charAt(0) : d?.courses.find((x) => x.id === c)?.gradeId ?? "");
-  const ST = (s: RankRow): [string, BadgeTone, IconName] => (s.score >= 4.6 ? ["Destacado", "high", "star"] : s.score >= 3 ? ["Aprobado", "verified", "check"] : ["En riesgo", "review", "warning"]);
+  const ST = (s: RankRow): [string, BadgeTone, IconName] => (s.score >= 4.6 ? [x.status.top, "high", "star"] : s.score >= 3 ? [x.status.passed, "verified", "check"] : [x.status.risk, "review", "warning"]);
   const year = String(new Date().getFullYear());
   return (
     <>
       <DataGrid<RankRow>
-        caption="Ranking académico" rows={list} pageSize={15} densityToggle density="compact" initialSort={{ key: "pos", dir: "asc" }} resetKey={grade + course + subject + period}
-        loading={q.isPending && !d} error={q.isError && !d ? "No pudimos cargar el ranking." : undefined} onRetry={() => q.refetch()}
-        emptyTitle="Aún no hay notas verificadas para este filtro." emptyMessage="El ranking usa solo notas que un docente verificó." emptyIcon="trophy"
+        caption={x.caption} rows={list} pageSize={15} densityToggle density="compact" initialSort={{ key: "pos", dir: "asc" }} resetKey={grade + course + subject + period}
+        loading={q.isPending && !d} error={q.isError && !d ? x.loadError : undefined} onRetry={() => q.refetch()}
+        emptyTitle={x.empty} emptyMessage={x.emptyText} emptyIcon="trophy"
         toolbar={<>
-          <FilterGroup as="select" label="Año" value={DEMO ? "2026" : year} options={DEMO ? [{ value: "2026", label: "2026" }, { value: "2025", label: "2025" }] : [{ value: year, label: year }]} />
-          <FilterGroup as="select" label="Periodo" value={period} onChange={setPeriod} options={[...(d?.periods ?? []).map((p) => ({ value: p.name, label: p.name })), { value: "Año", label: "Acumulado anual" }]} />
-          <FilterGroup as="select" label="Grado" value={grade} onChange={(v) => { setGrade(v); setCourse("all"); }} options={[{ value: "all", label: "Todos" }, ...grades.map(([value, label]) => ({ value, label }))]} />
-          <FilterGroup as="select" label="Curso" value={course} onChange={setCourse} options={[{ value: "all", label: "Todos" }, ...courseIds.filter((c) => grade === "all" || gradeOfCourse(c) === grade).map((c) => ({ value: c, label: c }))]} />
-          <FilterGroup as="select" label="Materia" value={subject} onChange={setSubject} options={[{ value: "all", label: "Todas" }, ...(d?.subjects ?? []).map((s) => ({ value: s, label: s }))]} />
+          <FilterGroup as="select" label={x.year} value={DEMO ? "2026" : year} options={DEMO ? [{ value: "2026", label: "2026" }, { value: "2025", label: "2025" }] : [{ value: year, label: year }]} />
+          <FilterGroup as="select" label={t.adm.f.period} value={period} onChange={setPeriod} options={[...(d?.periods ?? []).map((p) => ({ value: p.name, label: pn(p.name) })), { value: "Año", label: x.annual }]} />
+          <FilterGroup as="select" label={t.adm.f.grade} value={grade} onChange={(v) => { setGrade(v); setCourse("all"); }} options={[{ value: "all", label: t.adm.f.all }, ...grades.map(([value, label]) => ({ value, label }))]} />
+          <FilterGroup as="select" label={t.adm.f.course} value={course} onChange={setCourse} options={[{ value: "all", label: t.adm.f.all }, ...courseIds.filter((c) => grade === "all" || gradeOfCourse(c) === grade).map((c) => ({ value: c, label: c }))]} />
+          <FilterGroup as="select" label={t.adm.f.subject} value={subject} onChange={setSubject} options={[{ value: "all", label: t.adm.f.allF }, ...(d?.subjects ?? []).map((s) => ({ value: s, label: s }))]} />
           <Button size="sm" variant="secondary" icon="download" disabled={!list.length} onClick={() => {
-            exportCSV("ranking_" + period.replace(" ", "_") + ".csv", ["Posición", "Estudiante", "Curso", "Promedio", "Materias aprobadas", "Estado"], list.map((s) => [s.pos, s.name, s.course, formatGrade(s.score), s.subjectsPassed + "/" + s.subjectsTotal, ST(s)[0]]));
-            showToast({ tone: "success", title: "Ranking exportado a Excel", message: list.length + " estudiantes · " + (period === "Año" ? "Acumulado anual" : period) + " · archivo CSV" });
-          }}>Exportar a Excel</Button>
+            exportCSV(x.exportFile(period), x.exportHead, list.map((s) => [s.pos, s.name, s.course, shownGrade(s.score), s.subjectsPassed + "/" + s.subjectsTotal, ST(s)[0]]));
+            showToast({ tone: "success", title: x.exported, message: x.exportedText(list.length, period === "Año" ? x.annual : pn(period)) });
+          }}>{x.export}</Button>
         </>}
         columns={[
-          { key: "pos", label: "Posición", numeric: true, sortable: true, render: (s) => (s.pos <= 3 ? <span className={"ns-medal ns-medal--" + s.pos} aria-label={"Puesto " + s.pos}>{s.pos}</span> : <span className="ns-pos">{s.pos}</span>) },
-          { key: "name", label: "Estudiante", sortable: true, header: true, render: (s) => <div className="ns-cell-link ns-cell-link--static"><Avatar name={s.name} size="sm" />{s.name}</div> },
-          { key: "course", label: "Curso", sortable: true, render: (s) => <span className="ns-course-tag">{s.course}</span> },
-          { key: "score", label: subject === "all" ? "Promedio" : "Nota en " + subject, numeric: true, sortable: true, render: (s) => <span className="ns-table-grade">{formatGrade(s.score)}</span> },
-          { key: "subjectsPassed", label: "Materias aprobadas", numeric: true, sortable: true, render: (s) => s.subjectsPassed + " / " + s.subjectsTotal },
-          { key: "state", label: "Estado", sortValue: (s) => s.score, sortable: true, render: (s) => { const x = ST(s); return <Badge tone={x[1]} icon={x[2]}>{x[0]}</Badge>; } },
+          { key: "pos", label: x.pos, numeric: true, sortable: true, render: (s) => (s.pos <= 3 ? <span className={"ns-medal ns-medal--" + s.pos} aria-label={x.place(s.pos)}>{s.pos}</span> : <span className="ns-pos">{s.pos}</span>) },
+          { key: "name", label: t.adm.f.student, sortable: true, header: true, render: (s) => <div className="ns-cell-link ns-cell-link--static"><Avatar name={s.name} size="sm" />{s.name}</div> },
+          { key: "course", label: t.adm.f.course, sortable: true, render: (s) => <span className="ns-course-tag">{s.course}</span> },
+          { key: "score", label: subject === "all" ? x.avg : x.gradeIn(subject), numeric: true, sortable: true, render: (s) => <span className="ns-table-grade">{shownGrade(s.score)}</span> },
+          { key: "subjectsPassed", label: x.passed, numeric: true, sortable: true, render: (s) => x.passedOf(s.subjectsPassed, s.subjectsTotal) },
+          { key: "state", label: t.adm.f.state, sortValue: (s) => s.score, sortable: true, render: (s) => { const y = ST(s); return <Badge tone={y[1]} icon={y[2]}>{y[0]}</Badge>; } },
         ]}
       />
       {toastNode}

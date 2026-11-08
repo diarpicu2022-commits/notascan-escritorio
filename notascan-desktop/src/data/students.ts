@@ -9,6 +9,8 @@ const LAST = ["López", "Martínez", "Guerrero", "Rodríguez", "Benavides", "Mu�
 export const COURSES = ["6A", "6B", "7A", "7B", "8A", "8B"];
 
 export interface StudentRecord extends Student {
+  /** Fecha de matrícula en ISO, para escribirla en inglés y portugués (`enrolled` es la forma española de siempre). */
+  enrolledOn?: string;
   subjectsPassed: number;
   library: boolean;
   fees: boolean;
@@ -40,7 +42,7 @@ export const ALL_STUDENTS: StudentRecord[] = (() => {
         document: "TI " + (1084000000 + Math.round(r * 899999)), docType: "Tarjeta de identidad",
         grade: c.charAt(0), course: c, guardian: (k % 2 ? "Gloria " : "Jorge ") + l1, guardianRel: k % 2 ? "Madre" : "Padre",
         guardianPhone: "31" + (2000000 + Math.round(r * 7999999)), status,
-        enrolled: (1 + (n % 27)) + " ene 2026", avg, attendance: Math.round(86 + r * 14), subjectsPassed: avg >= 3 ? 6 : Math.max(2, Math.round(r * 6)),
+        enrolled: (1 + (n % 27)) + " ene 2026", enrolledOn: "2026-01-" + String(1 + (n % 27)).padStart(2, "0"), avg, attendance: Math.round(86 + r * 14), subjectsPassed: avg >= 3 ? 6 : Math.max(2, Math.round(r * 6)),
         library: r2 > 0.05, fees: r3 > 0.09, documents: seeded(n * 5 + 1) > 0.06,
       });
     }

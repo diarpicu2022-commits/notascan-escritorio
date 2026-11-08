@@ -5,6 +5,7 @@
  * Se agregan claves por pasos. Paso 1: idioma, preferencias e inicio de sesión. Paso 2: marco común.
  */
 import { docenteEs } from "./docente.es";
+import { secretariaEs } from "./secretaria.es";
 
 export const es = {
   lang: {
@@ -181,6 +182,8 @@ export const es = {
   },
   /* Paso 3: pantallas del Docente. */
   tch: docenteEs,
+  /* Paso 4: pantallas de Secretaría. */
+  adm: secretariaEs,
 };
 
 export type Messages = typeof es;

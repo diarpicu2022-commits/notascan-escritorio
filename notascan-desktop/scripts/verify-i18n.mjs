@@ -1,4 +1,4 @@
-// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común) y paso 3 (Docente).
+// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común), paso 3 (Docente) y paso 4 (Secretaría).
 // Requiere `npm run build:demo` antes.
 import { createReport, startPreview, watchConsole, URL_BASE, OUT, sampleTextContrast, checkOverflow } from "./harness.mjs";
 import { join } from "node:path";
@@ -332,6 +332,171 @@ for (const lang of ["en", "pt"]) {
     const text = await page.locator(".ns-app-main").innerText();
     report.check("es: conceptos sin líneas nuevas (escala y aviso D2 solo en inglés y portugués)", !/escala nacional|Decreto 1290/.test(text));
     await ctx.close();
+  }
+}
+
+// 8. Paso 4 · Secretaría: todas las pantallas de Secretaría y el perfil desde Secretaría, en inglés y portugués.
+{
+  const ID = "20261175";
+  const SCREENS = [
+    ["dashboard", "#/admin/dashboard"], ["estudiantes", "#/admin/students"], ["matricula", "#/admin/enrollment"], ["importacion", "#/admin/enrollment?tab=import"],
+    ["usuarios", "#/admin/users"], ["estructura", "#/admin/structure"], ["malla", "#/admin/curriculum"], ["periodos", "#/admin/periods"],
+    ["boletines", "#/admin/reportcards"], ["pazysalvos", "#/admin/clearances"], ["ranking", "#/admin/ranking"],
+    ...["profile", "grades", "attendance", "observer", "reportcards", "info"].map((t) => [`perfil-${t}`, `#/admin/profile/${ID}?tab=${t}`]),
+  ];
+  // Palabras de interfaz en español que no deben quedar. No entran las de I6 (nombres, cursos, materias, componentes
+  // de la nota como «Actividades» o «Exámenes») ni las que también son portuguesas («Matrículas», «Todos», «Editar»…).
+  const COMMON = ["Estudiantes", "estudiantes", "Estudiante", "Acudiente", "acudiente", "Acudientes", "Curso", "Grado", "Grados", "Periodo", "Boletines", "boletines",
+    "Generar", "Pendiente", "Bloqueado", "Habilitado", "Pensiones", "Paz y salvo", "paz y salvo", "Al día", "Registrar", "Importar", "Validación", "Corregir",
+    "Siguiente", "Anterior", "Guardar", "Nombre completo", "Fecha", "Correo", "Usuarios", "Rol", "Último acceso", "Docentes", "Directivos", "Asignar",
+    "Asignación", "Malla", "Materia", "Materias", "Cursos", "Nivel", "Categoría", "Cupo", "Director de grupo", "Crear", "Archivar", "Retirar", "Desactivar",
+    "Seleccionar", "Previsualizar", "Vista previa", "Cerrar", "Abierto", "Cerrado", "Borrador", "Pesos", "Distribución", "Promedio", "Posición", "Aprobado",
+    "En riesgo", "Año lectivo", "Secretaría", "Rectoría", "Hoy", "Ayer", "Activo", "Invitación", "Sin cuenta", "Desactivado", "registros", "requieren",
+    "Advertencia", "Omitir", "Detalle", "Madre", "Padre", "Tarjeta de identidad", "Básica", "Ciencias exactas", "Séptimo", "Octavo", "Tareas", "Resumen",
+    "Información", "Teléfono", "Autorización", "obligatorio", "Opcional", "Sección", "Tipo de documento", "Alergias", "Parentesco", "Biblioteca"];
+  const ONLY_EN = ["Destacado", "Nunca", "Todos", "Buscar", "Exportar", "Editar", "Documento", "Componente", "Duplicado", "Resultado", "Humanidades", "Sexto",
+    "Acumulado anual", "Meta institucional", "Matrículas", "Matrícula", "Docente", "Mostrar", "Confirmar", "Cancelar", "Continuar"];
+  // También son portuguesas y solo cuentan en inglés.
+  const ALSO_PT = ["Biblioteca", "Importar", "Opcional", "Docentes", "Bloqueado", "registros", "Tipo de documento", "Anterior", "Registrar"];
+  const words = (lang) => (lang === "en" ? COMMON.concat(ONLY_EN) : COMMON.filter((w) => !ALSO_PT.includes(w)));
+  const spanishRe = (lang) => new RegExp(`(?<![\\p{L}_])(${words(lang).join("|")})(?![\\p{L}_])|\\b\\d{1,2} (sep|dic|ene|abr)\\b`, "u");
+  /** Texto visible del contenido y de los diálogos, sin lo que no se traduce: los documentos impresos (D2) y el observador (I6). */
+  const shownText = (page) => page.evaluate(() => {
+    const out = [];
+    for (const src of [document.querySelector(".ns-app-main"), ...document.querySelectorAll("[role=dialog], [role=alertdialog]")]) {
+      if (!src) continue;
+      const root = src.cloneNode(true);
+      root.querySelectorAll(".ns-paper-scroll, .ns-paper, .ns-tl-item strong, .ns-tl-item .ns-caption, [aria-hidden=true], .ns-marquee-track, input, select option:not(:checked)").forEach((n) => n.remove());
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) out.push(w.currentNode.textContent);
+    }
+    return out.join(" | ");
+  });
+  // Los rótulos solo para lectores de pantalla (.ns-sr, 1 px a propósito) no cuentan como recortados.
+  const CLIP = ".ns-app-main button, .ns-app-main [role=tab], .ns-app-main .ns-badge, .ns-app-main .ns-sticker, .ns-app-main th, .ns-app-main label, .ns-app-main .ns-chip, .ns-app-main .ns-step-label, .ns-app-main .ns-overline, .ns-app-main .ns-bento-label, .ns-app-main .ns-course-tag, [role=dialog] button, [role=dialog] label, [role=alertdialog] button";
+  const clippedIn = (page) => page.locator(CLIP).evaluateAll((els) => els.filter((el) => el.offsetParent && el.getClientRects().length && el.clientWidth > 1 && !el.closest(".ns-sr") && el.scrollWidth - el.clientWidth > 1)
+    .map((el) => `${el.tagName.toLowerCase()} «${el.textContent.trim().slice(0, 40)}» ${el.scrollWidth}>${el.clientWidth}`));
+  async function measure(page, lang, tag) {
+    const text = await shownText(page);
+    const hit = text.match(spanishRe(lang));
+    report.check(`${tag}: sin español de interfaz`, !hit, hit ? `«${hit[0]}» en …${text.slice(Math.max(0, hit.index - 50), hit.index + 40).replace(/\s+/g, " ")}…` : "");
+    const clipped = await clippedIn(page);
+    report.check(`${tag}: ningún botón, pestaña, insignia, encabezado o etiqueta recortado`, clipped.length === 0, clipped.join(" | "));
+  }
+  const shot = (page, name) => page.screenshot({ path: join(OUT, `i18n-secretaria-${name}.png`) }); // tamaño de la ventana, no página completa
+
+  for (const lang of ["en", "pt"]) {
+    for (const width of [1024, 1440]) {
+      for (const [name, hash] of SCREENS) {
+        const { ctx, page, cons } = await open(lang, "es-CO", hash, width);
+        await page.waitForTimeout(800);
+        const tag = `Secretaría ${lang} · ${name} a ${width}px`;
+        if (width === 1440) report.check(`${tag}: <html lang="${lang}">`, (await page.getAttribute("html", "lang")) === lang);
+        await measure(page, lang, tag);
+        const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        checkOverflow(report, `${hash} (${lang})`, over, width);
+        if (width === 1440) await shot(page, `${name}-${lang}`);
+        report.check(`${tag}: consola limpia`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+    }
+
+    const L = lang === "en"
+      ? { next: "Next", invite: "Invite user", createAll: "Create all", preview: "Preview", saveTerm: "Save term", closed: "Closed", sample: "Use sample file", validate: "Validate file", fix: "Fix errors", grade: "7th grade", mother: /Mother|Father/, task: "Close Term 3", closeOn: /^Closing scheduled for October 15$/ }
+      : { next: "Próximo", invite: "Convidar usuário", createAll: "Gerar todos", preview: "Visualizar", saveTerm: "Salvar período", closed: "Fechado", sample: "Usar arquivo de exemplo", validate: "Validar arquivo", fix: "Corrigir erros", grade: "7º ano", mother: /Mãe|Pai/, task: "Fechar Período 3", closeOn: /^Fechamento previsto para 15 de outubro$/ };
+    for (const width of [1024, 1440]) {
+      const big = width === 1440;
+      // Inicio: la tarea de cierre con la fecha en el idioma.
+      {
+        const { ctx, page } = await open(lang, "es-CO", "#/admin/dashboard", width);
+        const task = page.locator(".ns-list-item").filter({ hasText: L.task });
+        report.check(`Secretaría ${lang} a ${width}px: tarea «${L.task}» con la fecha en el idioma`, (await task.count()) === 1 && L.closeOn.test(((await task.locator(".ns-caption").textContent()) ?? "").trim()));
+        await ctx.close();
+      }
+      // Nueva matrícula: avanzar sin datos muestra los errores; el grado y el parentesco salen en el idioma.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/admin/enrollment", width);
+        await page.getByRole("button", { name: L.next }).click();
+        await measure(page, lang, `Secretaría ${lang} · matrícula con errores a ${width}px`);
+        if (big) await shot(page, `matricula-errores-${lang}`);
+        report.check(`Secretaría ${lang} a ${width}px: consola limpia (matrícula)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+      // Importar: archivo de ejemplo → vista previa → validación → corrección.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/admin/enrollment?tab=import", width);
+        await page.getByRole("button", { name: L.sample }).click();
+        await measure(page, lang, `Secretaría ${lang} · importar vista previa a ${width}px`);
+        await page.getByRole("button", { name: L.validate }).click();
+        await page.waitForTimeout(1200);
+        await measure(page, lang, `Secretaría ${lang} · importar validación a ${width}px`);
+        if (big) await shot(page, `importar-validacion-${lang}`);
+        await page.locator(".ns-reg-actions").getByRole("button", { name: L.fix }).click();
+        await measure(page, lang, `Secretaría ${lang} · importar corregir a ${width}px`);
+        report.check(`Secretaría ${lang} a ${width}px: consola limpia (importar)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+      // Invitar usuario.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/admin/users", width);
+        await page.getByRole("button", { name: L.invite }).first().click();
+        await page.waitForTimeout(400); // entrada del panel
+        report.check(`Secretaría ${lang} a ${width}px: abre «${L.invite}»`, await page.getByRole("dialog").isVisible());
+        await measure(page, lang, `Secretaría ${lang} · invitar usuario a ${width}px`);
+        if (big) await shot(page, `invitar-${lang}`);
+        report.check(`Secretaría ${lang} a ${width}px: consola limpia (usuarios)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+      // Cerrar periodo: el abierto pasa a cerrado y se guarda.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/admin/periods", width);
+        await page.locator(".ns-period-item").nth(2).click();
+        await page.locator(".ns-period-editor select").nth(1).selectOption("closed");
+        await page.getByRole("button", { name: L.saveTerm }).click();
+        await page.waitForTimeout(400);
+        await measure(page, lang, `Secretaría ${lang} · cerrar periodo a ${width}px`);
+        if (big) await shot(page, `cerrar-periodo-${lang}`);
+        report.check(`Secretaría ${lang} a ${width}px: consola limpia (periodos)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+      // Generar boletines y vista previa (el boletín sale en español, D2, y una línea lo dice).
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/admin/reportcards", width);
+        await page.getByRole("button", { name: L.createAll }).last().click();
+        report.check(`Secretaría ${lang} a ${width}px: abre «${L.createAll}»`, await page.locator("[role=alertdialog]").isVisible());
+        await measure(page, lang, `Secretaría ${lang} · generar boletines a ${width}px`);
+        if (big) await shot(page, `generar-boletines-${lang}`);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300); // salida de la confirmación
+        await page.getByRole("button", { name: L.preview }).first().click();
+        await page.waitForTimeout(500); // entrada de la vista previa
+        const dlg = page.getByRole("dialog");
+        report.check(`Secretaría ${lang} a ${width}px: la vista previa está abierta al capturar`, (await page.locator(".ns-modal .ns-paper-scroll").count()) === 1);
+        report.check(`Secretaría ${lang} a ${width}px: la vista previa avisa que el boletín sale en español`, (await dlg.innerText()).includes(lang === "en" ? "printed in Spanish" : "impresso em espanhol"));
+        await measure(page, lang, `Secretaría ${lang} · vista previa del boletín a ${width}px`);
+        if (big) await shot(page, `vista-previa-${lang}`);
+        report.check(`Secretaría ${lang} a ${width}px: consola limpia (boletines)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+      // Vista rápida de un estudiante: grado y parentesco de la lista fija en el idioma.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/admin/students", width);
+        await page.locator(".ns-cell-link").first().click();
+        const dlg = page.getByRole("dialog");
+        const txt = await dlg.innerText();
+        report.check(`Secretaría ${lang} a ${width}px: vista rápida con el parentesco en el idioma`, L.mother.test(txt), txt.replace(/\n/g, " · ").slice(0, 160));
+        await measure(page, lang, `Secretaría ${lang} · vista rápida a ${width}px`);
+        if (big) await shot(page, `vista-rapida-${lang}`);
+        report.check(`Secretaría ${lang} a ${width}px: consola limpia (vista rápida)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+    }
+    // Grado de la lista fija en el idioma (el valor guardado sigue en español).
+    {
+      const { ctx, page } = await open(lang, "es-CO", "#/admin/students");
+      report.check(`Secretaría ${lang}: el grado se muestra «${L.grade}»`, (await page.locator(".ns-app-main td").filter({ hasText: L.grade }).count()) > 0);
+      await ctx.close();
+    }
   }
 }
 

@@ -25,10 +25,10 @@ import { useAuth } from "../../app/AuthContext";
 import { ErrorState, LoadingBlocks } from "../../components/organisms/QueryState";
 import { useAdminHome } from "../../services/enrollment";
 import { useStudents } from "../../services/students";
+import { useI18n } from "../../i18n/I18nProvider";
+import { longDay } from "../../i18n/dates";
 
 /* Secretaría: densidad alta, tablas, formularios por secciones, drawers y acciones en lote. */
-
-const LONG_MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
 export function AdminDashboardPage() {
   const { navigate: go } = useShell();
@@ -43,53 +43,56 @@ export function AdminDashboardPage() {
   const blocked = all.filter((s) => (DEMO || s.status === "active" || s.status === "pending") && !(s.library && s.fees && s.documents)).length;
   // En demostración, las tareas del sistema; en modo normal, calculadas de la base.
   const enabled = all.filter((s) => s.status === "active" && s.library && s.fees && s.documents).length;
+  const { t, lang } = useI18n();
+  const x = t.adm.dash, pn = t.tch.periodName;
+  // Las tareas se arman con datos (periodo, fecha ISO, conteos) y el texto sale en el idioma de la app (idiomas, paso 4).
   const tasks: Array<[string, string, IconName, string]> = DEMO ? [
-    ["Cerrar Periodo 3", "Cierre programado el 15 de octubre", "calendar", "periods"],
-    ["Generar boletines", "432 boletines del Periodo 2 listos", "book", "reportcards"],
-    [blocked + " paz y salvos bloqueados", "Revisar documentos y pensiones", "shield", "clearances"],
-    ["Asignar docente a 8B · Inglés", "La malla curricular tiene un hueco", "link", "curriculum"],
+    [x.closePeriod(pn("Periodo 3")), x.closeOn(longDay(lang, "2026-10-15")), "calendar", "periods"],
+    [x.generate, x.readyDemo(432, pn("Periodo 2")), "book", "reportcards"],
+    [x.blocked(blocked), x.checkDocs, "shield", "clearances"],
+    [x.assign("8B", "Inglés"), x.gaps(1), "link", "curriculum"],
   ] : ([
-    h?.openPeriod ? ["Cerrar " + h.openPeriod.name, "Cierre programado el " + Number(h.openPeriod.close.slice(8)) + " de " + LONG_MONTHS[Number(h.openPeriod.close.slice(5, 7)) - 1], "calendar", "periods"] : ["Abrir un periodo", "No hay periodo abierto: los docentes no ven sus cursos", "calendar", "periods"],
-    h?.lastClosed ? ["Generar boletines", Math.max(0, enabled - h.generatedLastClosed) + " boletines del " + h.lastClosed + " por generar", "book", "reportcards"] : null,
-    [blocked + " paz y salvos bloqueados", blocked ? "Revisar documentos y pensiones" : "Todos los estudiantes están al día", "shield", "clearances"],
-    h?.gaps.length ? ["Asignar docente a " + h.gaps[0].course + " · " + h.gaps[0].subject, h.gaps.length === 1 ? "La malla curricular tiene un hueco" : "La malla curricular tiene " + h.gaps.length + " huecos", "link", "curriculum"] : null,
+    h?.openPeriod ? [x.closePeriod(pn(h.openPeriod.name)), x.closeOn(longDay(lang, h.openPeriod.close)), "calendar", "periods"] : [x.openPeriod, x.noOpen, "calendar", "periods"],
+    h?.lastClosed ? [x.generate, x.toGenerate(Math.max(0, enabled - h.generatedLastClosed), pn(h.lastClosed)), "book", "reportcards"] : null,
+    [x.blocked(blocked), blocked ? x.checkDocs : x.allClear, "shield", "clearances"],
+    h?.gaps.length ? [x.assign(h.gaps[0].course, h.gaps[0].subject), x.gaps(h.gaps.length), "link", "curriculum"] : null,
   ].filter(Boolean) as Array<[string, string, IconName, string]>);
-  const greet = new Date().getHours() < 12 ? "Buenos días" : new Date().getHours() < 19 ? "Buenas tardes" : "Buenas noches";
+  const greet = t.tch.dash.greeting[new Date().getHours() < 12 ? "morning" : new Date().getHours() < 19 ? "afternoon" : "evening"];
   const name = DEMO ? "Patricia" : h?.name ?? "";
   const loading = (sq.isPending && !sq.data) || (hq.isPending && !hq.data);
   const failed = (sq.isError && !sq.data) || (hq.isError && !hq.data);
   return (
     <PageShell active="dashboard">
-      <Header eyebrow={"Secretaría académica · Año lectivo " + (DEMO ? 2026 : new Date().getFullYear())} title={(DEMO ? "Buenos días" : greet) + ", " + name} highlight={name} description="Esto es lo que necesita gestión hoy."
+      <Header eyebrow={x.eyebrow(DEMO ? 2026 : new Date().getFullYear())} title={t.tch.dash.title(DEMO ? t.tch.dash.greeting.morning : greet, name)} highlight={name} description={x.desc}
         actions={<>
-          <Button variant="secondary" icon="upload" onClick={() => go("enrollment", { tab: "import" })}>Importar estudiantes</Button>
-          <Button icon="plus" size="lg" onClick={() => go("enrollment")}>Registrar estudiante</Button>
+          <Button variant="secondary" icon="upload" onClick={() => go("enrollment", { tab: "import" })}>{x.import}</Button>
+          <Button icon="plus" size="lg" onClick={() => go("enrollment")}>{x.register}</Button>
         </>} />
-      {loading ? <LoadingBlocks label="Cargando el resumen de Secretaría" /> : failed ? <ErrorState title="No pudimos cargar el resumen." onRetry={() => { sq.refetch(); hq.refetch(); }} /> : (
+      {loading ? <LoadingBlocks label={x.loading} /> : failed ? <ErrorState title={x.error} onRetry={() => { sq.refetch(); hq.refetch(); }} /> : (
         <>
-          <ReviewSummary total={all.length} verified={active} pending={pend.length} review={blocked} evaluation={"Matrícula " + (DEMO ? 2026 : new Date().getFullYear())}
-            labels={["matrículas activas", "matrículas pendientes", "paz y salvos bloqueados"]} foot={all.length - active + " registros requieren gestión"} />
+          <ReviewSummary total={all.length} verified={active} pending={pend.length} review={blocked} evaluation={x.enrollmentOf(DEMO ? 2026 : new Date().getFullYear())}
+            labels={x.tiles} foot={x.needWork(all.length - active)} />
           <div className="ns-admin-cols">
-            <Block label="Matrículas pendientes">
-              <BlockTitle action={<Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go("students")}>Ver estudiantes</Button>}>Matrículas pendientes</BlockTitle>
+            <Block label={x.pending}>
+              <BlockTitle action={<Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go("students")}>{x.seeStudents}</Button>}>{x.pending}</BlockTitle>
               <DataGrid<StudentRecord>
-                caption="Matrículas pendientes" rows={pend} paginate={false} density="compact" emptyTitle="No hay matrículas pendientes." emptyIcon="check"
+                caption={x.pending} rows={pend} paginate={false} density="compact" emptyTitle={x.noPending} emptyIcon="check"
                 columns={[
-                  { key: "name", label: "Estudiante", header: true, render: (r) => <UserProfile name={r.name} role={r.document} /> },
-                  { key: "course", label: "Curso" }, { key: "guardian", label: "Acudiente" },
-                  { key: "status", label: "Estado", render: (r) => <EnrollBadge status={r.status} /> },
+                  { key: "name", label: t.adm.f.student, header: true, render: (r) => <UserProfile name={r.name} role={r.document} /> },
+                  { key: "course", label: t.adm.f.course }, { key: "guardian", label: t.adm.f.guardian },
+                  { key: "status", label: t.adm.f.state, render: (r) => <EnrollBadge status={r.status} /> },
                 ]}
-                rowActions={() => <Button size="sm" variant="secondary" onClick={() => go("students")}>Completar</Button>}
+                rowActions={() => <Button size="sm" variant="secondary" onClick={() => go("students")}>{x.complete}</Button>}
               />
             </Block>
-            <Block tone="gold" label="Tareas del periodo">
-              <BlockTitle>Tareas del periodo</BlockTitle>
+            <Block tone="gold" label={x.tasks}>
+              <BlockTitle>{x.tasks}</BlockTitle>
               <ul className="ns-list">
-                {tasks.map((t) => (
-                  <li key={t[0]} className="ns-list-item">
-                    <span className="ns-file-icon" aria-hidden><Icon name={t[2]} size={18} /></span>
-                    <div className="ns-list-main"><strong>{t[0]}</strong><span className="ns-caption">{t[1]}</span></div>
-                    <IconAction icon="arrow" label={"Ir a " + t[0]} onClick={() => go(t[3])} />
+                {tasks.map((k) => (
+                  <li key={k[0]} className="ns-list-item">
+                    <span className="ns-file-icon" aria-hidden><Icon name={k[2]} size={18} /></span>
+                    <div className="ns-list-main"><strong>{k[0]}</strong><span className="ns-caption">{k[1]}</span></div>
+                    <IconAction icon="arrow" label={x.goTo(k[0])} onClick={() => go(k[3])} />
                   </li>
                 ))}
               </ul>
@@ -105,13 +108,15 @@ export function AdminDashboardPage() {
 export function StudentsAdminPage() {
   const { role, navigate } = useShell();
   const ro = role === "principal";
+  const { t } = useI18n();
+  const p = t.adm.pages;
   return (
     <PageShell active="students">
-      <Header eyebrow={ro ? "Consulta institucional" : "Gestión de matrícula"} title="Estudiantes y Matrículas" highlight="Matrículas"
-        description={ro ? "Consulta estudiantes y abre su perfil completo." : "Busca, edita, archiva o retira estudiantes. Selecciona varios para acciones en lote."}
+      <Header eyebrow={ro ? p.studentsEyebrowRo : p.studentsEyebrow} title={p.studentsTitle} highlight={p.studentsHighlight}
+        description={ro ? p.studentsDescRo : p.studentsDesc}
         actions={ro ? null : <>
-          <Button variant="secondary" icon="upload" onClick={() => navigate("enrollment", { tab: "import" })}>Importar estudiantes</Button>
-          <Button icon="plus" onClick={() => navigate("enrollment")}>Registrar estudiante</Button>
+          <Button variant="secondary" icon="upload" onClick={() => navigate("enrollment", { tab: "import" })}>{t.adm.dash.import}</Button>
+          <Button icon="plus" onClick={() => navigate("enrollment")}>{t.adm.dash.register}</Button>
         </>} />
       <StudentTable readOnly={ro} onNavigate={navigate} />
     </PageShell>
@@ -121,10 +126,11 @@ export function StudentsAdminPage() {
 export function EnrollmentPage({ tab: initialTab, importStep }: { tab?: string; importStep?: number }) {
   const { navigate } = useShell();
   const [tab, setTab] = useState(initialTab === "import" ? "import" : "register");
+  const p = useI18n().t.adm.pages;
   return (
     <PageShell active="enrollment">
-      <Header eyebrow="Matrícula 2026" title="Matrículas" highlight="Matrículas" description="Registra estudiantes uno a uno o importa un archivo completo." />
-      <SegmentedTabs label="Tipo de matrícula" value={tab} onChange={setTab} tabs={[{ value: "register", label: "Registrar estudiante", icon: "plus" }, { value: "import", label: "Importación masiva", icon: "upload" }]} />
+      <Header eyebrow={p.enrollEyebrow(2026)} title={p.enrollTitle} highlight={p.enrollTitle} description={p.enrollDesc} />
+      <SegmentedTabs label={p.enrollKind} value={tab} onChange={setTab} tabs={[{ value: "register", label: p.enrollRegister, icon: "plus" }, { value: "import", label: p.enrollImport, icon: "upload" }]} />
       {tab === "register" ? <StudentRegistrationForm onNavigate={navigate} /> : <BulkImportPanel onNavigate={navigate} initialStep={importStep} />}
     </PageShell>
   );
@@ -132,27 +138,30 @@ export function EnrollmentPage({ tab: initialTab, importStep }: { tab?: string; 
 
 export function UsersPage() {
   const [invite, setInvite] = useState(false);
+  const p = useI18n().t.adm.pages;
   return (
     <PageShell active="users">
-      <Header eyebrow="Accesos" title="Usuarios" highlight="Usuarios" description="Docentes, acudientes, administrativos y directivos con acceso a NotaScan." actions={<Button icon="plus" onClick={() => setInvite(true)}>Invitar usuario</Button>} />
+      <Header eyebrow={p.usersEyebrow} title={p.usersTitle} highlight={p.usersTitle} description={p.usersDesc} actions={<Button icon="plus" onClick={() => setInvite(true)}>{p.invite}</Button>} />
       <UserDirectory invite={invite} onInviteClose={() => setInvite(false)} />
     </PageShell>
   );
 }
 
 export function AcademicStructurePage() {
+  const p = useI18n().t.adm.pages;
   return (
     <PageShell active="structure">
-      <Header eyebrow="Configuración" title="Estructura Académica" highlight="Académica" description="Grados, cursos y materias que usa toda la institución." />
+      <Header eyebrow={p.structEyebrow} title={p.structTitle} highlight={p.structHighlight} description={p.structDesc} />
       <AcademicStructureManager />
     </PageShell>
   );
 }
 
 export function CurriculumPage() {
+  const p = useI18n().t.adm.pages;
   return (
     <PageShell active="curriculum">
-      <Header eyebrow="Docente + Materia + Curso + Periodo" title="Malla Curricular" highlight="Curricular" description="¿Qué docente dicta qué materia en qué curso? Haz clic en una celda para asignar o editar." />
+      <Header eyebrow={p.currEyebrow} title={p.currTitle} highlight={p.currHighlight} description={p.currDesc} />
       <CurriculumManager />
     </PageShell>
   );
@@ -163,15 +172,17 @@ export function PeriodsPage() {
   const create = useCreatePeriod();
   const [showToast, toastNode] = useToast();
   const year = q.data?.periods[q.data.periods.length - 1]?.year ?? 2026;
+  const { t } = useI18n();
+  const p = t.adm.pages;
   return (
     <PageShell active="periods">
-      <Header eyebrow={"Año lectivo " + year} title="Periodos Académicos" highlight="Académicos" description="Fechas de apertura y cierre, estado y cómo se compone la nota de cada periodo."
+      <Header eyebrow={p.periodsEyebrow(year)} title={p.periodsTitle} highlight={p.periodsHighlight} description={p.periodsDesc}
         actions={<Button variant="secondary" icon="plus" loading={create.isPending} disabled={!q.data} onClick={() => create.mutateAsync(q.data!.periods).then(
           (name) => showToast(DEMO
-            ? { tone: "info", title: "Crear periodo", message: "En la demostración los periodos son fijos." }
-            : { tone: "success", title: "Periodo creado", message: (name ?? "El periodo") + " quedó en borrador. Revisa sus fechas y su peso en la nota final." }),
-          (e) => showToast({ tone: "error", title: "No pudimos crear el periodo", message: e instanceof Error && !("code" in e) ? e.message : adminMessage(e) }),
-        )}>Crear periodo</Button>} />
+            ? { tone: "info", title: p.createPeriod, message: p.demoPeriods }
+            : { tone: "success", title: p.periodCreated, message: p.periodCreatedText(name ? t.tch.periodName(name) : null) }),
+          (e) => showToast({ tone: "error", title: p.periodCreateError, message: e instanceof Error && !("code" in e) ? e.message : adminMessage(e, t) }),
+        )}>{p.createPeriod}</Button>} />
       <PeriodConfigurator />
       {toastNode}
     </PageShell>
@@ -179,27 +190,31 @@ export function PeriodsPage() {
 }
 
 export function ReportCardsPage() {
+  const { t } = useI18n();
+  const p = t.adm.pages;
   return (
     <PageShell active="reportcards">
-      <Header eyebrow="Periodo 3 · 2026" title="Boletines" highlight="Boletines" description="Previsualiza y genera boletines en PDF. Los estudiantes sin paz y salvo quedan bloqueados." />
+      <Header eyebrow={p.rcEyebrow(t.tch.periodName("Periodo 3"), 2026)} title={p.rcTitle} highlight={p.rcTitle} description={p.rcDesc} />
       <ReportCardManager />
     </PageShell>
   );
 }
 
 export function ClearancesPage() {
+  const p = useI18n().t.adm.pages;
   return (
     <PageShell active="clearances">
-      <Header eyebrow="Control administrativo" title="Paz y Salvos" highlight="Salvos" description="Si alguna obligación está pendiente, los reportes y boletines del estudiante quedan bloqueados para el acudiente." />
+      <Header eyebrow={p.clearEyebrow} title={p.clearTitle} highlight={p.clearHighlight} description={p.clearDesc} />
       <PazYSalvosTable />
     </PageShell>
   );
 }
 
 export function RankingPage() {
+  const p = useI18n().t.adm.pages;
   return (
     <PageShell active="ranking">
-      <Header eyebrow="Año lectivo 2026" title="Ranking Académico" highlight="Académico" description="Ordena, filtra y exporta el desempeño por periodo, grado, curso o materia." />
+      <Header eyebrow={p.rankEyebrow(2026)} title={p.rankTitle} highlight={p.rankHighlight} description={p.rankDesc} />
       <RankingTable />
     </PageShell>
   );
