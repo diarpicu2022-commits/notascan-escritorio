@@ -1,6 +1,6 @@
 # Anexo de diseño · Modo oscuro de NotaScan escritorio
 
-Fecha: 2026-11-08 · Fase: contrato firmado, pasos 1 y 2 hechos. Diego eligió la dirección B · Campo marino el 2026-11-08. El contrato está en la sección 11 y lo hecho en los pasos 1 y 2, con sus mediciones, en las secciones 12 y 13. Las secciones 3 a 10 son la investigación que llevó a esa elección y no se reescriben.
+Fecha: 2026-11-08 · Fase: contrato firmado, pasos 1, 2 y 3 hechos. Diego eligió la dirección B · Campo marino el 2026-11-08. El contrato está en la sección 11 y lo hecho en los pasos 1, 2 y 3, con sus mediciones, en las secciones 12, 13 y 14. Las secciones 3 a 10 son la investigación que llevó a esa elección y no se reescriben.
 
 Origen del pedido. El profesor pidió el 2026-10-07 modo claro y oscuro a elección de la persona (Claro, Oscuro, Como el sistema), guardado en el dispositivo. Diego decidió el 2026-10-08 que el oscuro se deriva del sistema NotaScan, que no es otra marca, que se mide el contraste y que se ven capturas antes de aplicarlo en todo.
 
@@ -376,6 +376,9 @@ Los valores son los de la tabla de B en la sección 6. La maqueta medida, `docs/
 Enmiendas del contrato:
 
 - **2026-11-08 · O2, aprobada por Diego.** El generador lee también `amendments.css`, que se carga después de `notascan.css`. Si una enmienda repinta el fondo o la sombra de un selector, el parche sigue a la enmienda. Motivo: la nota solicitada de rectoría (`.ns-change-big .is-new`) perdía en oscuro la repisa dorada que le dio la enmienda de octubre (fallo 2 de la sección 12).
+- **2026-11-08 · Forma del segmentado de Tema, aprobada por Diego.** Tres columnas iguales con el icono arriba y la palabra abajo, que puede partirse en dos líneas, y 56 px de alto. El contenedor usa `--radius-lg` y las opciones y el indicador `--radius-md`, en vez de la píldora de `.ns-seg` (decisión 1 de la sección 13).
+- **2026-11-08 · Iconos sol, luna y pantalla, aprobada por Diego.** Se suman a `icons.ts` con la retícula de 24 y el trazo 2 del set (decisión 2 de la sección 13).
+- **2026-11-08 · Lienzo previo en `index.html`, aprobada por Diego.** `#161513` escrito en `index.html` para el primer pintado en oscuro, antes de que carguen los tokens (decisión 3 de la sección 13).
 
 Plan de implementación una vez elegida la dirección, un paso por vez y con visto bueno en cada uno:
 
@@ -579,3 +582,73 @@ Las capturas están en `verify-out/`. `oscuro-preferencias-panel-1440.png` muest
 - Las tres decisiones de arriba.
 
 El siguiente paso es el 3, la barra de título. No se empieza sin el visto bueno de Diego sobre este.
+
+Diego aprobó el paso 2 y sus tres decisiones el 2026-11-08. Quedaron como enmiendas fechadas en la sección 11.
+
+## 14. Paso 3 · Barra de título en los tres sistemas
+
+Hecho el 2026-11-08 en la rama `feature/modo-oscuro`, después de integrar `feature/idiomas` (pantallas del Docente en tres idiomas). Lo respaldan la sección 7 («Barra de título») y las cláusulas O1 y O8.
+
+### Qué se hizo
+
+- **Windows y Linux.** La barra propia (`TitleBar.tsx`, `.ns-titlebar` en `desktop.css`) ya usa solo tokens (`--paper`, `--ivory-deep`, `--muted`, `--navy`, `--burgundy` y `--focus`), así que pasa a oscuro sin código aparte. No se tocó `desktop.css` ni `TitleBar.tsx`. Al pasar el ratón, el botón cerrar se pinta con el `--burgundy` del tema, que en oscuro es `#e38a80` con el icono en `--paper` oscuro. Es el rojo del contrato y no el rojo de Windows, porque el contrato no admite colores nuevos.
+- **macOS.** `src/lib/theme.ts` le pide a Tauri `getCurrentWindow().setTheme()` para que los tres botones nativos sigan el tema. Recibe `"light"` o `"dark"` si la persona eligió Claro u Oscuro, y `null` para «Como el sistema», que devuelve la ventana a la apariencia del equipo. Al abrir solo se llama si hay Claro u Oscuro guardado, así que con «Como el sistema» la app arranca igual que antes. Eso cuida la captura de la CI de macOS, que no se tocó.
+- **Windows y Linux sin `setTheme`.** La ventana no tiene marco nativo y la barra es de la app, así que no se llama. Se mide que no se llame.
+- **Permiso.** `src-tauri/capabilities/default.json` suma `core:window:allow-set-theme`. `cargo check` lo valida contra el esquema de Tauri 2.12.1 y pasa.
+- **`scripts/verify-titlebar.mjs`.** El arnés que simula `__TAURI_INTERNALS__` con el agente de usuario de cada sistema ahora anota también las llamadas a `set_theme` con su valor. Mide la barra en claro y en oscuro en los tres sistemas. La comparación píxel a píxel en claro ahora incluye macOS. La referencia se tomó con `--referencia` sobre el commit anterior a este paso.
+
+### Mediciones
+
+`verify:titlebar` pasa 89 de 89 comprobaciones. Las barras en claro de macOS, Windows y Linux quedan iguales a las de antes, con 0 píxeles distintos. Windows y Linux dan las mismas cifras.
+
+| Medición | Mínimo | Claro | Oscuro |
+|---|---|---|---|
+| Marca «NotaScan» | 4.5 | 6.79 | 6.50 |
+| Logo N sobre dorado | 4.5 | 4.91 | 7.72 |
+| Iconos de minimizar, maximizar y cerrar en reposo | 3 | 13.99 | 13.19 |
+| Minimizar y maximizar al pasar el ratón | 3 | 11.68 | 11.64 |
+| Cerrar al pasar el ratón, sobre su rojo | 3 | 9.15 | 6.52 |
+| Foco de los botones (contorno de 2 px) | 3 | 13.99 | 9.40 |
+
+Otras comprobaciones que pasan:
+
+- En macOS, al abrir con Oscuro guardado, `setTheme` recibe `"dark"`. Con «Como el sistema» no se llama. Al elegir Claro, Como el sistema y Oscuro recibe `"light"`, `null` y `"dark"`, en ese orden.
+- En Windows y Linux nunca se llama `setTheme`, ni al abrir ni al cambiar.
+- El primer Tab cae en «Minimizar» y su foco se ve en los dos temas.
+- Consola limpia en las nueve cargas.
+
+Las capturas están en `verify-out/`. `titlebar-ahora-windows.png` y `titlebar-oscuro-windows.png` muestran la barra en claro y en oscuro. También están las de macOS y Linux, `titlebar-oscuro-windows-cerrar-hover.png` y las de foco. La tabla completa está en `verify-out/titlebar-temas.md`.
+
+### Regresión
+
+Corrida completa sobre `npm run build:demo`, en el puerto 4173. Además, `npx tsc --noEmit -p .` y `cargo check` en `src-tauri` pasan sin errores.
+
+| Verificación | Base | Ahora |
+|---|---|---|
+| `verify:shell` | 61/62 | 61/62 |
+| `verify:components` | 120/121 | 120/121 |
+| `verify:card` | 50/51 | 50/51 |
+| `verify:teacher` | 122/123 | 122/123 |
+| `verify:admin` | 104/105 | 104/105 |
+| `verify:principal` | 75/76 | 75/76 |
+| `verify:print` | 5/5 | 5/5 |
+| `verify:states` | 98/98 | 98/98 |
+| `verify:i18n` | 537/537 | 537/537 |
+| `verify:tokens` | 25/26 | 25/26 |
+| `verify:dark` | 138/138 | 138/138 |
+| `verify:theme` | 49/49 | 49/49 |
+| `verify:titlebar` | 21/21 | 89/89 |
+
+La falla que queda es la de siempre, los colores a mano de `PhoneUpload.tsx` y `print.css:12`. `PhoneUpload.tsx` ahora aparece en la línea 34, porque la rama de idiomas sumó una línea. `verify:shell` volvió a dar 60/62 en la primera corrida después de compilar, con el login al mismo 1.910 %, y 61/62 en la segunda.
+
+### Lo que solo se ve en un Mac real
+
+Queda pendiente, sin medir. Faltan los tres botones nativos con `setTheme` en un Mac de verdad (WKWebView), que cambien en el acto y que con «Como el sistema» vuelvan a seguir al equipo. La CI de GitHub tampoco lo muestra todavía, porque su barra de Mac sale como una franja vacía con el color de fondo. Ese problema es anterior a este paso y no se tocó. Este paso no cambia lo que la CI dibuja, porque la CI abre sin preferencia guardada y en ese caso no se llama `setTheme`.
+
+### Pendiente
+
+- La prueba en un Mac real descrita arriba.
+- El fondo nativo de la ventana al redimensionar en oscuro (`backgroundColor` de Tauri). En Windows puede dejar ver un instante de blanco, y no se midió.
+- Pasos 4 (Planilla, tablas, `Drawer`, `Modal` y gráficas) y 5 (estados).
+
+El siguiente paso es el 4. No se empieza sin el visto bueno de Diego sobre este.
