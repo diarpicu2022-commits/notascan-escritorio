@@ -32,4 +32,8 @@ export function confidenceLevel(pct: number): ConfidenceLevel {
 }
 
 export const LEVEL_LABEL: Record<ConfidenceLevel, string> = { high: "Alta confianza", medium: "Confianza media", low: "Baja confianza" };
+/** Texto del error de validación en el idioma de la app (idiomas, paso 3). */
+export function gradeCheckText(m: { empty: string; range: string }, raw: unknown): string {
+  return String(raw ?? "").trim() === "" ? m.empty : m.range;
+}
 export const STATUS_LABEL: Record<ReviewStatus, string> = { pending: "Pendiente de revisión", verified: "Verificada", "needs-review": "Requiere revisión" };

@@ -330,7 +330,8 @@ export function downloadCsv(d: ReportData) {
 
 /* ---------- Historial: se guarda qué se generó; «Descargar» lo vuelve a generar ---------- */
 
-export interface GeneratedReport extends Record<string, unknown> { id: number; kind: ReportKind; format: ReportFormat; title: string; params: Record<string, unknown>; at: string }
+/** `at`: fecha como la escribe el servicio (español); `created`: la misma en ISO, para escribirla en otro idioma. */
+export interface GeneratedReport extends Record<string, unknown> { id: number; kind: ReportKind; format: ReportFormat; title: string; params: Record<string, unknown>; at: string; created: string }
 
 export function useReportHistory() {
   const profile = useAuth().profile;
@@ -341,7 +342,7 @@ export function useReportHistory() {
       const r = await supabase().from("generated_reports").select("id, kind, format, title, params, created_at").order("created_at", { ascending: false }).limit(20);
       throwIf(r);
       return ((r.data ?? []) as Array<{ id: number; kind: ReportKind; format: ReportFormat; title: string; params: Record<string, unknown>; created_at: string }>)
-        .map((x) => ({ id: x.id, kind: x.kind, format: x.format, title: x.title, params: x.params, at: stamp(new Date(x.created_at)) }));
+        .map((x) => ({ id: x.id, kind: x.kind, format: x.format, title: x.title, params: x.params, at: stamp(new Date(x.created_at)), created: x.created_at }));
     },
   });
 }

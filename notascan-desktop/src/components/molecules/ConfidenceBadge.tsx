@@ -1,5 +1,6 @@
-import { LEVEL_LABEL, confidenceLevel } from "../../lib/grade";
+import { confidenceLevel } from "../../lib/grade";
 import { Badge } from "../atoms/Badge";
+import { useI18n } from "../../i18n/I18nProvider";
 
 interface ConfidenceBadgeProps {
   value: number;
@@ -11,10 +12,12 @@ interface ConfidenceBadgeProps {
 export function ConfidenceBadge({ value, compact, className }: ConfidenceBadgeProps) {
   const v = Math.round(value || 0);
   const lvl = confidenceLevel(v);
+  const { t } = useI18n();
+  const level = t.tch.level[lvl];
   return (
-    <Badge tone={lvl} className={className} title={LEVEL_LABEL[lvl]}>
-      <span>{(compact ? "IA " : "Confianza IA ") + v + "%"}</span>
-      <span className="ns-sr">{" · " + LEVEL_LABEL[lvl]}</span>
+    <Badge tone={lvl} className={className} title={level}>
+      <span>{t.tch.card.confidence(!!compact, v)}</span>
+      <span className="ns-sr">{" · " + level}</span>
     </Badge>
   );
 }

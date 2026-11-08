@@ -3,6 +3,7 @@
  * Not translated (I6): brand, proper names, school-written content and the Colombian scale Superior, Alto, Básico, Bajo.
  */
 import type { Messages } from "./es";
+import { docenteEn } from "./docente.en";
 
 export const en: Messages = {
   lang: {
@@ -140,7 +141,7 @@ export const en: Messages = {
     dot: { processing: "Processing", success: "Done", warning: "Review", error: "Error" },
   },
   confirm: {
-    title: (n) => `Confirm ${n} grades?`,
+    title: (n) => (n === 1 ? "Confirm 1 grade?" : `Confirm ${n} grades?`),
     text: "The verified grades will be saved.",
     ok: "Confirm and save",
   },
@@ -173,4 +174,6 @@ export const en: Messages = {
     saveFailed: "We couldn't save the password. Check your connection and try again.",
     savedNoAccess: "Your password was saved, but your account doesn't have access yet. Talk to your school coordinator.",
   },
+  /* Paso 3: pantallas del Docente. */
+  tch: docenteEn,
 };

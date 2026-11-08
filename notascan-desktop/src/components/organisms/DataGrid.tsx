@@ -5,6 +5,7 @@ import { IconAction, SegmentedTabs } from "../atoms/Controls";
 import { Checkbox } from "../atoms/Field";
 import { Icon, type IconName } from "../atoms/Icon";
 import { EmptyState } from "./EmptyState";
+import { useI18n } from "../../i18n/I18nProvider";
 
 export interface TableColumn<R> {
   key: string;
@@ -78,6 +79,8 @@ export function DataGrid<R extends object>(props: DataGridProps<R>) {
   const [page, setPage] = useState(0);
   const [sel, setSel] = useState<Record<string, true>>({});
   const [density, setDensity] = useState(props.density || "comfortable");
+  const { t } = useI18n();
+  const g = t.tch.grid;
   const size = props.pageSize || 10;
   const rk = props.rowKey || ((r: R) => (r as { id: string }).id);
   const rows = props.rows || [];
@@ -122,14 +125,14 @@ export function DataGrid<R extends object>(props: DataGridProps<R>) {
   } else if (props.error) {
     body = (
       <tr><td colSpan={cols} className="ns-grid-state">
-        <EmptyState tone="error" title={props.error} message="Revisa tu conexión e inténtalo de nuevo."
-          action={props.onRetry ? <Button variant="secondary" icon="refresh" onClick={props.onRetry}>Reintentar</Button> : null} />
+        <EmptyState tone="error" title={props.error} message={t.common.retryHint}
+          action={props.onRetry ? <Button variant="secondary" icon="refresh" onClick={props.onRetry}>{t.common.retry}</Button> : null} />
       </td></tr>
     );
   } else if (!view.length) {
     body = (
       <tr><td colSpan={cols} className="ns-grid-state">
-        <EmptyState icon={props.emptyIcon || "search"} title={props.emptyTitle || "No hay resultados para esta búsqueda."} message={props.emptyMessage} action={props.emptyAction} />
+        <EmptyState icon={props.emptyIcon || "search"} title={props.emptyTitle || t.search.empty} message={props.emptyMessage} action={props.emptyAction} />
       </td></tr>
     );
   } else {
@@ -138,7 +141,7 @@ export function DataGrid<R extends object>(props: DataGridProps<R>) {
       const name = (r as { name?: string }).name;
       return (
         <tr key={key} className={cx(on && "is-selected", props.rowClass?.(r))}>
-          {props.selectable ? <td className="ns-grid-check"><Checkbox hideLabel label={"Seleccionar " + (name || key)} checked={on} onChange={(v) => toggle(r, v)} /></td> : null}
+          {props.selectable ? <td className="ns-grid-check"><Checkbox hideLabel label={g.select(name || key)} checked={on} onChange={(v) => toggle(r, v)} /></td> : null}
           {props.columns.map((c) => {
             const Cell = c.header ? "th" : "td";
             return <Cell key={c.key} scope={c.header ? "row" : undefined} className={cx(c.numeric && "is-num", c.className)}>{c.render ? c.render(r) : ((r as Record<string, unknown>)[c.key] as ReactNode)}</Cell>;
@@ -155,16 +158,16 @@ export function DataGrid<R extends object>(props: DataGridProps<R>) {
         <div className="ns-grid-toolbar">
           <div className="ns-grid-toolbar-main">{props.toolbar}</div>
           {props.densityToggle ? (
-            <SegmentedTabs label="Densidad de la tabla" value={density} onChange={(v) => setDensity(v as "comfortable" | "compact")}
-              tabs={[{ value: "comfortable", label: "Cómoda" }, { value: "compact", label: "Compacta" }]} />
+            <SegmentedTabs label={g.density} value={density} onChange={(v) => setDensity(v as "comfortable" | "compact")}
+              tabs={[{ value: "comfortable", label: g.comfortable }, { value: "compact", label: g.compact }]} />
           ) : null}
         </div>
       ) : null}
       {props.selectable && selected.length ? (
-        <div className="ns-bulkbar" role="region" aria-label="Acciones en lote">
-          <strong>{selected.length + (selected.length === 1 ? " seleccionado" : " seleccionados")}</strong>
+        <div className="ns-bulkbar" role="region" aria-label={g.bulk}>
+          <strong>{g.selected(selected.length)}</strong>
           <div className="ns-bulkbar-actions">{props.bulkActions ? props.bulkActions(selected, () => setSel({})) : null}</div>
-          <Button variant="ghost" size="sm" onClick={() => setSel({})}>Limpiar selección</Button>
+          <Button variant="ghost" size="sm" onClick={() => setSel({})}>{g.clear}</Button>
         </div>
       ) : null}
       <div className="ns-table-wrap ns-grid-table" role="region" aria-label={props.caption} tabIndex={0}>
@@ -174,7 +177,7 @@ export function DataGrid<R extends object>(props: DataGridProps<R>) {
             <tr>
               {props.selectable ? (
                 <th className="ns-grid-check" scope="col">
-                  <Checkbox hideLabel label="Seleccionar todos en esta página" checked={allOnPage} indeterminate={someOnPage && !allOnPage} onChange={toggleAll} />
+                  <Checkbox hideLabel label={g.selectAll} checked={allOnPage} indeterminate={someOnPage && !allOnPage} onChange={toggleAll} />
                 </th>
               ) : null}
               {props.columns.map((c) => {
@@ -190,21 +193,21 @@ export function DataGrid<R extends object>(props: DataGridProps<R>) {
                   </th>
                 );
               })}
-              {props.rowActions ? <th scope="col" className="is-num">Acciones</th> : null}
+              {props.rowActions ? <th scope="col" className="is-num">{g.actions}</th> : null}
             </tr>
           </thead>
           <tbody>{body}</tbody>
         </table>
       </div>
       {props.paginate === false || props.loading || props.error || !sorted.length ? null : (
-        <nav className="ns-pager" aria-label="Paginación">
-          <span className="ns-caption">{"Mostrando " + (p * size + 1) + "–" + Math.min(sorted.length, p * size + size) + " de " + sorted.length}</span>
+        <nav className="ns-pager" aria-label={g.pager}>
+          <span className="ns-caption">{g.showing(p * size + 1, Math.min(sorted.length, p * size + size), sorted.length)}</span>
           <div className="ns-pager-btns">
-            <IconAction icon="chevleft" label="Página anterior" disabled={p === 0} onClick={() => setPage(p - 1)} />
+            <IconAction icon="chevleft" label={g.prev} disabled={p === 0} onClick={() => setPage(p - 1)} />
             {Array.from({ length: pages }, (_, i) => (
-              <button key={i} type="button" className={cx("ns-pager-num", i === p && "is-on")} aria-current={i === p ? "page" : undefined} aria-label={"Página " + (i + 1)} onClick={() => setPage(i)}>{i + 1}</button>
+              <button key={i} type="button" className={cx("ns-pager-num", i === p && "is-on")} aria-current={i === p ? "page" : undefined} aria-label={g.page(i + 1)} onClick={() => setPage(i)}>{i + 1}</button>
             ))}
-            <IconAction icon="chevright" label="Página siguiente" disabled={p >= pages - 1} onClick={() => setPage(p + 1)} />
+            <IconAction icon="chevright" label={g.next} disabled={p >= pages - 1} onClick={() => setPage(p + 1)} />
           </div>
         </nav>
       )}

@@ -6,6 +6,7 @@ import { OBS, conceptFor, subjectGrades, type ObsType, type ObservationItem } fr
 import { REVIEW_ROWS } from "../data/reviewRows";
 import { ALL_STUDENTS, seeded } from "../data/students";
 import type { ReviewStatus } from "../types/domain";
+import { es, type Messages } from "../i18n/es";
 import { demoData, demoInitial, forcedState, allRows } from "./client";
 
 /*
@@ -35,10 +36,13 @@ export function todayIso(): string {
   return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
 }
 
-/** Mensaje de la base para la persona: el de la evaluación cerrada se muestra tal cual; el resto, genérico. */
-export function saveMessage(e: unknown): string {
-  const m = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "";
-  return /evaluación está cerrada/i.test(m) ? "La evaluación está cerrada. Solicita el cambio de nota a Rectoría." : "No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.";
+/**
+ * Mensaje de la base para la persona: el de la evaluación cerrada tiene el suyo; el resto, genérico.
+ * La base responde en español; aquí se reconoce el caso y el texto sale en el idioma de la app (idiomas, paso 3).
+ */
+export function saveMessage(e: unknown, m: Messages = es): string {
+  const raw = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "";
+  return /evaluación está cerrada/i.test(raw) ? m.tch.save.closed : m.tch.save.failed;
 }
 
 const throwIf = (r: { error: unknown }) => { if (r.error) throw r.error; };
@@ -296,7 +300,7 @@ async function fetchObservations(): Promise<ObservationItem[]> {
     .order("created_at", { ascending: false }).limit(60);
   throwIf(r);
   return ((r.data ?? []) as unknown as ObsRow[]).map((o) => ({
-    date: longDate(o.created_at), type: o.type, title: o.title, context: o.context ?? "", by: o.author?.full_name ?? "",
+    date: o.created_at, type: o.type, title: o.title, context: o.context ?? "", by: o.author?.full_name ?? "",
     student: o.student?.full_name ?? "", course: o.student?.course_id ?? "",
   }));
 }

@@ -4,7 +4,6 @@ import type { ObsType, ObservationItem } from "../data/academic";
 import type { StudentRecord } from "../data/students";
 import { allRows, forcedState } from "./client";
 import { toRecord, type OverviewRow } from "./students";
-import { longDate } from "./teacher";
 
 /*
  * Perfil del estudiante con datos reales (paso 6b.4c). Cada lectura pasa por el RLS de quien consulta: el docente
@@ -109,7 +108,7 @@ async function fetchProfile(id: string): Promise<ProfileData | null> {
     avg: r1(avgOf(graded.map((x) => x.grade))), passed: graded.filter((x) => x.grade >= 3).length, graded: graded.length,
     evol, subjects, month,
     observations: ((oq.data ?? []) as unknown as Array<{ type: ObsType; title: string; context: string | null; created_at: string; author: { full_name: string } | null }>).map((o) => ({
-      date: longDate(o.created_at), type: o.type, title: o.title, context: o.context ?? "", by: o.author?.full_name ?? "", student: student.name, course: student.course,
+      date: o.created_at, type: o.type, title: o.title, context: o.context ?? "", by: o.author?.full_name ?? "", student: student.name, course: student.course,
     })),
     medical: med ? {
       allergies: med.allergies ?? "", conditions: med.conditions ?? "", notes: med.notes ?? "",
