@@ -174,6 +174,7 @@ export async function openReference(ctx, hash) {
   await page.evaluate((h) => history.replaceState(null, "", h), hash);
   await page.addScriptTag({ path: join(DS, "js/notascan.js") });
   await page.evaluate(() => ReactDOM.createRoot(document.getElementById("ref")).render(React.createElement(NotaScan.NotaScanApp)));
+  await page.evaluate(() => document.fonts.ready); // las fuentes de Google de la referencia llegan después del montaje
   return { page, cons };
 }
 

@@ -35,7 +35,8 @@
     "verify:desktop-scroll": "node scripts/verify-desktop-scroll.mjs",
     "verify:print": "node scripts/verify-print.mjs",
     "verify:phone-page": "node scripts/verify-phone-page.mjs",
-    "verify:fonts": "node scripts/verify-fonts.mjs"
+    "verify:fonts": "node scripts/verify-fonts.mjs",
+    "verify:titlebar": "node scripts/verify-titlebar.mjs"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",

@@ -18,6 +18,9 @@
 .ns-titlebar-btn:hover { background: var(--ivory-deep); }
 .ns-titlebar-btn--close:hover { background: var(--burgundy); color: var(--paper); }
 .ns-titlebar-btn:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: -4px; }
+/* macOS (enmienda 10, 2026-11-08): los tres botones del sistema ocupan de 14 a 66 px (12 px cada uno, 8 px entre ellos).
+   La marca empieza 12 px después, como el espacio entre la marca y el borde en Windows y Linux. */
+.ns-titlebar--mac .ns-titlebar-brand { padding-left: 78px; }
 
 /* El contenido se desplaza en su propio contenedor, debajo de la barra (enmienda 8, 2026-10-06): antes se desplazaba
    la ventana entera y su barra de desplazamiento corría por detrás de la barra de título, como saliéndose del marco. */

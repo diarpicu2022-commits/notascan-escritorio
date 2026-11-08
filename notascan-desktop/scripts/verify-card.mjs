@@ -50,6 +50,7 @@ try {
           picks.map((r, i) => h(N.StudentGradeCard, { key: r.student.id, index: i + 1, student: r.student, detected: r.detected, confidence: r.confidence, status: r.status, animate: false })),
           h(N.StudentGradeCardSkeleton || "div", { key: "sk" }))));
   }, { rows, idx: ROWS_IDX });
+  await ref.evaluate(() => document.fonts.ready); // las fuentes de Google de la referencia llegan después del montaje
   await ref.waitForTimeout(900);
   await mine.waitForTimeout(900);
 

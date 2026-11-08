@@ -1098,3 +1098,20 @@ Verificación (`npm run verify:fonts`, 28/28):
 Las pruebas de fidelidad armaban la referencia del sistema encima de la página de la app y conservaban su enlace a Google Fonts. Al quitarlo, la referencia quedó sin fuentes y fallaron decenas de comparaciones. Se corrigió el arnés (`harness`, `verify-card`, `verify-components`, `verify-shell`, `verify-teacher`) para que la referencia cargue sus fuentes como `notascan-ui/index.html`. Con eso la regresión queda como antes del cambio: shell 61/62, components 120/121, card 50/51, teacher 122/123, admin 104/105, principal 75/76, print 5/5, states 98/98. La única falla común ya estaba antes del cambio: colores literales en `PhoneUpload.tsx:33` y `print.css:12`.
 
 La página pública `mobile-subir/` sigue con Google Fonts. Es una web aparte y se revisa cuando toque el paso de cookies y rastreo de la web.
+
+### Paso B · Barra de título según el sistema (hecho 2026-11-08, enmienda 10)
+
+- **macOS**: `src-tauri/tauri.macos.conf.json` pide la barra nativa transparente (`titleBarStyle: Overlay`, título oculto) y coloca los tres botones del sistema a 14 px del borde y centrados en la barra de 32 px (`trafficLightPosition` 14, 16). La app pinta detrás el mismo fondo y borde de siempre y la marca a 78 px, justo después de los botones (14 + 3 × 12 + 2 × 8 = 66, más los 12 px que la marca tiene en Windows). No hay botones propios ni se consulta si la ventana está maximizada.
+- **Windows y Linux**: la barra del paso 6h, sin cambios.
+- La app reconoce macOS por el agente de usuario de WKWebView («Macintosh»). Tauri solo aplica `tauri.macos.conf.json` al compilar en un Mac.
+- Fuera del contrato no entra nada nuevo: mismos tokens (`--paper`, `--ivory-deep`, `--muted`) y la misma marca.
+
+Verificación (`npm run verify:titlebar`, 23/23). Simula la app de escritorio con el agente de usuario de cada sistema:
+
+- macOS: 0 botones propios, marca a 78 px, barra y marca arrastrables, contenido debajo de la barra, consola limpia.
+- Windows y Linux: Minimizar, Maximizar y Cerrar con su nombre accesible, marca a 12 px, y la barra idéntica a la del commit anterior (0 píxeles distintos).
+- La barra mide 33 px de alto, 32 más 1 px de borde. Así estaba desde el paso 6h y el contenido sigue empezando en 32 px.
+
+**Pendiente de medir en el Mac de GitHub (paso C):** que los botones del sistema queden de verdad centrados a 16 px y que la marca no se monte sobre ellos. El valor 16 sale de leer cómo los coloca `tao` 0.37.1 (`inset_traffic_lights`), no de una medición.
+
+Arreglo del arnés: las referencias del sistema ahora esperan `document.fonts.ready` después de montar. Sin eso, la referencia de Login salió sin sus fuentes en una de cuatro corridas (1,910 %), un fallo intermitente que dejó el arreglo del paso A.

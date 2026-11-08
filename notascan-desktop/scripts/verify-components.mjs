@@ -86,6 +86,7 @@ try {
           specs.map((s) => h("section", { key: s[0], "data-spec": s[0], style: { display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "var(--space-3)" } },
             h("span", { className: "ns-overline" }, s[0]), h("div", { "data-spec-body": true }, s[1]))))));
   });
+  await ref.evaluate(() => document.fonts.ready); // las fuentes de Google de la referencia llegan después del montaje
   await Promise.all([ref.waitForTimeout(1500), mine.waitForTimeout(1500)]);
 
   const names = await mine.locator("[data-spec]").evaluateAll((els) => els.map((e) => e.dataset.spec));

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "windows": [
+      {
+        "title": "NotaScan.",
+        "width": 1280,
+        "height": 760,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "center": true,
+        "maximized": true,
+        "label": "main",
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 14, "y": 16 },
+        "shadow": true
+      }
+    ]
+  }
+}
