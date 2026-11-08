@@ -67,7 +67,7 @@ jobs:
         if: matrix.sistema == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb imagemagick
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb imagemagick x11-utils xdotool libgl1-mesa-dri
 
       - name: Dependencias
         run: npm ci && python -m pip install --quiet pillow
@@ -101,13 +101,18 @@ jobs:
         env:
           WEBKIT_DISABLE_DMABUF_RENDERER: "1"
           WEBKIT_DISABLE_COMPOSITING_MODE: "1"
+          LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           Xvfb :99 -screen 0 1440x900x24 &
           export DISPLAY=:99
           sleep 3
           ./src-tauri/target/release/notascan > app-linux.log 2>&1 &
-          sleep 25
-          import -window root captura-linux.png
+          # Espera hasta 60 s a que exista la ventana; si no aparece, el registro lo dice.
+          timeout 60 xdotool search --sync --onlyvisible --name "NotaScan" >> app-linux.log 2>&1 || echo "la ventana no apareció en 60 s" >> app-linux.log
+          echo "--- ventanas visibles" >> app-linux.log
+          xwininfo -root -tree | grep -i notascan >> app-linux.log || echo "sin ventana NotaScan" >> app-linux.log
+          sleep 15
+          xwd -root -silent | convert xwd:- png:captura-linux.png
 
       - name: Abrir y capturar (macOS)
         if: matrix.sistema == 'macos'

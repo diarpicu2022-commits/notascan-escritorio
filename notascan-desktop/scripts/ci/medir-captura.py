@@ -22,13 +22,41 @@ def near(px, ref, tol):
     return all(abs(a - b) <= tol for a, b in zip(px[:3], ref))
 
 
+def components(img, ref, tol, box):
+    """Figuras separadas del color pedido dentro de la caja (recortada a la imagen), de la más grande a la más chica."""
+    w, h = img.size
+    x0, y0, x1, y1 = max(0, box[0]), max(0, box[1]), min(w, box[2]), min(h, box[3])
+    px = img.load()
+    hit = {(x, y) for y in range(y0, y1) for x in range(x0, x1) if near(px[x, y], ref, tol)}
+    comps = []
+    while hit:
+        stack = [hit.pop()]
+        pts = []
+        while stack:
+            p = stack.pop()
+            pts.append(p)
+            for q in ((p[0] + 1, p[1]), (p[0] - 1, p[1]), (p[0], p[1] + 1), (p[0], p[1] - 1)):
+                if q in hit:
+                    hit.remove(q)
+                    stack.append(q)
+        xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+        comps.append({"x0": min(xs), "x1": max(xs), "y0": min(ys), "y1": max(ys), "cx": sum(xs) / len(xs), "cy": sum(ys) / len(ys), "n": len(pts)})
+    return sorted(comps, key=lambda c: -c["n"])
+
+
 def cluster(img, ref, tol, box):
-    x0, y0, x1, y1 = box
-    pts = [(x, y) for y in range(y0, y1) for x in range(x0, x1) if near(img.getpixel((x, y)), ref, tol)]
-    if not pts:
-        return None
-    xs, ys = [p[0] for p in pts], [p[1] for p in pts]
-    return {"x0": min(xs), "x1": max(xs), "y0": min(ys), "y1": max(ys), "cx": sum(xs) / len(xs), "cy": sum(ys) / len(ys), "n": len(pts)}
+    comps = components(img, ref, tol, box)
+    return comps[0] if comps else None
+
+
+def find_mark(img):
+    """La marca de la barra: un cuadro dorado casi cuadrado, de 10 a 32 px de lado, el más alto y a la izquierda.
+    La «N» azul tapa parte del dorado: medido el 2026-11-08, el dorado cubre el 53 al 56 % del cuadro."""
+    w, h = img.size
+    cands = [c for c in components(img, GOLD, 18, (0, 0, min(w, 700), min(h, 140)))
+             if 10 <= c["x1"] - c["x0"] + 1 <= 32 and 0.8 <= (c["y1"] - c["y0"] + 1) / (c["x1"] - c["x0"] + 1) <= 1.25
+             and c["n"] >= 0.4 * (c["x1"] - c["x0"] + 1) * (c["y1"] - c["y0"] + 1)]
+    return min(cands, key=lambda c: (c["y0"], c["x0"])) if cands else None
 
 
 def main():
@@ -42,9 +70,9 @@ def main():
         results.append((name, bool(ok), detail))
 
     # La barra está arriba: en macOS, debajo de la barra de menús (24 a 38 px según la escala).
-    top = (0, 0, min(w, 600), min(h, 220))
-    mark = cluster(img, GOLD, 18, top)
-    check("la ventana de NotaScan se abrió (marca dorada en la barra de título)", mark and mark["n"] >= 40, f"{mark['n'] if mark else 0} píxeles dorados")
+    mark = find_mark(img)
+    check("la ventana de NotaScan se abrió (marca dorada en la barra de título)", mark,
+          f"cuadro de {mark['x1'] - mark['x0'] + 1} x {mark['y1'] - mark['y0'] + 1} px en ({mark['x0']}, {mark['y0']})" if mark else "no aparece")
     if not mark:
         return report(results)
     scale = (mark["x1"] - mark["x0"] + 1) / 13
