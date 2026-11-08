@@ -9,6 +9,10 @@ Lo primero que se lee al retomar.
   Paso B (barra nativa en macOS, enmienda 10) hecho, `verify:titlebar` 23/23. Sigue C (GitHub Actions que compila y
   prueba en los tres sistemas, y mide en el Mac la posición real de los botones del sistema).
   Después: modo oscuro, selector de tema e idiomas es/en/pt. Detalle en el anexo, sección «Multiplataforma».
+- **Idiomas (rama `feature/idiomas`, sale de `feature/multiplataforma`)**: decisiones D1 a D4 de Diego del 2026-11-08 y
+  contrato I1 a I8 en `docs/ux/anexos/2026-11-08-idiomas.md`. Paso 1 hecho (`verify:i18n` 75/75), esperando visto bueno.
+- **Modo oscuro**: tres direcciones (Pizarra, Campo marino recomendada, Lámpara baja) en
+  `docs/ux/anexos/2026-11-08-modo-oscuro.md`, sin implementar, esperando que Diego elija.
 
 - Contrato de diseño: design system `../notascan-ui/` (no se sale de él). Anexo: `docs/ux/anexos/2026-10-01-app-escritorio.md`.
 - Paso 1 · Tokens: hecho y aprobado (2026-10-01).

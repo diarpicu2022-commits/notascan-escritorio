@@ -1,0 +1,4 @@
+/* Panel Preferencias (anexo 2026-11-08-idiomas, I1 e I2). Solo tokens del sistema. */
+.ns-pref-group { display: grid; gap: var(--space-3); }
+.ns-pref-group + .ns-pref-group { margin-top: var(--space-6); padding-top: var(--space-6); border-top: 1px solid var(--ivory-deep); }
+.ns-pref-list .ns-period-item { width: 100%; min-height: 44px; }

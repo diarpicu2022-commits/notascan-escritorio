@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cx } from "../../lib/cx";
 import type { NavItem } from "../../data/roles";
 import { Button } from "../atoms/Button";
@@ -7,6 +8,8 @@ import { NavigationItem } from "../molecules/NavigationItem";
 import { UserProfile } from "../molecules/UserProfile";
 import type { Institution } from "../../services/institution";
 import { SchoolBadge } from "./InstitutionIdentity";
+import { PreferencesDrawer } from "./Preferences";
+import { useI18n } from "../../i18n/I18nProvider";
 
 interface SidebarProps {
   items: NavItem[];
@@ -25,6 +28,8 @@ interface SidebarProps {
 
 /** Navegación global. Solo navega: sin filtros, títulos ni acciones de página. */
 export function Sidebar({ items, active, collapsed: rail, user, course, courseLabel, school, onNavigate, onLogout, onClose, className }: SidebarProps) {
+  const { t } = useI18n();
+  const [prefsOpen, setPrefsOpen] = useState(false);
   return (
     <aside className={cx("ns-sidebar", rail && "ns-sidebar--rail", className)} aria-label="Navegación principal">
       <div className="ns-sidebar-brand">
@@ -54,9 +59,14 @@ export function Sidebar({ items, active, collapsed: rail, user, course, courseLa
         )}
         <div className="ns-sidebar-user">
           <UserProfile name={user.name} role={user.role} compact={rail} />
+          {/* Preferencias (anexo 2026-11-08-idiomas, I1): mismo botón fantasma que «Cerrar sesión», a su lado. */}
+          {!rail ? (
+            <Button data-enmienda="11" variant="ghost" size="sm" className="ns-btn--icon" aria-label={t.prefs.open} title={t.prefs.open} aria-haspopup="dialog" onClick={() => setPrefsOpen(true)}><Icon name="settings" size={16} /></Button>
+          ) : null}
           {onLogout && !rail ? (
             <Button variant="ghost" size="sm" className="ns-btn--icon" aria-label="Cerrar sesión" title="Cerrar sesión" onClick={onLogout}><Icon name="logout" size={16} /></Button>
           ) : null}
+          <PreferencesDrawer open={prefsOpen} onClose={() => setPrefsOpen(false)} />
         </div>
       </div>
     </aside>

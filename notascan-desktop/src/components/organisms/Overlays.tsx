@@ -50,9 +50,11 @@ interface DrawerProps {
   inline?: boolean;
   footer?: ReactNode;
   children?: ReactNode;
+  /** Nombre del botón de cerrar en el idioma de la app (anexo 2026-11-08-idiomas). */
+  closeLabel?: string;
 }
 
-export function Drawer({ open, onClose, eyebrow, title, inline, footer, children }: DrawerProps) {
+export function Drawer({ open, onClose, eyebrow, title, inline, footer, children, closeLabel = "Cerrar panel" }: DrawerProps) {
   const ref = useRef<HTMLElement>(null);
   const tid = useId();
   useDialogFocus(open, ref, onClose);
@@ -62,7 +64,7 @@ export function Drawer({ open, onClose, eyebrow, title, inline, footer, children
       <aside ref={ref} className="ns-drawer" role="dialog" aria-modal aria-labelledby={tid}>
         <header className="ns-drawer-head">
           <div>{eyebrow ? <span className="ns-overline">{eyebrow}</span> : null}<h2 id={tid}>{title}</h2></div>
-          <IconAction icon="close" label="Cerrar panel" onClick={onClose} />
+          <IconAction icon="close" label={closeLabel} onClick={onClose} />
         </header>
         <div className="ns-drawer-body">{children}</div>
         {footer ? <footer className="ns-drawer-foot">{footer}</footer> : null}

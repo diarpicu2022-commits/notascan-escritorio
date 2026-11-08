@@ -8,11 +8,14 @@ import { Modal } from "../components/organisms/Overlays";
 import { LEGAL, LegalDocument } from "../components/organisms/LegalDocument";
 import { Button, Dots } from "../components/atoms/Button";
 import type { CodePurpose, LoginError } from "../app/AuthContext";
+import { useI18n } from "../i18n/I18nProvider";
+import { PreferencesDrawer } from "../components/organisms/Preferences";
 
 /** Ilustración propia del login: hoja de examen + teléfono escaneando, dentro de manchas orgánicas. */
 function LoginIllustration() {
+  const { t } = useI18n();
   return (
-    <svg className="ns-auth-illus" viewBox="0 0 640 600" role="img" aria-label="Un teléfono escanea la hoja de un examen y detecta la nota 4.5">
+    <svg className="ns-auth-illus" viewBox="0 0 640 600" role="img" aria-label={t.login.illustration}>
       <path className="f-sage-soft a-blob a-blob1" d="M318 22c96-8 196 36 250 118 52 80 70 190 24 276-44 84-146 132-246 150-104 18-214-6-276-86C8 402-6 282 30 186 66 90 214 30 318 22Z" />
       <path className="f-sage a-blob a-blob2" d="M322 88c80-6 162 30 206 98 42 66 54 156 16 226-36 70-120 108-202 120-86 12-176-6-226-72-50-66-58-164-28-242C118 140 238 94 322 88Z" />
       <path className="f-ivory-deep a-blob a-blob3" d="M326 160c58-4 116 22 146 70 30 48 36 110 10 160-26 48-86 76-146 82-60 6-122-8-156-54-34-46-38-114-16-168 24-52 104-86 162-90Z" />
@@ -93,7 +96,7 @@ function AuthField({ id, label, icon, type, placeholder, auto, value, onChange, 
   );
 }
 
-const ROLE_OPTIONS: Array<[DesktopRole, string]> = [["teacher", "Docente"], ["admin", "Secretaría"], ["principal", "Rectoría"]];
+const ROLES = ["teacher", "admin", "principal"] as const;
 
 interface LoginPageProps {
   defaultRole?: DesktopRole;
@@ -114,6 +117,7 @@ function CodeFlow({ purpose, initialEmail, onAcceptCode, onSetPassword, onBack }
   purpose: CodePurpose; initialEmail: string; onBack: () => void;
   onAcceptCode: NonNullable<LoginPageProps["onAcceptCode"]>; onSetPassword: NonNullable<LoginPageProps["onSetPassword"]>;
 }) {
+  const { t } = useI18n();
   const [step, setStep] = useState<"code" | "password">("code");
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState("");
@@ -143,41 +147,43 @@ function CodeFlow({ purpose, initialEmail, onAcceptCode, onSetPassword, onBack }
     setBusy(false);
     if (r) setErr(r);
   }
-  const title = step === "password" ? "Crea tu contraseña" : purpose === "invite" ? "Activa tu cuenta" : "Restablece tu contraseña";
+  const title = step === "password" ? t.code.createPassword : purpose === "invite" ? t.code.activate : t.code.reset;
   return (
     <form className="ns-auth-form" onSubmit={submit} noValidate>
       <h2>{title}</h2>
       {step === "code" ? (
         <>
-          <p className="ns-auth-note">{purpose === "invite" ? "Escribe el correo con el que te invitaron y el código numérico que te llegó." : "Escribe tu correo y el código numérico que te enviamos."}</p>
-          <AuthField id="code-email" label="Correo institucional" icon="mail" type="email" placeholder="nombre@colegio.edu.co" auto="email"
-            value={email} onChange={(e) => setEmail(e.target.value)} error={tried && !okEmail ? "Escribe tu correo completo." : err?.field === "email" ? err.message : null} />
-          <AuthField id="code-token" label="Código del correo" icon="key" type="text" placeholder="12345678" auto="one-time-code"
+          <p className="ns-auth-note">{purpose === "invite" ? t.code.inviteNote : t.code.resetNote}</p>
+          <AuthField id="code-email" label={t.login.email} icon="mail" type="email" placeholder={t.code.emailPlaceholder} auto="email"
+            value={email} onChange={(e) => setEmail(e.target.value)} error={tried && !okEmail ? t.code.errEmail : err?.field === "email" ? err.message : null} />
+          <AuthField id="code-token" label={t.code.code} icon="key" type="text" placeholder="12345678" auto="one-time-code"
             value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 10))}
-            error={tried && !okCode ? "Escribe el código completo del correo." : err?.field === "code" ? err.message : null} />
+            error={tried && !okCode ? t.code.errCode : err?.field === "code" ? err.message : null} />
         </>
       ) : (
         <>
-          <p className="ns-auth-note">{"Código verificado para " + email.trim().toLowerCase() + ". Elige la contraseña con la que vas a entrar."}</p>
-          <AuthField id="code-pass" label="Contraseña nueva" icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="new-password"
+          <p className="ns-auth-note">{t.code.verifiedFor(email.trim().toLowerCase())}</p>
+          <AuthField id="code-pass" label={t.code.newPassword} icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="new-password"
             value={pw} onChange={(e) => setPw(e.target.value)}
-            error={tried && !strong ? "Al menos 8 caracteres con letras y números." : err?.field === "newPassword" ? err.message : null}
-            after={<button type="button" className="ns-auth-eye" aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"} aria-pressed={show} onClick={() => setShow(!show)}><Icon name="eye" size={18} /></button>} />
-          <AuthField id="code-pass2" label="Repite la contraseña" icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="new-password"
-            value={pw2} onChange={(e) => setPw2(e.target.value)} error={tried && strong && pw !== pw2 ? "Las contraseñas no coinciden." : null} />
+            error={tried && !strong ? t.code.errStrong : err?.field === "newPassword" ? err.message : null}
+            after={<button type="button" className="ns-auth-eye" aria-label={show ? t.login.hidePassword : t.login.showPassword} aria-pressed={show} onClick={() => setShow(!show)}><Icon name="eye" size={18} /></button>} />
+          <AuthField id="code-pass2" label={t.code.repeat} icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="new-password"
+            value={pw2} onChange={(e) => setPw2(e.target.value)} error={tried && strong && pw !== pw2 ? t.code.errMatch : null} />
         </>
       )}
       {err?.field === "form" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{err.message}</span> : null}
       <button type="submit" className="ns-auth-submit" aria-busy={busy || undefined} disabled={busy}>
-        {busy ? <><Dots /> {step === "code" ? "Verificando…" : "Guardando…"}</> : <>{step === "code" ? "Continuar" : "Guardar y entrar"} <Icon name="arrow" size={18} /></>}
+        {busy ? <><Dots /> {step === "code" ? t.code.verifying : t.code.saving}</> : <>{step === "code" ? t.code.continue : t.code.saveAndEnter} <Icon name="arrow" size={18} /></>}
       </button>
-      <p className="ns-auth-foot"><a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Volver a iniciar sesión</a></p>
+      <p className="ns-auth-foot"><a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>{t.code.back}</a></p>
     </form>
   );
 }
 
 /** Acceso de escritorio: pantalla dividida con ilustración del flujo y formulario en píldoras. */
 export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot, onAcceptCode, onSetPassword }: LoginPageProps) {
+  const { t, lang } = useI18n();
+  const [langOpen, setLangOpen] = useState(false);
   const [codeFlow, setCodeFlow] = useState<CodePurpose | null>(null);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -194,8 +200,8 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const okEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), okPass = pass.length >= 6;
-  const emailErr = tried && !okEmail ? "Escribe tu correo institucional completo." : serverErr?.field === "email" ? serverErr.message : null;
-  const passErr = tried && !okPass ? "La contraseña tiene al menos 6 caracteres." : serverErr?.field === "password" ? serverErr.message : null;
+  const emailErr = tried && !okEmail ? t.login.errEmail : serverErr?.field === "email" ? serverErr.message : null;
+  const passErr = tried && !okPass ? t.login.errPassword : serverErr?.field === "password" ? serverErr.message : null;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -228,7 +234,7 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
         <LoginIllustration />
         <div className="ns-auth-steps">
           <span className="is-on">01</span><i /><span>03</span>
-          <p>La IA detecta · <b>tú verificas</b> · el sistema guarda</p>
+          <p>{`${t.login.steps[0]} · `}<b>{t.login.steps[1]}</b>{` · ${t.login.steps[2]}`}</p>
         </div>
       </section>
       <svg className="ns-auth-wave" viewBox="0 0 120 900" preserveAspectRatio="none" aria-hidden>
@@ -237,61 +243,68 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
       <main className="ns-auth-panel">
         <div className="ns-auth-hello">
           <div className="ns-auth-mobile-brand"><Logo size={26} /></div>
-          <h1>¡Hola<span>!</span></h1>
-          <p>Bienvenido de nuevo a NotaScan.</p>
+          <h1>{t.login.hello}<span>!</span></h1>
+          <p>{t.login.welcome}</p>
         </div>
         {codeFlow && onAcceptCode && onSetPassword ? (
           <CodeFlow purpose={codeFlow} initialEmail={email} onAcceptCode={onAcceptCode} onSetPassword={onSetPassword} onBack={() => setCodeFlow(null)} />
         ) : (
         <form className="ns-auth-form" onSubmit={submit} noValidate>
-          <h2>Iniciar sesión</h2>
+          <h2>{t.login.title}</h2>
           <fieldset className="ns-auth-roles">
-            <legend>Entrar como</legend>
-            {ROLE_OPTIONS.map(([value, label]) => (
+            <legend>{t.login.enterAs}</legend>
+            {ROLES.map((value) => (
               <label key={value} className={cx("ns-auth-role", role === value && "is-on")}>
-                <input type="radio" name="ns-role" value={value} checked={role === value} onChange={() => { setRole(value); setServerErr(null); }} />{label}
+                <input type="radio" name="ns-role" value={value} checked={role === value} onChange={() => { setRole(value); setServerErr(null); }} />{t.login.roles[value]}
               </label>
             ))}
             {serverErr?.field === "role" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{serverErr.message}</span> : null}
           </fieldset>
-          <AuthField id="auth-email" label="Correo institucional" icon="mail" type="email" placeholder="nombre@ucc.edu.co" auto="email"
+          <AuthField id="auth-email" label={t.login.email} icon="mail" type="email" placeholder="nombre@ucc.edu.co" auto="email"
             value={email} onChange={(e) => setEmail(e.target.value)} error={emailErr} />
-          <AuthField id="auth-pass" label="Contraseña" icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="current-password"
+          <AuthField id="auth-pass" label={t.login.password} icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="current-password"
             value={pass} onChange={(e) => setPass(e.target.value)} error={passErr}
-            after={<button type="button" className="ns-auth-eye" aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"} aria-pressed={show} onClick={() => setShow(!show)}><Icon name="eye" size={18} /></button>} />
+            after={<button type="button" className="ns-auth-eye" aria-label={show ? t.login.hidePassword : t.login.showPassword} aria-pressed={show} onClick={() => setShow(!show)}><Icon name="eye" size={18} /></button>} />
           <div className="ns-auth-row">
-            <label className="ns-auth-check"><input ref={remember} type="checkbox" defaultChecked />Recordarme</label>
-            <a href="#" onClick={(e) => { e.preventDefault(); forgot(); }}>¿Olvidaste tu contraseña?</a>
+            <label className="ns-auth-check"><input ref={remember} type="checkbox" defaultChecked />{t.login.remember}</label>
+            <a href="#" onClick={(e) => { e.preventDefault(); forgot(); }}>{t.login.forgot}</a>
           </div>
           {serverErr?.field === "form" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{serverErr.message}</span> : null}
           <button type="submit" className="ns-auth-submit" aria-busy={busy || undefined} disabled={busy}>
-            {busy ? <><Dots /> Entrando…</> : <>Entrar <Icon name="arrow" size={18} /></>}
+            {busy ? <><Dots /> {t.login.submitting}</> : <>{t.login.submit} <Icon name="arrow" size={18} /></>}
           </button>
-          <div className="ns-auth-or"><span>o entra con</span></div>
-          <button type="button" className="ns-auth-sso" onClick={() => (onSubmit ? setSsoMsg(true) : onLogin?.(role))}><Icon name="students" size={18} />Cuenta institucional</button>
-          {ssoMsg ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />El acceso con cuenta institucional aún no está disponible. Entra con tu correo.</span> : null}
-          <a className="ns-auth-mobile-link" href="#/movil"><Icon name="phone" size={16} />¿Eres estudiante o acudiente? Entra a la app móvil</a>
+          <div className="ns-auth-or"><span>{t.login.or}</span></div>
+          <button type="button" className="ns-auth-sso" onClick={() => (onSubmit ? setSsoMsg(true) : onLogin?.(role))}><Icon name="students" size={18} />{t.login.sso}</button>
+          {ssoMsg ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{t.login.ssoUnavailable}</span> : null}
+          <a className="ns-auth-mobile-link" href="#/movil"><Icon name="phone" size={16} />{t.login.mobile}</a>
           {onAcceptCode
-            ? <p className="ns-auth-foot">¿Te invitaron? <a href="#" onClick={(e) => { e.preventDefault(); setSent(false); setCodeFlow("invite"); }}>Activa tu cuenta con el código del correo</a></p>
-            : <p className="ns-auth-foot">¿Primera vez? <a href="#" onClick={(e) => e.preventDefault()}>Solicita acceso a tu coordinación</a></p>}
+            ? <p className="ns-auth-foot">{t.login.invited} <a href="#" onClick={(e) => { e.preventDefault(); setSent(false); setCodeFlow("invite"); }}>{t.login.activate}</a></p>
+            : <p className="ns-auth-foot">{t.login.firstTime} <a href="#" onClick={(e) => e.preventDefault()}>{t.login.requestAccess}</a></p>}
           {/* Con la base (6g): la política de datos se puede leer antes de entrar. */}
-          {onAcceptCode ? <p className="ns-auth-foot"><a href="#" onClick={(e) => { e.preventDefault(); setPolicyOpen(true); }}>Política de tratamiento de datos</a></p> : null}
+          {/* Idioma junto a la política (anexo 2026-11-08-idiomas, I3): el idioma actual en su propio nombre. */}
+          {/* data-enmienda="11": lo que se agregó al sistema; las pruebas de fidelidad lo quitan antes de comparar. */}
+          <p className="ns-auth-foot" data-enmienda={onAcceptCode ? undefined : "11"}>
+            {onAcceptCode ? <a href="#" onClick={(e) => { e.preventDefault(); setPolicyOpen(true); }}>{t.login.policy}</a> : null}
+            <span data-enmienda="11">{onAcceptCode ? " · " : null}<a href="#" role="button" aria-haspopup="dialog" aria-label={`${t.login.language}: ${t.lang.names[lang]}`} lang={lang}
+              onClick={(e) => { e.preventDefault(); setLangOpen(true); }}>{t.lang.names[lang]}</a></span>
+          </p>
         </form>
         )}
       </main>
-      <Modal open={policyOpen} size="doc" onClose={() => setPolicyOpen(false)} icon="lock" title="Política de tratamiento de datos"
-        actions={<Button variant="secondary" onClick={() => setPolicyOpen(false)} data-autofocus>Cerrar</Button>}>
-        <div style={{ maxHeight: 420, overflowY: "auto", paddingRight: 8 }} tabIndex={0} aria-label="Texto de la política"><LegalDocument text={LEGAL.policy} /></div>
+      <Modal open={policyOpen} size="doc" onClose={() => setPolicyOpen(false)} icon="lock" title={t.login.policy}
+        actions={<Button variant="secondary" onClick={() => setPolicyOpen(false)} data-autofocus>{t.login.close}</Button>}>
+        <div style={{ maxHeight: 420, overflowY: "auto", paddingRight: 8 }} tabIndex={0} aria-label={t.login.policyText}><LegalDocument text={LEGAL.policy} /></div>
       </Modal>
       {sent ? (
         <div className="ns-toast-region">
-          <Toast tone="info" title="Revisa tu correo"
+          <Toast tone="info" title={t.login.checkEmail}
             message={onAcceptCode
-              ? <>{"Te enviamos un código a " + email.trim().toLowerCase() + ". "}<a href="#" onClick={(e) => { e.preventDefault(); setSent(false); setCodeFlow("recovery"); }}>Ya tengo el código</a></>
-              : "Te enviamos un enlace a " + email.trim().toLowerCase() + " para elegir una contraseña nueva."}
+              ? <>{t.login.codeSent(email.trim().toLowerCase())}<a href="#" onClick={(e) => { e.preventDefault(); setSent(false); setCodeFlow("recovery"); }}>{t.login.haveCode}</a></>
+              : t.login.linkSent(email.trim().toLowerCase())}
             onClose={() => setSent(false)} />
         </div>
       ) : null}
+      <PreferencesDrawer open={langOpen} onClose={() => setLangOpen(false)} />
     </div>
   );
 }

@@ -183,6 +183,8 @@ export const normalizeDom = (loc) => loc.evaluate((root) => {
   const walk = (el) => {
     if (el.nodeType === 3) return el.textContent.trim() ? `"${el.textContent.trim()}"` : "";
     if (el.nodeType !== 1) return "";
+    // Enmienda 11 (idiomas, 2026-11-08): lo agregado al sistema no entra en la comparación.
+    if (el.getAttribute("data-enmienda") === "11") return "";
     const attrs = [...el.attributes]
       .filter((a) => !["id", "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant", "for", "name"].includes(a.name))
       .map((a) => `${a.name}=${a.value}`).sort().join(" ");

@@ -77,6 +77,9 @@ async function pixelDiff(page, a, b) {
 }
 
 async function compare(label, ref, mine, selector, shotName) {
+  // Enmienda 11 (idiomas, 2026-11-08): el selector de idioma del login y el botón Preferencias no existen en el sistema.
+  // Se quitan antes de comparar, para que todo lo demás siga midiéndose idéntico.
+  await mine.evaluate(() => document.querySelectorAll("[data-enmienda='11']").forEach((n) => n.remove()));
   const [r, m] = await Promise.all([normalize(ref, selector), normalize(mine, selector)]);
   let at = 0;
   while (at < r.length && r[at] === m[at]) at++;
