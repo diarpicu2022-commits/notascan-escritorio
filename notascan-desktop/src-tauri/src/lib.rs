@@ -11,10 +11,13 @@ fn fit_to_work_area(window: &WebviewWindow) -> tauri::Result<()> {
     };
     let area = monitor.work_area();
     let (size, pos) = (window.outer_size()?, window.outer_position()?);
-    let fits = pos.x >= area.position.x
-        && pos.y >= area.position.y
-        && pos.x + size.width as i32 <= area.position.x + area.size.width as i32
-        && pos.y + size.height as i32 <= area.position.y + area.size.height as i32;
+    // Margen de 16 px lógicos: Windows coloca la ventana maximizada 8 px por fuera de cada borde. Sin este margen se le
+    // quitaba el maximizado (medido en el CI el 2026-11-08: la marca pasó de x = 14 a x = 22).
+    let slack = (16.0 * monitor.scale_factor()) as i32;
+    let fits = pos.x >= area.position.x - slack
+        && pos.y >= area.position.y - slack
+        && pos.x + size.width as i32 <= area.position.x + area.size.width as i32 + slack
+        && pos.y + size.height as i32 <= area.position.y + area.size.height as i32 + slack;
     if fits {
         return Ok(());
     }

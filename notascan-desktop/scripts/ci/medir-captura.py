@@ -82,6 +82,10 @@ def main():
     check("fondo papel junto a la marca", near(beside, PAPER, 10), f"rgb{beside}")
     check("marca a la izquierda, donde la pone el sistema", mark["x0"] < 200 * scale, f"x = {mark['x0']} px")
 
+    if system == "windows":
+        # Maximizada, la marca queda a 14 px del borde de la pantalla. Si la ventana pierde el maximizado se corre.
+        check("ventana maximizada (marca a 14 px del borde de la pantalla)", abs(mark["x0"] - 14 * scale) <= 2 * scale, f"x = {mark['x0']} px")
+
     if system == "macos":
         found = {}
         for name, ref in MAC_BUTTONS.items():
