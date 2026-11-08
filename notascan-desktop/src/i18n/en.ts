@@ -19,6 +19,13 @@ export const en: Messages = {
     eyebrow: "This computer",
     close: "Close panel",
   },
+  theme: {
+    choose: "Theme",
+    light: "Light",
+    dark: "Dark",
+    system: "Same as this computer",
+    hint: "Same as this computer follows the light or dark mode you have in Windows or macOS.",
+  },
   login: {
     illustration: "A phone scans an exam sheet and detects the grade 4.5",
     steps: ["AI detects", "you verify", "the system saves"],

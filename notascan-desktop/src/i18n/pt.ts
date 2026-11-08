@@ -19,6 +19,13 @@ export const pt: Messages = {
     eyebrow: "Este computador",
     close: "Fechar painel",
   },
+  theme: {
+    choose: "Tema",
+    light: "Claro",
+    dark: "Escuro",
+    system: "Igual ao computador",
+    hint: "Igual ao computador segue o modo claro ou escuro que você usa no Windows ou no macOS.",
+  },
   login: {
     illustration: "Um celular escaneia a folha de uma prova e detecta a nota 4,5",
     steps: ["A IA detecta", "você confere", "o sistema salva"],

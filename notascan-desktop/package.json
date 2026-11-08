@@ -39,7 +39,8 @@
     "verify:titlebar": "node scripts/verify-titlebar.mjs",
     "verify:i18n": "node scripts/verify-i18n.mjs",
     "tema:oscuro": "node scripts/generar-tema-oscuro.mjs",
-    "verify:dark": "node scripts/verify-dark.mjs"
+    "verify:dark": "node scripts/verify-dark.mjs",
+    "verify:theme": "node scripts/verify-theme.mjs"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",

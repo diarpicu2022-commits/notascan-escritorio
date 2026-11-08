@@ -1,6 +1,6 @@
 # Anexo de diseño · Modo oscuro de NotaScan escritorio
 
-Fecha: 2026-11-08 · Fase: contrato firmado y paso 1 hecho. Diego eligió la dirección B · Campo marino el 2026-11-08. El contrato está en la sección 11 y lo hecho en el paso 1, con sus mediciones, en la sección 12. Las secciones 3 a 10 son la investigación que llevó a esa elección y no se reescriben.
+Fecha: 2026-11-08 · Fase: contrato firmado, pasos 1 y 2 hechos. Diego eligió la dirección B · Campo marino el 2026-11-08. El contrato está en la sección 11 y lo hecho en los pasos 1 y 2, con sus mediciones, en las secciones 12 y 13. Las secciones 3 a 10 son la investigación que llevó a esa elección y no se reescriben.
 
 Origen del pedido. El profesor pidió el 2026-10-07 modo claro y oscuro a elección de la persona (Claro, Oscuro, Como el sistema), guardado en el dispositivo. Diego decidió el 2026-10-08 que el oscuro se deriva del sistema NotaScan, que no es otra marca, que se mide el contraste y que se ven capturas antes de aplicarlo en todo.
 
@@ -373,6 +373,10 @@ Los valores son los de la tabla de B en la sección 6. La maqueta medida, `docs/
 - **O8 · Selector.** En Preferencias (pie de la barra lateral), grupo Tema con «Claro · Oscuro · Como el sistema». Se guarda en `localStorage` con la clave `notascan.theme` y se aplica antes del primer pintado.
 - **Fuera de alcance.** Modo oscuro de la app móvil Flutter, oscuro en impresión y temas de color adicionales.
 
+Enmiendas del contrato:
+
+- **2026-11-08 · O2, aprobada por Diego.** El generador lee también `amendments.css`, que se carga después de `notascan.css`. Si una enmienda repinta el fondo o la sombra de un selector, el parche sigue a la enmienda. Motivo: la nota solicitada de rectoría (`.ns-change-big .is-new`) perdía en oscuro la repisa dorada que le dio la enmienda de octubre (fallo 2 de la sección 12).
+
 Plan de implementación una vez elegida la dirección, un paso por vez y con visto bueno en cada uno:
 
 1. Tokens y parches en `theme-dark.css`, con `verify:dark` sobre las mismas pantallas de este anexo.
@@ -480,3 +484,98 @@ Capturas en `verify-out/`, con `oscuro-<pantalla>-1024.png` y `oscuro-<pantalla>
 - La decisión sobre el fallo 2.
 
 El siguiente paso es el 2, el selector en Preferencias. No se empieza sin el visto bueno de Diego sobre este.
+
+Diego aprobó el paso 1 el 2026-11-08.
+
+## 13. Paso 2 · Selector de tema en Preferencias
+
+Hecho el 2026-11-08 en la rama `feature/modo-oscuro`, después de integrar `feature/idiomas` (Preferencias ahora es una fila propia encima de la persona). Lo respaldan la sección 7 y las cláusulas O7 y O8 del contrato. Antes se aplicó la enmienda de O2 de la sección 11.
+
+### Enmienda de O2 aplicada
+
+`scripts/generar-tema-oscuro.mjs` lee `notascan.css` y después `amendments.css`. Un parche de fondo o de repisa solo sale si el último valor del selector, mirando las dos hojas, sigue siendo navy o dorado. Al regenerar cambiaron cuatro reglas.
+
+- La nota solicitada de rectoría conserva su repisa dorada en oscuro y deja de recibir tinta para dorado, porque la enmienda la pasó a papel. `verify:dark` ya no marca el fallo 2.
+- `.ns-marquee--gold` deja de recibir la repisa navy de 4 px. El propio `notascan.css` la repinta más abajo con `var(--shadow-sm)`, y la primera versión del generador no lo veía. Ahora sigue el token, que en oscuro es la repisa `#34497a` de 2 px.
+
+Quedan campos 34 (más 2 del selector, abajo), dorados 55, repisas 40, literales 8 y papel 1.
+
+### Qué se hizo
+
+- **`src/lib/theme.ts`.** Guarda la preferencia en `localStorage` con la clave `notascan.theme` (`light`, `dark` o `system`), pone `data-theme` en `<html>` y escucha `prefers-color-scheme` para «Como el sistema». También escucha el evento `storage`, por si hay otra ventana de la app abierta. El cambio corta todas las transiciones con la técnica de Coursey, así que no hay fundido de color.
+- **`index.html`.** Un script corto en `<head>` aplica la misma regla antes del primer pintado. Un `<style>` pone el lienzo en `#161513` (el `--ivory` de B) solo en pantalla y solo con el tema oscuro, para el instante en que la hoja de estilos todavía no llegó.
+- **`src/main.tsx`.** Llama a `startTheme()` al arrancar.
+- **`src/components/organisms/Preferences.tsx`.** Grupo Tema encima de Idioma, con el control segmentado del sistema (`.ns-seg`) como `role="radiogroup"`. Tiene tres opciones con icono y palabra. Las flechas, Inicio y Fin cambian el tema al instante, y solo la opción marcada es parada de Tab. Debajo va la línea de ayuda en `--muted`. `PreferencesDrawer` recibe `theme={false}` desde el login, que no lleva grupo Tema.
+- **`src/styles/preferences.css`.** El segmentado en tres columnas iguales. El indicador navy es lo único que se mueve, con `transform` y `--duration-base`, y queda quieto con `prefers-reduced-motion`. Solo usa tokens.
+- **`src/components/atoms/icons.ts`.** Sol, luna y pantalla, que el set no traía. Están hechos con la misma retícula de 24 y trazo 2.
+- **`src/i18n/es.ts`, `en.ts` y `pt.ts`.** Grupo `theme` con «Tema», «Claro», «Oscuro», «Como el sistema» y la ayuda. El español es la fuente. El inglés y el portugués son borrador y usan para «Como el sistema» la misma frase que ya tenía el grupo Idioma («Same as this computer», «Igual ao computador»).
+- **`scripts/generar-tema-oscuro.mjs`.** Suma dos campos a la lista fija, el indicador y la opción marcada. En oscuro quedan como campo navy `#22345c` con texto `#f1eadc`, igual que la pestaña elegida del segmentado del sistema.
+- **`scripts/verify-theme.mjs`** (`npm run verify:theme`). Es nuevo. `verify:dark` ahora pone el tema por el camino real, guardando `notascan.theme` antes de cargar.
+
+### Decisiones que Diego tiene que mirar
+
+1. **Forma del segmentado.** La sección 7 pide `.ns-seg`, que es una píldora de una línea. «Como el sistema» no cabe en un tercio del panel (412 px útiles) en una línea con su icono. Por eso cada opción lleva el icono arriba y la palabra abajo, que puede partirse en dos líneas, con 56 px de alto. La píldora con dos líneas se deformaba, así que el contenedor usa `--radius-lg` y las opciones y el indicador `--radius-md`, que son radios del sistema. Si Diego prefiere la píldora, la alternativa concreta es acortar la etiqueta a «Sistema» en los tres idiomas.
+2. **Iconos nuevos.** El set de `notascan-ui` no traía sol, luna ni pantalla. Se agregaron con su misma construcción. Si el set de referencia los publica después, se reemplazan.
+3. **Un color en `index.html`.** El lienzo previo usa `#161513` escrito, porque en ese instante los tokens todavía no cargaron. Es el valor del contrato y no está en `src/`.
+
+### Regresión
+
+Corrida completa sobre `npm run build:demo`, en el puerto 4173.
+
+| Verificación | Base | Ahora |
+|---|---|---|
+| `verify:shell` | 61/62 | 61/62 |
+| `verify:components` | 120/121 | 120/121 |
+| `verify:card` | 50/51 | 50/51 |
+| `verify:teacher` | 122/123 | 122/123 |
+| `verify:admin` | 104/105 | 104/105 |
+| `verify:principal` | 75/76 | 75/76 |
+| `verify:print` | 5/5 | 5/5 |
+| `verify:states` | 98/98 | 98/98 |
+| `verify:i18n` | 172/172 | 172/172 |
+| `verify:tokens` | 25/26 | 25/26 |
+| `verify:dark` | 136/138 | 138/138 |
+| `verify:theme` | nuevo | 49/49 |
+
+La falla que queda es la de siempre, `PhoneUpload.tsx:33` y `print.css:12`. Como en el paso 1, la primera corrida de `verify:shell` dio 60/62, con el login a 1.910 % de píxeles distintos contra el sistema. La segunda corrida dio 61/62. Es la misma cifra exacta las dos veces, siempre en la primera corrida después de compilar, así que parece un estado de carga en frío de la comparación y no del tema. Queda anotado para revisarlo aparte.
+
+### `verify:theme`
+
+| Medición | Mínimo | Claro | Oscuro |
+|---|---|---|---|
+| Opción marcada sobre el indicador | 4.5 | 12.86 | 10.24 |
+| Opción sin marcar | 4.5 | 13.99 | 13.19 |
+| Icono dorado de la opción marcada | 3 | 4.91 | 5.18 |
+| Línea de ayuda | 4.5 | 6.79 | 6.50 |
+| Borde del segmentado | 3 | 13.99 | 13.19 |
+| Foco de la opción (contorno de 2 px) | 3 | 13.99 | 9.40 |
+
+Otras comprobaciones que pasan:
+
+- **Teclado.** Siete pulsaciones (flechas en las cuatro direcciones, Inicio y Fin). Cada una marca la opción, mueve el foco, guarda en `notascan.theme` y cambia `data-theme` en el acto.
+- **Guardado.** Al recargar sigue en oscuro y el panel marca «Oscuro».
+- **Sin destello.** Se retuvo el JavaScript de la app y se tomó el primer pintado. En oscuro el píxel central es `#161513` con la hoja de estilos y también sin ella. En claro queda como antes.
+- **Como el sistema.** Con `colorScheme: "dark"` abre en oscuro. Con la app abierta sigue al equipo cuando pasa a claro y cuando vuelve. Con «Claro» elegido el cambio del equipo no la mueve.
+- **Movimiento.** En el mismo instante del cambio, el fondo de un botón ya tiene su valor final. El indicador solo tiene transición de `transform` (220 ms) y con movimiento reducido queda en 1 ms, que es la regla general de `notascan.css`.
+- **Toque.** Cada opción mide 133 por 56 px, y la fila Preferencias 44 px.
+- **Desborde.** En español, inglés y portugués, en claro y en oscuro, a 1024 px, nada sale del panel ni del segmentado y ningún texto se recorta.
+- **Login.** Su panel trae Idioma y no Tema, y abre con lo último guardado.
+- **Consola.** Limpia en las 14 pestañas. Las dos pruebas del primer pintado que cortan la hoja a propósito no cuentan, porque el navegador anota ese corte.
+
+Las capturas están en `verify-out/`. `oscuro-preferencias-panel-1440.png` muestra el panel con Tema e Idioma sobre la app en oscuro. Además están `oscuro-preferencias-1440.png`, `claro-preferencias-1440.png` y `oscuro-preferencias-pt-1024.png`.
+
+### Fallos propios encontrados en este paso
+
+1. El primer intento de medir el primer pintado reteniendo la hoja de estilos no daba captura. Una hoja retenida bloquea todo el pintado, así que la prueba se rehízo reteniendo el JavaScript.
+2. `verify-theme` daba por fallo la consola de las pruebas que cortan la hoja a propósito. Esas dos pestañas se excluyen de la cuenta y el motivo queda en el código.
+3. Con el script de `index.html`, `<html>` ya no queda sin `data-theme`. `verify:dark` ponía el atributo a mano y el script lo pisaba, así que ahora guarda la preferencia como lo haría la persona.
+
+### Pendiente
+
+- Barra de título en Tauri y los botones nativos de macOS con `setTheme` (paso 3).
+- Planilla, tablas, `Drawer`, `Modal` y gráficas (paso 4), y los estados (paso 5).
+- La línea de la política de datos de la sección 10 todavía no está en `docs/legal/`.
+- Revisión nativa de los textos en inglés y portugués.
+- Las tres decisiones de arriba.
+
+El siguiente paso es el 3, la barra de título. No se empieza sin el visto bueno de Diego sobre este.

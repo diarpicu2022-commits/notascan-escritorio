@@ -1,12 +1,13 @@
-// Modo oscuro · paso 1 (tokens y parches de B · Campo marino). Mide sobre el render del build de demostración.
+// Modo oscuro · pasos 1 y 2 (tokens y parches de B · Campo marino). Mide sobre el render del build de demostración.
 //
 //   npm run build:demo && npm run verify:dark
 //
-// Todavía no hay selector (es el paso 2), así que Playwright pone data-theme="dark" en <html> antes del primer pintado.
+// El tema se pone por el camino real del paso 2: Playwright guarda notascan.theme en localStorage antes de cargar y el
+// script de index.html lo aplica antes del primer pintado. El selector en sí lo mide scripts/verify-theme.mjs.
 // Comprueba:
 //   - que theme-dark.css es exactamente lo que genera scripts/generar-tema-oscuro.mjs, que notascan.css y tokens.css no
 //     cambiaron, y que todo color de theme-dark.css sale del contrato o del propio notascan.css
-//   - que sin data-theme y con data-theme="light" la app pinta igual (píxel a píxel)
+//   - que sin preferencia guardada y con «light» guardado la app pinta igual (píxel a píxel)
 //   - contraste AA de piso, AAA (7:1) en la nota y en las cifras de decisión (O6)
 //   - O4: todo texto sobre relleno dorado visible lleva tinta oscura con 4.5:1 o más
 //   - O5: boletín y foto del examen en claro, y la impresión vuelve a los tokens claros
@@ -55,12 +56,8 @@ const TITLEBAR = `<header class="ns-titlebar" data-mock="titlebar"><span class="
 <button type="button" class="ns-titlebar-btn ns-titlebar-btn--close" aria-label="Cerrar"><svg class="ns-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div></header>`;
 
-/** Pone data-theme en <html> antes del primer pintado. El script de inicio corre antes de que exista <html>, así que espera. */
-const themeInit = (t) => {
-  const set = () => document.documentElement.setAttribute("data-theme", t);
-  if (document.documentElement) set();
-  else new MutationObserver((_, o) => { if (document.documentElement) { set(); o.disconnect(); } }).observe(document, { childList: true });
-};
+/** Guarda la preferencia de tema antes de que cargue la página, como si la persona la hubiera elegido antes. */
+const themeInit = (t) => { try { localStorage.setItem("notascan.theme", t); } catch {} };
 
 const consoleLog = [];
 async function open(ctx, hash, { titlebar = true } = {}) {
@@ -255,8 +252,8 @@ async function screens(browser, width) {
     await sample(page, width, "solicitudes rectoría", "Cifra actual del cambio de nota", ".ns-change-big > div:not(.is-new) strong", AAA);
     await textPair(page, width, "solicitudes rectoría", "Cifra solicitada del cambio (papel, enmienda 2026-10)", ".ns-change-big .is-new strong", AAA);
     await textPair(page, width, "solicitudes rectoría", "Rótulo de la cifra solicitada", ".ns-change-big .is-new .ns-overline", AA);
-    // amendments.css le da a la cifra nueva una repisa dorada (var(--shadow-gold)). La capa REPISAS sale de notascan.css,
-    // donde esa regla tiene repisa navy, y con más especificidad la pisa. Se mide para que no pase desapercibido.
+    // amendments.css le da a la cifra nueva una repisa dorada (var(--shadow-gold)). Desde la enmienda de O2 del 2026-11-08
+    // el generador lee también amendments.css y no la pisa con la repisa navy. Se mide para que no vuelva.
     const ledge = await page.locator(".ns-change-big .is-new").first().evaluate((el) => [getComputedStyle(el).boxShadow, getComputedStyle(el).getPropertyValue("--shadow-gold").trim()]);
     report.check(`${width} · solicitudes rectoría · la cifra nueva conserva la repisa dorada de amendments.css`, /201, 163, 94/.test(ledge[0]), `box-shadow ${ledge[0]}`);
   } else report.check(`${width} · solicitudes rectoría · el bloque del cambio de nota está en pantalla`, false, "no hay .ns-change-big");
@@ -297,7 +294,7 @@ async function lightParity(browser) {
       if (theme) await ctx.addInitScript(themeInit, theme);
       const { page, cons } = await open(ctx, hash, { titlebar: false });
       const vars = await page.evaluate(() => { const cs = getComputedStyle(document.documentElement); return [cs.getPropertyValue("--navy").trim(), cs.getPropertyValue("--ivory").trim(), cs.colorScheme]; });
-      report.check(`claro · ${hash} · ${theme ? 'data-theme="light"' : "sin data-theme"} resuelve los tokens claros`, vars[0] === "#1b2a4a" && vars[1] === "#f7f3ec", vars.join(" "));
+      report.check(`claro · ${hash} · ${theme ? "«light» guardado" : "sin preferencia guardada"} resuelve los tokens claros`, vars[0] === "#1b2a4a" && vars[1] === "#f7f3ec", vars.join(" "));
       shots.push(await page.screenshot({ animations: "disabled" }));
       await closePage(page, cons, 1440, `claro ${hash}`);
       await ctx.close();
@@ -306,7 +303,7 @@ async function lightParity(browser) {
     // Tolerancia de 0.01 % (unos 130 píxeles de 1 296 000): dos cargas seguidas de la misma ruta en claro ya difieren en
     // unos pocos píxeles de suavizado o de un número animado. Por encima de eso es un cambio de tema.
     const px = Math.round((diff.pct / 100) * 1440 * 900);
-    report.check(`claro · ${hash} · sin atributo y con "light" pintan igual (≤ 0.01 %)`, diff.pct <= 0.01, `${px} píxeles distintos (${diff.pct.toFixed(4)} %)`);
+    report.check(`claro · ${hash} · sin preferencia y con «light» pintan igual (≤ 0.01 %)`, diff.pct <= 0.01, `${px} píxeles distintos (${diff.pct.toFixed(4)} %)`);
   }
 }
 

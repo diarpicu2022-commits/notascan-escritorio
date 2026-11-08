@@ -3,7 +3,7 @@
 //   node scripts/generar-tema-oscuro.mjs          escribe src/styles/theme-dark.css
 //   node scripts/generar-tema-oscuro.mjs --check  sale con código 1 si el archivo no coincide con lo generado
 //
-// La hoja no se escribe a mano. Sale de leer notascan.css, que no se edita (anexo 2026-11-08-modo-oscuro.md, §3 y O2).
+// La hoja no se escribe a mano. Sale de leer notascan.css, que no se edita, y amendments.css (anexo 2026-11-08-modo-oscuro.md, §3, O2 y su enmienda del 2026-11-08).
 // La lógica es la misma que validó scripts/verify-dark-directions.mjs para la maqueta de B, que sigue intacta como
 // registro de la investigación.
 import { readFileSync, writeFileSync } from "node:fs";
@@ -62,16 +62,28 @@ export function parseRules(css) {
   return rules;
 }
 
-export function analyze(nsCss = readFileSync(join(ROOT, "src/styles/notascan.css"), "utf8")) {
-  const RULES = parseRules(nsCss);
-  // Último fondo que el sistema da a cada selector exacto (la cinta pasa de navy a papel, el ítem activo de dorado a navy).
-  const LAST_BG = new Map();
-  for (const r of RULES) { const m = r.body.match(/background(?:-color)?:\s*([^;]+)/g); if (m && !r.media) LAST_BG.set(r.sel, m[m.length - 1]); }
+export function analyze(
+  nsCss = readFileSync(join(ROOT, "src/styles/notascan.css"), "utf8"),
+  amendCss = readFileSync(join(ROOT, "src/styles/amendments.css"), "utf8"),
+) {
+  // Enmienda de O2 (2026-11-08): se lee también amendments.css, que se carga después de notascan.css. Si una enmienda
+  // repinta el fondo o la sombra de un selector, el parche sigue a la enmienda y no al valor viejo del sistema
+  // (la nota solicitada de rectoría pasó a papel con repisa dorada y el parche de repisas la volvía navy).
+  const RULES = [...parseRules(nsCss), ...parseRules(amendCss)];
+  // Último fondo y última sombra de cada selector exacto (la cinta pasa de navy a papel, el ítem activo de dorado a navy).
+  const LAST_BG = new Map(), LAST_SHADOW = new Map();
+  for (const r of RULES) {
+    if (r.media) continue;
+    const m = r.body.match(/background(?:-color)?:\s*([^;]+)/g); if (m) LAST_BG.set(r.sel, m[m.length - 1]);
+    const s = r.body.match(/box-shadow:\s*([^;]+)/g); if (s) LAST_SHADOW.set(r.sel, s[s.length - 1]);
+  }
   const finalBgIs = (r, token) => (r.media ? true : (LAST_BG.get(r.sel) || "").includes(`var(--${token})`));
   const fields = RULES.filter((r) => /background(-color)?:\s*var\(--navy\)/.test(r.body) && /(^|;|\s)color:\s*var\(--(ivory|gold|paper)\)/.test(r.body) && finalBgIs(r, "navy"));
   // Bloques navy cuyo color lo fijan los hijos (la regla del fondo no declara `color`).
-  const fieldExtra = [".ns-kpi--lead", ".ns-brand-b--navy", ".ns-m-card--navy", ".ns-auth-panel"];
-  const ledges = RULES.filter((r) => /box-shadow:[^;]*var\(--navy\)/.test(r.body));
+  // También el indicador y la opción elegida del grupo Tema (preferences.css, paso 2): son el segmentado del sistema,
+  // cuya opción elegida ya es campo navy en notascan.css.
+  const fieldExtra = [".ns-kpi--lead", ".ns-brand-b--navy", ".ns-m-card--navy", ".ns-auth-panel", ".ns-theme-seg-ind", '.ns-theme-seg .ns-theme-seg-tab[aria-checked="true"]'];
+  const ledges = RULES.filter((r) => /box-shadow:[^;]*var\(--navy\)/.test(r.body) && (r.media || (LAST_SHADOW.get(r.sel) || "").includes("var(--navy)")));
   const golds = RULES.filter((r) => /background(-color)?:\s*var\(--gold\)/.test(r.body) && !fields.some((f) => f.sel === r.sel) && finalBgIs(r, "gold"));
   return { fields, fieldExtra, ledges, golds };
 }
@@ -83,7 +95,7 @@ export function buildThemeDark() {
   const { fields, fieldExtra, ledges, golds } = analyze();
   const out = [];
   out.push(`/* Modo oscuro de NotaScan · dirección B · Campo marino (contrato del 2026-11-08).
-   ARCHIVO GENERADO por scripts/generar-tema-oscuro.mjs a partir de notascan.css. No se edita a mano.
+   ARCHIVO GENERADO por scripts/generar-tema-oscuro.mjs a partir de notascan.css y amendments.css. No se edita a mano.
    Solo actúa con data-theme="dark" en <html>. Sin el atributo, o con "light", la app queda igual que antes.
    Todo va dentro de @media screen, así que la impresión resuelve siempre los tokens claros (O5). */`);
   out.push("@media screen {");

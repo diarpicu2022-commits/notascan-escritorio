@@ -310,7 +310,8 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
             onClose={() => setSent(false)} />
         </div>
       ) : null}
-      <PreferencesDrawer open={langOpen} onClose={() => setLangOpen(false)} />
+      {/* Sin grupo Tema en el inicio de sesión (anexo del modo oscuro, sección 7). */}
+      <PreferencesDrawer open={langOpen} onClose={() => setLangOpen(false)} theme={false} />
     </div>
   );
 }

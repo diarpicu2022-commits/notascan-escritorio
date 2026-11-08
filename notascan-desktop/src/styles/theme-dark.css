@@ -1,5 +1,5 @@
 /* Modo oscuro de NotaScan · dirección B · Campo marino (contrato del 2026-11-08).
-   ARCHIVO GENERADO por scripts/generar-tema-oscuro.mjs a partir de notascan.css. No se edita a mano.
+   ARCHIVO GENERADO por scripts/generar-tema-oscuro.mjs a partir de notascan.css y amendments.css. No se edita a mano.
    Solo actúa con data-theme="dark" en <html>. Sin el atributo, o con "light", la app queda igual que antes.
    Todo va dentro de @media screen, así que la impresión resuelve siempre los tokens claros (O5). */
 @media screen {
@@ -34,7 +34,7 @@
     --shadow-pressed: 0 0 0 #34497a;
     --shadow-glass: 0 10px 30px rgba(0, 0, 0, 0.4);
   }
-  /* CAMPOS (33 reglas, O3): en claro --navy es a la vez tinta y fondo de los bloques invertidos.
+  /* CAMPOS (35 reglas, O3): en claro --navy es a la vez tinta y fondo de los bloques invertidos.
      En oscuro la tinta pasa a marfil, así que dentro de cada bloque se vuelve a declarar --navy como campo de marca
      #22345c con texto #f1eadc. La regla del sistema, sin editarse, pinta el campo con estos valores. */
   :root[data-theme="dark"] .ns-chip[aria-pressed="true"] { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
@@ -73,10 +73,12 @@
   :root[data-theme="dark"] .ns-brand-b--navy { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
   :root[data-theme="dark"] .ns-m-card--navy { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
   :root[data-theme="dark"] .ns-auth-panel { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-theme-seg-ind { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-theme-seg .ns-theme-seg-tab[aria-checked="true"] { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
   :root[data-theme="dark"] .ns-auth-wave { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
   /* Nº de la tarjeta que requiere revisión: el burdeos de oscuro es claro y lleva tinta oscura. */
   :root[data-theme="dark"] .ns-card--needs-review .ns-card-index { background-color: var(--burgundy); color: #161513; --ivory: #161513; }
-  /* DORADOS (56 reglas, O4): en claro el dorado lleva tinta navy. Con la tinta marfil el texto de
+  /* DORADOS (55 reglas, O4): en claro el dorado lleva tinta navy. Con la tinta marfil el texto de
      «Calificar», «Confirmar» o la cabecera de tablas caería a 1.9:1, así que todo relleno dorado lleva #161513. */
   :root[data-theme="dark"] .ns-btn--primary { --btn-fg: #161513; }
   :root[data-theme="dark"] .ns-btn--primary:hover { --btn-bg: var(--gold-ink); }
@@ -115,7 +117,6 @@
   :root[data-theme="dark"] .ns-reg-step.is-on .ns-reg-num { color: #161513; }
   :root[data-theme="dark"] .ns-weight-seg--t1, :root[data-theme="dark"] .ns-weight-dot--t1 { color: #161513; }
   :root[data-theme="dark"] .ns-change { color: #161513; }
-  :root[data-theme="dark"] .ns-change-big .is-new { color: #161513; }
   :root[data-theme="dark"] .ns-history li::before { color: #161513; }
   :root[data-theme="dark"] .ns-cal-day--late { color: #161513; }
   :root[data-theme="dark"] .ns-gcell-dot { color: #161513; }
@@ -134,7 +135,7 @@
   :root[data-theme="dark"] .ns-hsw--gold { color: #161513; }
   :root[data-theme="dark"] .ns-hsw-brand i { color: #161513; }
   :root[data-theme="dark"] .ns-hs-app--ns i { color: #161513; }
-  /* REPISAS (42 reglas): sombras duras escritas en notascan.css como «Npx Npx 0 var(--navy)» sin pasar
+  /* REPISAS (40 reglas): sombras duras escritas en notascan.css como «Npx Npx 0 var(--navy)» sin pasar
      por --shadow-*. En oscuro serían marfil, y la repisa pasa al navy de marca #34497a, el mismo gesto del claro. */
   :root[data-theme="dark"] .ns-btn--sm:hover, :root[data-theme="dark"] .ns-btn--sm.is-hover { box-shadow: 1px 1px 0 #34497a; }
   :root[data-theme="dark"] .ns-btn--lg:hover, :root[data-theme="dark"] .ns-btn--lg.is-hover { box-shadow: 3px 3px 0 #34497a; }
@@ -144,7 +145,6 @@
   :root[data-theme="dark"] .ns-select { box-shadow: 2px 2px 0 #34497a; }
   :root[data-theme="dark"] .ns-nav-item:hover, :root[data-theme="dark"] .ns-nav-item.is-hover { box-shadow: 2px 2px 0 #34497a; }
   :root[data-theme="dark"] .ns-bento-icon { box-shadow: 2px 2px 0 #34497a; }
-  :root[data-theme="dark"] .ns-marquee--gold { box-shadow: 0 4px 0 #34497a; }
   :root[data-theme="dark"] .ns-step-mark { box-shadow: 2px 2px 0 #34497a; }
   :root[data-theme="dark"] .ns-step.is-current .ns-step-mark { box-shadow: 3px 3px 0 #34497a; }
   :root[data-theme="dark"] .ns-card:hover { box-shadow: 7px 7px 0 #34497a; }
@@ -162,7 +162,6 @@
   :root[data-theme="dark"] .ns-gsearch-trigger { box-shadow: 2px 2px 0 #34497a; }
   :root[data-theme="dark"] .ns-gsearch { box-shadow: 8px 8px 0 #34497a; }
   :root[data-theme="dark"] .ns-assign-chip:hover { box-shadow: 2px 2px 0 #34497a; }
-  :root[data-theme="dark"] .ns-change-big .is-new { box-shadow: 3px 3px 0 #34497a; }
   :root[data-theme="dark"] .ns-gcell.is-active { box-shadow: inset 0 0 0 2px #34497a, inset 0 -4px 0 var(--gold); }
   :root[data-theme="dark"] .ns-gcell.is-editing { box-shadow: inset 0 0 0 2px #34497a; }
   :root[data-theme="dark"] .ns-phone { box-shadow: 8px 8px 0 #34497a; }

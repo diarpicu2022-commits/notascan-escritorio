@@ -64,6 +64,11 @@ export const ICONS = {
   "maximize": ["R5,5,14,14,1"],
   "restore": ["R5,8,11,11,1","M8 8V6a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-2"],
   "command": ["M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"],
+  // Grupo Tema de Preferencias (anexo 2026-11-08-modo-oscuro, sección 7): sol, luna y pantalla con la misma retícula
+  // de 24 y trazo 2 del resto del set. El set de notascan-ui no los traía.
+  "sun": ["C12,12,4","M12 2v2","M12 20v2","m4.93 4.93 1.41 1.41","m17.66 17.66 1.41 1.41","M2 12h2","M20 12h2","m6.34 17.66-1.41 1.41","m19.07 4.93-1.41 1.41"],
+  "moon": ["M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"],
+  "monitor": ["R2,3,20,14,2","M8 21h8","M12 17v4"],
 } as const satisfies Record<string, readonly string[]>;
 
 export type IconName = keyof typeof ICONS;

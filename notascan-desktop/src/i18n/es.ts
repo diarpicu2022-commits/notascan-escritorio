@@ -3,6 +3,7 @@
  * la compilación falla. No se traduce lo de I6: marca, nombres propios, lo que escribe el colegio y la escala
  * Superior, Alto, Básico y Bajo.
  * Se agregan claves por pasos. Paso 1: idioma, preferencias e inicio de sesión. Paso 2: marco común.
+ * Modo oscuro, paso 2: grupo Tema de Preferencias.
  */
 export const es = {
   lang: {
@@ -19,6 +20,14 @@ export const es = {
     title: "Preferencias",
     eyebrow: "Este equipo",
     close: "Cerrar panel",
+  },
+  /** Grupo Tema de Preferencias (anexo 2026-11-08-modo-oscuro, sección 7). */
+  theme: {
+    choose: "Tema",
+    light: "Claro",
+    dark: "Oscuro",
+    system: "Como el sistema",
+    hint: "Como el sistema sigue el modo claro u oscuro que tengas en Windows o macOS.",
   },
   login: {
     illustration: "Un teléfono escanea la hoja de un examen y detecta la nota 4.5",
