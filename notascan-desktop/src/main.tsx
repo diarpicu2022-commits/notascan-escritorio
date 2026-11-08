@@ -10,6 +10,9 @@ import "./styles/invitations.css";
 import "./styles/desktop.css";
 import "./styles/preferences.css";
 import "./styles/phone.css";
+// Modo oscuro B · Campo marino (anexo 2026-11-08-modo-oscuro.md). Va al final, después de amendments.css (que entra por
+// index.css) y de las demás hojas, y solo actúa con data-theme="dark". Lo genera scripts/generar-tema-oscuro.mjs.
+import "./styles/theme-dark.css";
 import { App } from "./app/App";
 import { AuthProvider } from "./app/AuthContext";
 import { QueryClientProvider } from "@tanstack/react-query";

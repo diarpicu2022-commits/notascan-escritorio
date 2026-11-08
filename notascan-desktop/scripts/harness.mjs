@@ -33,7 +33,8 @@ export const DS_LITERALS = [];
 /** Colores literales o valores arbitrarios de Tailwind fuera de los archivos del sistema. */
 export function findOffSystemValues() {
   DS_LITERALS.length = 0;
-  const SYSTEM_FILES = new Set(["tokens.css", "notascan.css"]);
+  // theme-dark.css es la contraparte oscura de tokens.css (generada, solo valores del contrato): sus literales son del sistema.
+  const SYSTEM_FILES = new Set(["tokens.css", "notascan.css", "theme-dark.css"]);
   const walk = (dir) => readdirSync(dir).flatMap((f) => {
     const p = join(dir, f);
     return statSync(p).isDirectory() ? walk(p) : [p];
