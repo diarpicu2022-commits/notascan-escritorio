@@ -57,12 +57,18 @@ export function Sidebar({ items, active, collapsed: rail, user, course, courseLa
             <span style={{ font: "600 14px/20px var(--font-ui)" }}>{course}</span>
           </div>
         )}
+        {/* Preferencias (anexo 2026-11-08-idiomas, I1 enmendada el 2026-11-08): fila propia encima de la persona, con
+            icono y palabra, hecha con la misma pieza del menú. Junto a «Cerrar sesión» le cortaba el nombre. */}
+        <button
+          type="button" data-enmienda="11" className={cx("ns-nav-item ns-pref-row", rail && "ns-nav-item--rail")}
+          aria-haspopup="dialog" aria-label={rail ? t.prefs.open : undefined} title={rail ? t.prefs.open : undefined}
+          onClick={() => setPrefsOpen(true)}
+        >
+          <Icon name="settings" size={20} />
+          {rail ? null : <span>{t.prefs.open}</span>}
+        </button>
         <div className="ns-sidebar-user">
           <UserProfile name={user.name} role={user.role} compact={rail} />
-          {/* Preferencias (anexo 2026-11-08-idiomas, I1): mismo botón fantasma que «Cerrar sesión», a su lado. */}
-          {!rail ? (
-            <Button data-enmienda="11" variant="ghost" size="sm" className="ns-btn--icon" aria-label={t.prefs.open} title={t.prefs.open} aria-haspopup="dialog" onClick={() => setPrefsOpen(true)}><Icon name="settings" size={16} /></Button>
-          ) : null}
           {onLogout && !rail ? (
             <Button variant="ghost" size="sm" className="ns-btn--icon" aria-label={t.shell.logout} title={t.shell.logout} onClick={onLogout}><Icon name="logout" size={16} /></Button>
           ) : null}

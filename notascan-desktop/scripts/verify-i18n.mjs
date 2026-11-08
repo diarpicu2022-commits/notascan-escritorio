@@ -98,8 +98,8 @@ for (const [locale, want] of [["en-US", "en"], ["pt-BR", "pt"], ["es-CO", "es"],
 // 4. Preferencias desde la barra lateral, dentro de la app.
 for (const role of ["teacher", "admin", "principal"]) {
   const { ctx, page, cons } = await open("en", "es-CO", `#/${role}/dashboard`);
-  const btn = page.locator(".ns-sidebar-user").getByRole("button", { name: "Preferences" });
-  report.check(`${role}: botón Preferences junto a cerrar sesión`, (await btn.count()) === 1);
+  const btn = page.locator(".ns-sidebar-foot").getByRole("button", { name: "Preferences" });
+  report.check(`${role}: fila Preferences en el pie de la barra lateral`, (await btn.count()) === 1);
   const over = await page.locator(".ns-sidebar-user").evaluate((el) => el.scrollWidth - el.clientWidth);
   report.check(`${role}: el pie de la barra lateral no se desborda`, over <= 0, `${over}px`);
   // Encontrado en el paso 2: el botón Preferencias le quita espacio al nombre, que se corta con «…».

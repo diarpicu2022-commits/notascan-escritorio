@@ -2,3 +2,6 @@
 .ns-pref-group { display: grid; gap: var(--space-3); }
 .ns-pref-group + .ns-pref-group { margin-top: var(--space-6); padding-top: var(--space-6); border-top: 1px solid var(--ivory-deep); }
 .ns-pref-list .ns-period-item { width: 100%; min-height: 44px; }
+
+/* Fila Preferencias del pie de la barra lateral (I1 enmendada 2026-11-08): la pieza del menú, con toque de 44 px. */
+.ns-app .ns-sidebar .ns-pref-row { min-height: 44px; }
