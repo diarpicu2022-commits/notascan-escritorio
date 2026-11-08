@@ -1,4 +1,4 @@
-// Idiomas, paso 1 (anexo 2026-11-08-idiomas): infraestructura, panel Preferencias y login en tres idiomas.
+// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común) y paso 3 (Docente).
 // Requiere `npm run build:demo` antes.
 import { createReport, startPreview, watchConsole, URL_BASE, OUT, sampleTextContrast, checkOverflow } from "./harness.mjs";
 import { join } from "node:path";
@@ -203,6 +203,136 @@ for (const lang of ["en", "pt"]) {
   report.check("es: chip «Docente» y búsqueda «Buscar estudiante…»", ((await page.locator(".ns-role-chip").textContent()) ?? "").trim() === "Docente"
     && (await page.locator(".ns-gsearch-trigger span").textContent()) === "Buscar estudiante…");
   await ctx.close();
+}
+
+// 7. Paso 3 · Docente: todas las pantallas del docente en inglés y portugués, a 1024 y 1440 px.
+{
+  const ID = "20261175";
+  const SCREENS = [
+    ["dashboard", "#/teacher/dashboard"], ["calificar", "#/teacher/grades"], ["revision", "#/teacher/review"], ["evaluaciones", "#/teacher/evaluations"],
+    ["planilla", "#/teacher/gradebook"], ["conceptos", "#/teacher/concepts"], ["recuperaciones", "#/teacher/recoveries"], ["asistencia", "#/teacher/attendance"],
+    ["comportamiento", "#/teacher/behavior"], ["estudiantes", "#/teacher/students"], ["reportes", "#/teacher/reports"],
+    ...["profile", "grades", "attendance", "observer", "reportcards"].map((t) => [`perfil-${t}`, `#/teacher/profile/${ID}?tab=${t}`]),
+  ];
+  // Palabras de interfaz en español que no deben quedar. No entran las de I6 (nombres, evaluaciones como «Parcial 2» o
+  // «Examen final», materias, cursos, observaciones, conceptos, la escala) ni las que también son portuguesas.
+  const COMMON = ["Calificar", "Calificaciones", "calificaciones", "calificación", "Revisión", "revisión", "Evaluaciones", "evaluaciones", "Evaluación", "evaluación",
+    "Planilla", "Conceptos", "concepto", "Recuperaciones", "recuperación", "Asistencia", "asistencia", "Estudiantes", "estudiantes", "Estudiante", "Guardar",
+    "Pendiente", "pendientes", "Verificadas", "verificadas", "Verificada", "Requiere", "requieren", "Promedio", "promedio", "Desempeño", "Periodo", "Buenos días",
+    "Tienes", "Continúa", "Subir", "Fotografías", "fotografías", "Agregar", "Observación", "Anotaciones", "Reportes", "Generar", "Descargar", "Fecha", "Acción",
+    "Resumen", "Boletines", "Observador", "Inasistencia", "Excusa", "Sin detección", "Baja confianza", "Confianza", "Nueva", "septiembre", "octubre", "Paso",
+    "Atajos", "sin marcar", "Mensajes", "Recientes", "Por estudiante", "Por evaluación", "por curso", "Porcentaje", "Exámenes", "Talleres", "Actividades",
+    "Borrador", "En revisión", "Cerrada", "Paz y salvo", "Al día", "Evolución", "Materia", "Sin nota", "Revisar", "Editar", "Procesando", "En espera"];
+  const ONLY_EN = ["Presente", "Tarde", "tarde", "Confirmar", "Cancelar", "Todas", "Todos", "Buscar", "Formato", "Nota", "Docente", "Escala", "Mínimo", "Faltas",
+    "Exportar", "Marcar", "Enviar", "Sugerir", "Continuar", "Positiva", "Informativa", "Atención", "Biblioteca", "Ver todas", "Curso", "Ver"];
+  const words = (lang) => (lang === "en" ? COMMON.concat(ONLY_EN) : COMMON.filter((w) => !["Revisar", "Editar", "Procesando"].includes(w)).concat(["Curso"]));
+  const spanishRe = (lang) => new RegExp(`(?<![\\p{L}])(${words(lang).join("|")})(?![\\p{L}])|\\b\\d{1,2} (sep|dic|ene|abr)\\b`, "u");
+  /** Texto visible del contenido, sin lo que no se traduce: el boletín impreso (D2) y lo que escribió el colegio en el observador (I6). */
+  const mainText = (page) => page.evaluate(() => {
+    const root = document.querySelector(".ns-app-main").cloneNode(true);
+    root.querySelectorAll(".ns-paper-scroll, .ns-tl-item strong, .ns-tl-item .ns-caption, [aria-hidden=true], .ns-marquee-track").forEach((n) => n.remove());
+    const out = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (w.nextNode()) out.push(w.currentNode.textContent);
+    // Lo que se ve dentro de los diálogos abiertos (van fuera de .ns-app-main).
+    document.querySelectorAll("[role=dialog], [role=alertdialog]").forEach((d) => out.push(d.innerText));
+    return out.join(" | ");
+  });
+  // Los rótulos solo para lectores de pantalla (.ns-sr, 1 px de ancho a propósito) no cuentan como recortados.
+  const CLIP = ".ns-app-main button, .ns-app-main [role=tab], .ns-app-main .ns-badge, .ns-app-main .ns-sticker, .ns-app-main th, .ns-app-main label, .ns-app-main .ns-chip, .ns-app-main .ns-status, .ns-app-main .ns-step-label, .ns-app-main .ns-overline, .ns-app-main .ns-bento-label, [role=dialog] button, [role=alertdialog] button";
+  const clippedIn = (page) => page.locator(CLIP).evaluateAll((els) => els.filter((el) => el.offsetParent && el.getClientRects().length && el.clientWidth > 1 && !el.closest(".ns-sr") && el.scrollWidth - el.clientWidth > 1)
+    .map((el) => `${el.tagName.toLowerCase()} «${el.textContent.trim().slice(0, 40)}» ${el.scrollWidth}>${el.clientWidth}`));
+  async function measure(page, lang, tag) {
+    const text = await mainText(page);
+    const hit = text.match(spanishRe(lang));
+    report.check(`${tag}: sin español de interfaz`, !hit, hit ? `«${hit[0]}» en …${text.slice(Math.max(0, hit.index - 50), hit.index + 40).replace(/\s+/g, " ")}…` : "");
+    const clipped = await clippedIn(page);
+    report.check(`${tag}: ningún botón, pestaña, insignia, encabezado o etiqueta recortado`, clipped.length === 0, clipped.join(" | "));
+  }
+
+  const DASH = {
+    en: { eyebrow: /^Tuesday, September 30 · Term 3 · 2026$/, title: "Good morning, Ana Lucía", avg: "3.9", scale: "Colombia's national grading scale" },
+    pt: { eyebrow: /^Terça-feira, 30 de setembro · Período 3 · 2026$/, title: "Bom dia, Ana Lucía", avg: "3,9", scale: "escala nacional de avaliação da Colômbia" },
+  };
+  for (const lang of ["en", "pt"]) {
+    for (const width of [1024, 1440]) {
+      for (const [name, hash] of SCREENS) {
+        const { ctx, page, cons } = await open(lang, "es-CO", hash, width);
+        await page.waitForTimeout(900); // conteos ascendentes y entrada animada
+        const tag = `Docente ${lang} · ${name} a ${width}px`;
+        if (width === 1440) report.check(`${tag}: <html lang="${lang}">`, (await page.getAttribute("html", "lang")) === lang);
+        await measure(page, lang, tag);
+        const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        checkOverflow(report, `${hash} (${lang})`, over, width);
+        if (width === 1440) {
+          await page.screenshot({ path: join(OUT, `i18n-docente-${name}-${lang}.png`), fullPage: true });
+          const d = DASH[lang];
+          if (name === "dashboard") {
+            report.check(`${tag}: fecha del encabezado en el idioma`, d.eyebrow.test(((await page.locator(".ns-header-eyebrow .ns-overline").textContent()) ?? "").trim()), await page.locator(".ns-header-eyebrow .ns-overline").textContent());
+            report.check(`${tag}: saludo «${d.title}»`, ((await page.locator(".ns-header-title").textContent()) ?? "") === d.title);
+            report.check(`${tag}: promedio «${d.avg}» con el separador del idioma`, (await page.locator(".ns-home-stat .ns-countup").nth(2).getAttribute("aria-label")) === d.avg
+              && ((await page.locator(".ns-home-stat .ns-countup").nth(2).textContent()) ?? "") === d.avg);
+          }
+          if (name === "perfil-profile" || name === "conceptos") report.check(`${tag}: línea de la escala nacional (D3)`, (await page.locator(".ns-app-main").innerText()).includes(d.scale));
+          if (name === "conceptos") report.check(`${tag}: aviso de que los conceptos van en español (D2)`, (await page.locator(".ns-app-main").innerText()).includes(lang === "en" ? "stay in Spanish" : "ficam em espanhol"));
+          if (name === "perfil-profile" || name === "perfil-grades") report.check(`${tag}: la escala sigue sin traducir (Superior, Alto, Básico, Bajo)`, /\b(Superior|Alto|Básico|Bajo)\b/.test(await page.locator(".ns-app-main").innerText()));
+        }
+        report.check(`${tag}: consola limpia`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+    }
+
+    // Diálogos y estados principales.
+    const L = lang === "en"
+      ? { confirm: "Confirm and save", send: "Send to report cards", newEval: "New assessment", edit: /^Edit$/, cancel: "Cancel" }
+      : { confirm: "Confirmar e salvar", send: "Enviar para os boletins", newEval: "Nova avaliação", edit: /^Editar$/, cancel: "Cancelar" };
+    for (const width of [1024, 1440]) {
+      const { ctx, page, cons } = await open(lang, "es-CO", "#/teacher/review", width);
+      await page.waitForTimeout(600);
+      // Revisión: editar una tarjeta muestra el campo de nota y su escala.
+      await page.locator(".ns-card:not(.ns-card--verified) .ns-card-actions button").filter({ hasText: L.edit }).first().click();
+      await measure(page, lang, `Docente ${lang} · revisión editando a ${width}px`);
+      if (width === 1440) await page.screenshot({ path: join(OUT, `i18n-docente-revision-editando-${lang}.png`) });
+      await page.keyboard.press("Escape");
+      // Confirmar guardado.
+      await page.getByRole("button", { name: L.confirm }).first().click();
+      const dlg = page.locator("[role=alertdialog]");
+      report.check(`Docente ${lang} a ${width}px: abre la confirmación de guardado`, await dlg.isVisible());
+      await measure(page, lang, `Docente ${lang} · confirmar guardado a ${width}px`);
+      if (width === 1440) await page.screenshot({ path: join(OUT, `i18n-docente-confirmar-${lang}.png`) });
+      await dlg.getByRole("button", { name: L.confirm }).click();
+      await page.waitForTimeout(1300);
+      const toast = await page.locator(".ns-toast-region").innerText().catch(() => "");
+      report.check(`Docente ${lang} a ${width}px: aviso de guardado en el idioma`, toast.length > 0 && !spanishRe(lang).test(toast), toast.replace(/\n/g, " · "));
+      report.check(`Docente ${lang} a ${width}px: consola limpia (revisión)`, cons.length === 0, cons.join(" | "));
+      await ctx.close();
+
+      const c2 = await open(lang, "es-CO", "#/teacher/concepts", width);
+      await c2.page.getByRole("button", { name: L.send }).last().click();
+      report.check(`Docente ${lang} a ${width}px: abre «enviar a boletines»`, await c2.page.locator("[role=alertdialog]").isVisible());
+      await measure(c2.page, lang, `Docente ${lang} · enviar conceptos a ${width}px`);
+      if (width === 1440) await c2.page.screenshot({ path: join(OUT, `i18n-docente-enviar-conceptos-${lang}.png`) });
+      report.check(`Docente ${lang} a ${width}px: consola limpia (conceptos)`, c2.cons.length === 0, c2.cons.join(" | "));
+      await c2.ctx.close();
+
+      const c3 = await open(lang, "es-CO", "#/teacher/evaluations", width);
+      await c3.page.getByRole("button", { name: L.newEval }).first().click();
+      const drawer = c3.page.getByRole("dialog", { name: L.newEval });
+      report.check(`Docente ${lang} a ${width}px: abre «${L.newEval}»`, await drawer.isVisible());
+      await drawer.getByRole("button", { name: lang === "en" ? "Create assessment" : "Criar avaliação" }).click();
+      await measure(c3.page, lang, `Docente ${lang} · nueva evaluación con errores a ${width}px`);
+      if (width === 1440) await c3.page.screenshot({ path: join(OUT, `i18n-docente-nueva-evaluacion-${lang}.png`) });
+      report.check(`Docente ${lang} a ${width}px: consola limpia (evaluaciones)`, c3.cons.length === 0, c3.cons.join(" | "));
+      await c3.ctx.close();
+    }
+  }
+
+  // En español no aparece nada nuevo: ni la línea de la escala ni el aviso de los conceptos.
+  {
+    const { ctx, page } = await open("es", "es-CO", "#/teacher/concepts");
+    const text = await page.locator(".ns-app-main").innerText();
+    report.check("es: conceptos sin líneas nuevas (escala y aviso D2 solo en inglés y portugués)", !/escala nacional|Decreto 1290/.test(text));
+    await ctx.close();
+  }
 }
 
 // 5. Formatos (I5). Node 24 carga el .ts quitando los tipos.

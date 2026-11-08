@@ -18,9 +18,11 @@ import { PageShell } from "../../components/templates/PageShell";
 import type { ObsType, ObservationItem } from "../../data/academic";
 import { DEMO } from "../../lib/supabase";
 import {
-  longDate, saveMessage, todayIso, useAddObservation, useAttendance, useConcepts, useGradebook,
-  useMyStudents, useObservations, useSaveAttendance, useSaveConcepts, useSaveGradeCell, weekdayDate,
+  saveMessage, todayIso, useAddObservation, useAttendance, useConcepts, useGradebook,
+  useMyStudents, useObservations, useSaveAttendance, useSaveConcepts, useSaveGradeCell,
 } from "../../services/teacher";
+import { useI18n } from "../../i18n/I18nProvider";
+import { weekdayDay } from "../../i18n/dates";
 import { useRecoveries, useSaveRecovery } from "../../services/teacherOverview";
 import { draftDirectorMessage, useDirectorGroup, useSaveDirectorMessages } from "../../services/reportCards";
 import { NO_STUDENTS, assignmentsState, courseOption, queryState, useAssignmentPick } from "./states";
@@ -28,8 +30,8 @@ import { NO_STUDENTS, assignmentsState, courseOption, queryState, useAssignmentP
 /* Productividad docente: planilla, conceptos, recuperaciones, asistencia y comportamiento.
    Los datos vienen de la base según el RLS del docente; en modo demostración, los del sistema. */
 
-/** «Periodo 3» → «Periodo 2» para la nota anterior del concepto. */
-const prevPeriod = (name: string) => { const n = parseInt(name.replace(/\D/g, ""), 10); return n > 1 ? "Periodo " + (n - 1) : "Periodo anterior"; };
+/** «Periodo 3» → número 3, para la nota anterior del concepto («Periodo 2»). */
+const periodNumber = (name: string) => parseInt(name.replace(/\D/g, ""), 10);
 
 export function GradebookPage() {
   const { navigate } = useShell();
@@ -38,15 +40,17 @@ export function GradebookPage() {
   const q = useGradebook(current);
   const save = useSaveGradeCell();
   const d = q.data;
-  const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando la planilla", "No pudimos cargar la planilla.")
+  const { t } = useI18n();
+  const g = t.tch.gb;
+  const state = assignmentsState(aq, t.tch.states.loadingCourses) ?? queryState(q, g.loading, g.error)
     ?? (!d?.rows.length ? NO_STUDENTS
-      : !d.columns.length ? <EmptyState title="Este curso aún no tiene evaluaciones." message="Crea las evaluaciones del periodo para registrar sus notas." action={<Button variant="secondary" icon="plus" onClick={() => navigate("evaluations")}>Ir a evaluaciones</Button>} />
+      : !d.columns.length ? <EmptyState title={g.noEvalsTitle} message={g.noEvalsText} action={<Button variant="secondary" icon="plus" onClick={() => navigate("evaluations")}>{t.tch.states.goEvaluations}</Button>} />
         : undefined);
   return (
     <PageShell active="gradebook" counts={{ grades: 8 }}>
-      <Header eyebrow={current ? current.subject + " · " + current.periodName : "Planilla"} title="Planilla de Calificaciones" highlight="Calificaciones" description="Escribe sin soltar el teclado. El promedio se calcula solo con los porcentajes del periodo." />
+      <Header eyebrow={current ? current.subject + " · " + t.tch.periodName(current.periodName) : g.eyebrow} title={g.title} highlight={g.highlight} description={g.desc} />
       <Gradebook
-        courses={list.map(courseOption)} course={current?.key ?? ""} onCourse={setKey} period={current?.periodName ?? "Periodo"} data={d} state={state}
+        courses={list.map(courseOption)} course={current?.key ?? ""} onCourse={setKey} period={t.tch.periodName(current?.periodName ?? "Periodo")} data={d} state={state}
         onSave={(studentId, column, value) => save.mutateAsync({ studentId, column, value }).then(() => {
           // La planilla ya muestra el cambio: la caché queda marcada como vieja y se relee al volver al curso.
           if (!DEMO) qc.invalidateQueries({ queryKey: ["gradebook"], refetchType: "none" });
@@ -67,22 +71,24 @@ export function ConceptsPage() {
   const director = !DEMO && !!dq.data?.rows.length;
   const group = [...new Set(dq.data?.rows.map((r) => r.course) ?? [])].join(", ");
   const showDirector = director && view === "director";
-  const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando los conceptos", "No pudimos cargar los conceptos.")
+  const { t } = useI18n();
+  const x = t.tch.concept;
+  const state = assignmentsState(aq, t.tch.states.loadingCourses) ?? queryState(q, x.loading, x.error)
     ?? (!q.data?.length ? NO_STUDENTS : undefined);
   // Con más de un curso, el selector va en el encabezado (en demostración el sistema muestra solo 7A).
-  const picker = !showDirector && !DEMO && list.length > 1 ? <FilterGroup as="select" label="Curso" value={current?.key} onChange={setKey} options={list.map(courseOption)} /> : undefined;
+  const picker = !showDirector && !DEMO && list.length > 1 ? <FilterGroup as="select" label={t.tch.f.course} value={current?.key} onChange={setKey} options={list.map(courseOption)} /> : undefined;
   const byId = new Map((dq.data?.rows ?? []).map((r) => [r.id, r]));
   const period = dq.data?.period;
   return (
     <PageShell active="concepts">
       <Header
-        eyebrow={showDirector ? "Director de grupo · " + group + " · " + (period?.name ?? "") : current ? current.subject + " · " + current.courseId + " · " + current.periodName : "Conceptos"}
-        title={showDirector ? "Mensajes del director" : "Conceptos del periodo"} highlight={showDirector ? "director" : "Conceptos"}
-        description={showDirector ? "El mensaje que firmas al final del boletín de cada estudiante de tu grupo. La IA te ayuda con el primer borrador." : "El concepto que acompaña la nota de cada estudiante en el boletín. La IA te ayuda con el primer borrador."}
+        eyebrow={showDirector ? x.eyebrowDirector(group, t.tch.periodName(period?.name ?? "")) : current ? current.subject + " · " + current.courseId + " · " + t.tch.periodName(current.periodName) : x.eyebrow}
+        title={showDirector ? x.titleDirector : x.title} highlight={showDirector ? x.highlightDirector : x.highlight}
+        description={showDirector ? x.descDirector : x.desc}
         actions={picker} />
       {director ? (
-        <SegmentedTabs label="Qué escribir" value={view} onChange={setView}
-          tabs={[{ value: "subject", label: "Conceptos de mi materia", icon: "book" }, { value: "director", label: "Mensajes de director · " + group, icon: "students" }]} />
+        <SegmentedTabs label={x.whatToWrite} value={view} onChange={setView}
+          tabs={[{ value: "subject", label: x.tabSubject, icon: "book" }, { value: "director", label: x.tabDirector(group), icon: "students" }]} />
       ) : null}
       {showDirector && period ? (
         <ConceptEditor
@@ -90,18 +96,17 @@ export function ConceptsPage() {
           data={dq.data!.rows.map((r) => ({ id: r.id, name: r.name, grade: r.avg, prev: NaN, absences: r.absences, text: r.text, state: r.state }))}
           draft={(r) => draftDirectorMessage(byId.get(r.id)!)}
           copy={{
-            banner: "Lo redacta a partir del promedio del periodo, sus mejores y más bajas materias y las faltas. Ningún mensaje llega al boletín sin tu revisión.",
-            noun: ["mensaje", "mensajes"],
-            meta: (r) => { const d = byId.get(r.id); return (d && d.subjects.length ? d.subjects.length + " materias con nota" : "Sin notas verificadas") + " · Faltas: " + r.absences; },
-            sentTitle: "Mensajes enviados",
-            sentMessage: (n) => n + " mensajes del grupo " + group + " quedaron en los boletines del " + period.name + ".",
-            allReady: (n) => "Aparecerán al final del boletín del " + period.name + " de tus " + n + " estudiantes, con tu firma.",
+            banner: x.bannerDirector,
+            meta: (r) => { const d = byId.get(r.id); return x.metaDirector(d ? d.subjects.length : 0, r.absences); },
+            sentTitle: x.sentTitleDirector,
+            sentMessage: (n) => x.sentTextDirector(n, group, t.tch.periodName(period.name)),
+            allReady: (n) => x.allReadyDirector(t.tch.periodName(period.name), n),
           }}
           onSave={(rows) => saveMsg.mutateAsync({ period: period.id, rows })}
         />
       ) : state ?? (current && q.data ? (
         <ConceptEditor
-          key={current.key + ":" + q.dataUpdatedAt} subject={current.subject} course={current.courseId} period={current.periodName} prevPeriod={prevPeriod(current.periodName)}
+          key={current.key + ":" + q.dataUpdatedAt} subject={current.subject} course={current.courseId} period={current.periodName} prevPeriod={x.prevPeriod(periodNumber(current.periodName))}
           data={q.data} onSave={(rows) => save.mutateAsync({ assignment: current, rows })}
         />
       ) : null)}
@@ -113,11 +118,13 @@ export function RecoveriesPage() {
   const { aq, q, rq } = useRecoveries();
   const save = useSaveRecovery();
   const period = aq.data?.[0]?.periodName;
-  const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando tus cursos", "No pudimos cargar las recuperaciones.")
-    ?? queryState(rq, "Cargando las recuperaciones", "No pudimos cargar las recuperaciones.");
+  const { t } = useI18n();
+  const x = t.tch.rec;
+  const state = assignmentsState(aq, t.tch.states.loadingCourses) ?? queryState(q, t.tch.states.loadingCourses, x.error)
+    ?? queryState(rq, x.loading, x.error);
   return (
     <PageShell active="recoveries" counts={{ grades: 8 }}>
-      <Header eyebrow={(DEMO ? "Periodo 2" : period ?? "Periodo") + " · actividades de recuperación"} title="Recuperaciones" highlight="Recuperaciones" description="Solo aparecen los estudiantes con una materia por debajo de 3.0." />
+      <Header eyebrow={x.eyebrow(t.tch.periodName(DEMO ? "Periodo 2" : period ?? "Periodo"))} title={x.title} highlight={x.title} description={x.desc} />
       {state ?? <RecoveryTable data={rq.data ?? []} onSave={(r, value) => save.mutateAsync({ ...r, value })} />}
     </PageShell>
   );
@@ -134,11 +141,13 @@ export function AttendancePage() {
   const courseId = course ?? courses[0]?.value;
   const q = useAttendance(courseId, date);
   const save = useSaveAttendance();
-  const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando la lista del curso", "No pudimos cargar la asistencia.")
+  const { t, lang } = useI18n();
+  const x = t.tch.att;
+  const state = assignmentsState(aq, t.tch.states.loadingCourses) ?? queryState(q, x.loading, x.error)
     ?? (!q.data?.length ? NO_STUDENTS : undefined);
   return (
     <PageShell active="attendance" counts={{ grades: 8 }}>
-      <Header eyebrow={DEMO ? "Jueves 1 de octubre · 2.ª hora" : weekdayDate(date)} title="Asistencia" highlight="Asistencia" description="Marca a todos en segundos. Agrega observaciones solo cuando haga falta." />
+      <Header eyebrow={DEMO ? x.eyebrowDemo(weekdayDay(lang, "2026-10-01")) : weekdayDay(lang, date)} title={x.title} highlight={x.title} description={x.desc} />
       <AttendancePanel
         courses={courses} course={courseId ?? ""} onCourse={setCourse} date={date} onDate={setDate} data={q.data} state={state}
         onSave={(rows) => save.mutateAsync({ courseId: courseId!, date, rows })}
@@ -166,6 +175,8 @@ export function BehaviorPage() {
   const timer = useRef<number>();
   useEffect(() => () => window.clearTimeout(timer.current), []);
   const opts = students.data ?? [];
+  const { t } = useI18n();
+  const b = t.tch.beh;
 
   function add() {
     setTried(true);
@@ -174,20 +185,21 @@ export function BehaviorPage() {
     const name = who?.label ?? v.student;
     // Aparece al instante; si la base la rechaza, se retira y se avisa.
     const item: ObservationItem = DEMO
-      ? { date: "1 de octubre", type: v.type, title: v.title, context: v.context || "Matemáticas", by: "Ana Lucía Rosero", student: v.student, course: "7A" }
-      : { date: longDate(todayIso()), type: v.type, title: v.title.trim(), context: v.context.trim(), by: me?.fullName ?? "", student: name, course: who?.course ?? "" };
+      ? { date: "2026-10-01", type: v.type, title: v.title, context: v.context || "Matemáticas", by: "Ana Lucía Rosero", student: v.student, course: "7A" }
+      : { date: todayIso(), type: v.type, title: v.title.trim(), context: v.context.trim(), by: me?.fullName ?? "", student: name, course: who?.course ?? "" };
     setItems((cur) => [item, ...cur]);
     const sent = { studentId: v.student, type: v.type, title: v.title, context: v.context };
     setV({ student: "", type: v.type, title: "", context: "" });
     setTried(false);
     addMut.mutateAsync(sent).then(
-      () => showToast({ tone: "success", title: "Observación registrada", message: "Quedó en el observador de " + name.split(" ")[0] + "." }),
-      (e) => { setItems((cur) => cur.filter((x) => x !== item)); showToast({ tone: "error", title: "No pudimos registrar la observación", message: saveMessage(e) }); },
+      () => showToast({ tone: "success", title: b.toastOk, message: b.toastOkText(name.split(" ")[0]) }),
+      (e) => { setItems((cur) => cur.filter((x) => x !== item)); showToast({ tone: "error", title: b.toastError, message: saveMessage(e, t) }); },
     );
   }
   function draftWithAI() {
     setDrafting(true);
-    // Sin servicio de IA en esta fase: el borrador sale de la misma regla del sistema.
+    // Sin servicio de IA en esta fase: el borrador sale de la misma regla del sistema. Como los conceptos (D2), el
+    // borrador queda en español: es lo que se guarda en el observador del estudiante.
     timer.current = window.setTimeout(() => {
       setDrafting(false);
       const label = opts.find((o) => o.value === v.student)?.label ?? v.student;
@@ -200,33 +212,33 @@ export function BehaviorPage() {
     }, 800);
   }
 
-  const timeline = queryState(q, "Cargando las anotaciones", "No pudimos cargar las anotaciones.")
-    ?? (!items.length ? <EmptyState icon="eye" title="Aún no hay anotaciones." message="Las observaciones que registres aparecerán aquí en orden cronológico." /> : <ObserverTimeline items={items} showStudent />);
-  const form = assignmentsState(aq, "Cargando tus cursos");
+  const timeline = queryState(q, b.loading, b.error)
+    ?? (!items.length ? <EmptyState icon="eye" title={b.emptyTitle} message={b.emptyText} /> : <ObserverTimeline items={items} showStudent />);
+  const form = assignmentsState(aq, t.tch.states.loadingCourses);
   return (
     <PageShell active="behavior" counts={{ grades: 8 }}>
-      <Header eyebrow={"Observador del estudiante" + (courseIds.length ? " · " + (DEMO ? "7A" : courseIds.join(", ")) : "")} title="Comportamiento" highlight="Comportamiento" description="Registra anotaciones positivas, informativas o de atención. El acudiente las ve en su aplicación." />
+      <Header eyebrow={b.eyebrow + (courseIds.length ? " · " + (DEMO ? "7A" : courseIds.join(", ")) : "")} title={b.title} highlight={b.title} description={b.desc} />
       <div className="ns-behavior">
-        <Block tone="gold" label="Nueva observación">
-          <BlockTitle>Nueva observación</BlockTitle>
+        <Block tone="gold" label={b.newObs}>
+          <BlockTitle>{b.newObs}</BlockTitle>
           {form ?? (
             <div className="ns-form-grid ns-form-grid--1">
-              <Select label="Estudiante" required value={v.student} placeholder="Selecciona" onChange={(x) => setV({ ...v, student: x })}
-                options={DEMO ? opts.map((o) => o.label) : opts.map((o) => ({ value: o.value, label: o.label + " · " + o.course }))} error={tried && !v.student ? "Selecciona un estudiante." : undefined} />
+              <Select label={t.tch.f.student} required value={v.student} placeholder={t.tch.f.choose} onChange={(x) => setV({ ...v, student: x })}
+                options={DEMO ? opts.map((o) => o.label) : opts.map((o) => ({ value: o.value, label: o.label + " · " + o.course }))} error={tried && !v.student ? b.pickStudent : undefined} />
               <div className="ns-field">
-                <span className="ns-field-label">Tipo</span>
-                <SegmentedTabs label="Tipo de observación" value={v.type} onChange={(x) => setV({ ...v, type: x as ObsType })}
-                  tabs={[{ value: "positive", label: "Positiva", icon: "check" }, { value: "neutral", label: "Informativa", icon: "file" }, { value: "attention", label: "Atención", icon: "warning" }]} />
+                <span className="ns-field-label">{t.tch.f.type}</span>
+                <SegmentedTabs label={b.typeAria} value={v.type} onChange={(x) => setV({ ...v, type: x as ObsType })}
+                  tabs={[{ value: "positive", label: t.tch.obsType.positive, icon: "check" }, { value: "neutral", label: t.tch.obsType.neutral, icon: "file" }, { value: "attention", label: t.tch.obsType.attention, icon: "warning" }]} />
               </div>
-              <Input label="Título" required value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} placeholder="Participación destacada" error={tried && !v.title.trim() ? "Escribe un título breve." : undefined} />
-              <Textarea label="Descripción" value={v.context} onChange={(x) => setV({ ...v, context: x })} placeholder="El estudiante participó activamente durante la actividad." hint="Escribe notas cortas y deja que la IA las redacte; revisa antes de agregar." />
-              <Button variant="ghost" size="sm" icon="ai" loading={drafting} loadingText="Redactando…" disabled={!v.title.trim() && !v.context.trim()} onClick={draftWithAI}>Redactar con IA</Button>
-              <Button icon="plus" onClick={add}>Agregar observación</Button>
+              <Input label={b.titleLabel} required value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} placeholder={b.titlePlaceholder} error={tried && !v.title.trim() ? b.titleError : undefined} />
+              <Textarea label={b.descLabel} value={v.context} onChange={(x) => setV({ ...v, context: x })} placeholder={b.descPlaceholder} hint={b.descHint} />
+              <Button variant="ghost" size="sm" icon="ai" loading={drafting} loadingText={b.writing} disabled={!v.title.trim() && !v.context.trim()} onClick={draftWithAI}>{b.draft}</Button>
+              <Button icon="plus" onClick={add}>{b.add}</Button>
             </div>
           )}
         </Block>
         <Block>
-          <BlockTitle>Anotaciones recientes</BlockTitle>
+          <BlockTitle>{b.recent}</BlockTitle>
           {timeline}
         </Block>
       </div>

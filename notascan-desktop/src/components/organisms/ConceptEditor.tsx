@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cx } from "../../lib/cx";
-import { formatGrade } from "../../lib/grade";
+import { useI18n } from "../../i18n/I18nProvider";
 import { PERF } from "../../data/academic";
 import { draftConcept, saveMessage, type ConceptRow as ConceptData, type ConceptState } from "../../services/teacher";
 import { Avatar } from "../atoms/Avatar";
@@ -11,18 +11,20 @@ import { Icon, type IconName } from "../atoms/Icon";
 import { ConfirmAction } from "./Overlays";
 import { useToast } from "./Toast";
 
-const CONCEPT_STATE: Record<ConceptState, [string, "pending" | "medium" | "neutral" | "verified", IconName]> = {
-  empty: ["Sin concepto", "pending", "clock"], ai: ["Borrador de IA · revisar", "medium", "ai"],
-  teacher: ["Escrito por el docente", "neutral", "edit"], reviewed: ["Revisado", "verified", "check"],
+/** Tono e icono de cada estado; la palabra sale del diccionario (t.tch.concept.states). */
+const CONCEPT_STATE: Record<ConceptState, ["pending" | "medium" | "neutral" | "verified", IconName]> = {
+  empty: ["pending", "clock"], ai: ["medium", "ai"], teacher: ["neutral", "edit"], reviewed: ["verified", "check"],
 };
 
 type ConceptRow = ConceptData & { busy: boolean };
 type Saved = Pick<ConceptRow, "id" | "text" | "state">;
 
-/** Textos que cambian cuando el editor se usa para el mensaje del director de grupo (6b.3c). */
+/**
+ * Textos que cambian cuando el editor se usa para el mensaje del director de grupo (6b.3c). Con `copy` el editor
+ * habla de «mensajes»; sin él, de «conceptos» (los textos vienen del diccionario, idiomas paso 3).
+ */
 export interface EditorCopy {
   banner: string;
-  noun: [string, string];
   meta: (r: ConceptData) => string;
   sentTitle: string;
   sentMessage: (n: number) => string;
@@ -43,8 +45,11 @@ interface ConceptEditorProps {
 }
 
 /** Conceptos del periodo: la IA propone un borrador, el docente decide el texto final. */
-export function ConceptEditor({ subject = "Matemáticas", course = "7A", period = "Periodo 3", prevPeriod = "Periodo 2", data, onSave, draft = (r) => draftConcept(subject, r), copy }: ConceptEditorProps) {
-  const [one, many] = copy?.noun ?? ["concepto", "conceptos"];
+export function ConceptEditor({ subject = "Matemáticas", course = "7A", period: periodRaw = "Periodo 3", prevPeriod: prevRaw = "Periodo 2", data, onSave, draft = (r) => draftConcept(subject, r), copy }: ConceptEditorProps) {
+  const { t, shownGrade } = useI18n();
+  const x = t.tch.concept;
+  const k = copy ? "director" : "concept";
+  const period = t.tch.periodName(periodRaw), prevPeriod = t.tch.periodName(prevRaw);
   const [rows, setRows] = useState<ConceptRow[]>(() => data.map((r) => ({ ...r, busy: false })));
   const [showToast, toastNode] = useToast();
   const [confirm, setConfirm] = useState(false);
@@ -60,11 +65,11 @@ export function ConceptEditor({ subject = "Matemáticas", course = "7A", period 
     if (!changed.length || !onSave) return Promise.resolve();
     return onSave(changed).then(() => { changed.forEach((r) => savedText.current.set(r.id, r.text + "|" + r.state)); });
   }
-  const persistQuiet = (list: Saved[]) => persist(list).catch((e) => showToast({ tone: "error", title: "No pudimos guardar el " + one, message: saveMessage(e) + " El texto sigue en pantalla." }));
+  const persistQuiet = (list: Saved[]) => persist(list).catch((e) => showToast({ tone: "error", title: x.saveOneError(k), message: saveMessage(e, t) + x.textKept }));
   function suggest(list: ConceptRow[]) {
     // Sin nota verificada en el periodo no hay base para un borrador: ese concepto lo escribe el docente.
     const ok = list.filter((r) => draft(r) !== null);
-    if (ok.length < list.length) showToast({ tone: "info", title: (list.length - ok.length) + (list.length - ok.length === 1 ? " estudiante sin notas verificadas" : " estudiantes sin notas verificadas"), message: "Sin nota del periodo no hay borrador. Escribe su " + one + " a mano." });
+    if (ok.length < list.length) showToast({ tone: "info", title: x.noGradesTitle(list.length - ok.length), message: x.noGradesText(k) });
     ok.forEach((r, k) => {
       upd(r.id, { busy: true });
       // Sin servicio de IA en esta fase: el borrador sale de la misma regla del sistema.
@@ -78,8 +83,8 @@ export function ConceptEditor({ subject = "Matemáticas", course = "7A", period 
   function send() {
     setSending(true);
     persist(rows.filter((r) => r.text.trim()).map(({ id, text, state }) => ({ id, text, state }))).then(
-      () => { setConfirm(false); showToast({ tone: "success", title: copy?.sentTitle ?? "Conceptos enviados", message: copy ? copy.sentMessage(done) : done + " conceptos de " + subject + " · " + course + " quedaron en los boletines." }); },
-      (e) => { setConfirm(false); showToast({ tone: "error", title: "No pudimos enviar los " + many, message: saveMessage(e) + " Los textos siguen en pantalla." }); },
+      () => { setConfirm(false); showToast({ tone: "success", title: copy?.sentTitle ?? x.sentTitle, message: copy ? copy.sentMessage(done) : x.sentText(done, subject, course) }); },
+      (e) => { setConfirm(false); showToast({ tone: "error", title: x.sendError(k), message: saveMessage(e, t) + x.textsKept }); },
     ).finally(() => setSending(false));
   }
   const c: Record<ConceptState, number> = { empty: 0, ai: 0, teacher: 0, reviewed: 0 };
@@ -91,15 +96,17 @@ export function ConceptEditor({ subject = "Matemáticas", course = "7A", period 
       <div className="ns-ai-banner" role="note">
         <span className="ns-ai-banner-icon" aria-hidden><Icon name="ai" size={20} /></span>
         <div>
-          <strong>La IA te propone un borrador; tú decides el texto final.</strong>
-          <span>{copy?.banner ?? "Lo redacta a partir de la nota del periodo, su evolución y las faltas. Ningún concepto llega al boletín sin tu revisión."}</span>
+          <strong>{x.bannerTitle}</strong>
+          <span>{copy?.banner ?? x.banner}</span>
         </div>
         <Button variant="secondary" icon="ai" disabled={!c.empty} onClick={() => suggest(rows.filter((r) => r.state === "empty"))}>
-          {c.empty ? "Sugerir los " + c.empty + " vacíos" : "Sin " + many + " vacíos"}
+          {x.suggestEmpty(k, c.empty)}
         </Button>
       </div>
+      {/* D2 y D3: solo en inglés y portugués; en español el diccionario deja estas líneas vacías. */}
+      {x.langNote ? <p className="ns-caption" style={{ margin: 0 }}>{x.langNote + " " + t.tch.scaleNote}</p> : null}
       <div className="ns-concept-progress">
-        <ProgressBar label={done + " de " + total + " " + many + " listos para el boletín"} value={done} total={total} showValue tone={done === total ? "sage" : "gold"} />
+        <ProgressBar label={x.ready(k, done, total)} value={done} total={total} showValue tone={done === total ? "sage" : "gold"} />
       </div>
       <ul className="ns-concepts">
         {rows.map((r) => {
@@ -108,31 +115,31 @@ export function ConceptEditor({ subject = "Matemáticas", course = "7A", period 
             <li key={r.id} className={cx("ns-concept", "is-" + r.state)}>
               <div className="ns-concept-head">
                 <Avatar name={r.name} size="sm" />
-                <div className="ns-concept-who"><strong>{r.name}</strong><span className="ns-caption">{copy ? copy.meta(r) : prevPeriod + ": " + formatGrade(r.prev) + " · Faltas: " + r.absences}</span></div>
-                <span className="ns-concept-grade">{formatGrade(r.grade)}<small>{isNaN(r.grade) ? "Sin nota" : PERF(r.grade)}</small></span>
-                <Badge tone={st[1]} icon={st[2]}>{st[0]}</Badge>
+                <div className="ns-concept-who"><strong>{r.name}</strong><span className="ns-caption">{copy ? copy.meta(r) : x.meta(prevPeriod, shownGrade(r.prev), r.absences)}</span></div>
+                <span className="ns-concept-grade">{shownGrade(r.grade)}<small>{isNaN(r.grade) ? x.noGrade : PERF(r.grade)}</small></span>
+                <Badge tone={st[0]} icon={st[1]}>{x.states[r.state]}</Badge>
               </div>
-              <label className="ns-sr" htmlFor={"cpt-" + r.id}>{(copy ? "Mensaje del director para " : "Concepto de ") + r.name}</label>
+              <label className="ns-sr" htmlFor={"cpt-" + r.id}>{x.fieldLabel(k, r.name)}</label>
               <textarea
                 id={"cpt-" + r.id} className={cx("ns-input ns-textarea", r.state === "ai" && "is-ai")} rows={3} value={r.busy ? "" : r.text}
-                placeholder={r.busy ? "La IA está redactando un borrador…" : "Escribe el concepto o pide una sugerencia."} disabled={r.busy}
+                placeholder={r.busy ? x.drafting : x.placeholder} disabled={r.busy}
                 onChange={(e) => upd(r.id, { text: e.target.value, state: e.target.value.trim() ? "teacher" : "empty" })}
                 onBlur={() => persistQuiet([{ id: r.id, text: r.text, state: r.state }])}
               />
               <div className="ns-concept-actions">
-                <Button size="sm" variant="ghost" icon="ai" loading={r.busy} loadingText="Redactando…" onClick={() => suggest([r])}>{r.text ? "Sugerir otra redacción" : "Sugerir con IA"}</Button>
-                {r.state === "ai" ? <Button size="sm" icon="check" onClick={() => { upd(r.id, { state: "reviewed" }); persistQuiet([{ id: r.id, text: r.text, state: "reviewed" }]); }}>Aprobar borrador</Button> : null}
+                <Button size="sm" variant="ghost" icon="ai" loading={r.busy} loadingText={x.writing} onClick={() => suggest([r])}>{r.text ? x.suggestAgain : x.suggest}</Button>
+                {r.state === "ai" ? <Button size="sm" icon="check" onClick={() => { upd(r.id, { state: "reviewed" }); persistQuiet([{ id: r.id, text: r.text, state: "reviewed" }]); }}>{x.approve}</Button> : null}
               </div>
             </li>
           );
         })}
       </ul>
-      <div className="ns-sticky-cta"><Button size="lg" icon="book" onClick={() => setConfirm(true)}>Enviar a boletines</Button></div>
+      <div className="ns-sticky-cta"><Button size="lg" icon="book" onClick={() => setConfirm(true)}>{x.send}</Button></div>
       <ConfirmAction
         open={confirm} icon="book" onCancel={() => setConfirm(false)}
-        title={done === total ? "¿Enviar " + total + " " + many + " a boletines?" : "Faltan " + (total - done) + " " + many + " por revisar"}
-        description={done === total ? (copy ? copy.allReady(total) : "Aparecerán en el boletín del " + period + " junto a la nota de " + subject + ".") : "Solo se enviarán los " + done + " " + many + " revisados o escritos por ti. Los borradores de IA sin revisar no se publican."}
-        confirmLabel={done === total ? "Enviar a boletines" : "Enviar los " + done + " listos"}
+        title={done === total ? x.sendTitle(k, total) : x.missingTitle(k, total - done)}
+        description={done === total ? (copy ? copy.allReady(total) : x.allReady(period, subject)) : x.partial(k, done)}
+        confirmLabel={done === total ? x.send : x.sendReady(done)}
         loading={sending} onConfirm={send}
       />
       {toastNode}

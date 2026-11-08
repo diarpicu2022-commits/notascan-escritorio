@@ -18,6 +18,14 @@ export interface ExamResult {
   reading: { code: string | null; name: string | null };
 }
 
+/**
+ * Error propio de la app con código: la pantalla pone el texto en el idioma (idiomas, paso 3). Los mensajes que
+ * escribe la función read-exam llegan en español como `Error` normal y se muestran tal cual.
+ */
+export class VisionError extends Error {
+  constructor(public code: "prepareFailed" | "notImage" | "uploadFailed" | "readRetry") { super(code); }
+}
+
 /** Lado mayor recomendado para imágenes de entrada: más píxeles no mejoran la lectura y cuestan más. */
 const MAX_SIDE = 1568;
 
@@ -30,40 +38,45 @@ export async function shrink(file: File): Promise<Blob> {
   canvas.height = Math.round(bitmap.height * k);
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
-  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("No se pudo preparar la foto."))), "image/jpeg", 0.85));
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new VisionError("prepareFailed"))), "image/jpeg", 0.85));
 }
 
 /** Mensaje de la función para la persona (sus errores ya vienen escritos para el docente). */
-async function functionMessage(e: unknown): Promise<string> {
+async function functionMessage(e: unknown): Promise<string | null> {
   if (e instanceof FunctionsHttpError) {
     try { const body = await e.context.json(); if (body?.error) return String(body.error); } catch { /* sin cuerpo */ }
   }
-  return "No pudimos leer la foto. Revisa tu conexión e inténtalo de nuevo.";
+  return null;
+}
+async function functionError(e: unknown): Promise<Error> {
+  const m = await functionMessage(e);
+  return m ? new Error(m) : new VisionError("readRetry");
 }
 
 /** Sube una foto a la carpeta del docente y la manda a leer. */
 export async function readExamPhoto(userId: string, evaluationId: number, file: File, n: number): Promise<ExamResult> {
   const sb = supabase();
   let blob: Blob;
-  try { blob = await shrink(file); } catch { throw new Error("Ese archivo no es una imagen que se pueda leer (usa JPG o PNG)."); }
+  try { blob = await shrink(file); } catch { throw new VisionError("notImage"); }
   const path = userId + "/" + evaluationId + "/" + Date.now() + "-" + n + ".jpg";
   const up = await sb.storage.from("exam-photos").upload(path, blob, { contentType: "image/jpeg", upsert: false });
-  if (up.error) throw new Error("No pudimos subir la foto. Revisa tu conexión e inténtalo de nuevo.");
+  if (up.error) throw new VisionError("uploadFailed");
   const { data, error } = await sb.functions.invoke("read-exam", { body: { evaluation_id: evaluationId, photo_path: path } });
-  if (error) throw new Error(await functionMessage(error));
+  if (error) throw await functionError(error);
   return data as ExamResult;
 }
 
 /** Manda a leer una foto que ya está en la carpeta del docente (subida desde el celular). */
 export async function readUploadedPhoto(evaluationId: number, path: string): Promise<ExamResult> {
   const { data, error } = await supabase().functions.invoke("read-exam", { body: { evaluation_id: evaluationId, photo_path: path } });
-  if (error) throw new Error(await functionMessage(error));
+  if (error) throw await functionError(error);
   return data as ExamResult;
 }
 
 /** Secretaría · borra las fotos de exámenes de un periodo ya cerrado (las notas se conservan). */
 export async function purgePeriodPhotos(periodId: string): Promise<{ removed: number; grades: number }> {
   const { data, error } = await supabase().functions.invoke("purge-exam-photos", { body: { period_id: periodId } });
-  if (error) throw new Error(await functionMessage(error));
+  // Secretaría se traduce en el paso 4: por ahora el mismo mensaje de antes.
+  if (error) throw new Error((await functionMessage(error)) ?? "No pudimos leer la foto. Revisa tu conexión e inténtalo de nuevo.");
   return data as { removed: number; grades: number };
 }

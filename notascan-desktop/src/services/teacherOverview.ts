@@ -5,7 +5,7 @@ import { EVALUATIONS, STUDENTS, subjectGrades, type EvalKind, type EvalStatus, t
 import { ALL_STUDENTS } from "../data/students";
 import type { ReviewStatus } from "../types/domain";
 import { demoData, demoInitial, forcedState, allRows } from "./client";
-import { roster, todayIso, useMyAssignments, weekdayDate, type Assignment, type RosterRow } from "./teacher";
+import { roster, todayIso, useMyAssignments, type Assignment, type RosterRow } from "./teacher";
 
 /*
  * Docente · inicio, estudiantes, evaluaciones y recuperaciones (paso 6b.2b).
@@ -14,9 +14,6 @@ import { roster, todayIso, useMyAssignments, weekdayDate, type Assignment, type 
  */
 
 const throwIf = (r: { error: unknown }) => { if (r.error) throw r.error; };
-const SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-/** «28 sep» para las tarjetas de evaluación. */
-const shortDate = (iso: string | null) => { if (!iso) return "Sin fecha"; const [, m, d] = iso.split("-").map(Number); return d + " " + SHORT[m - 1]; };
 
 interface Ev { id: number; assignmentKey: string; name: string; kind: EvalKind; weight: number; status: EvalStatus; dueDate: string | null; course: string; subject: string }
 interface G { evaluationId: number; studentId: string; status: ReviewStatus; value: number | null; verifiedAt: string | null; verifiedBy: string | null }
@@ -69,7 +66,7 @@ const verifiedOf = (o: Overview, evalIds: Set<number>, studentId?: string) =>
 
 function evaluationItems(o: Overview, list: Ev[]): EvaluationItem[] {
   return list.map((e) => ({
-    id: String(e.id), name: e.name, subject: e.subject, kind: e.kind, weight: e.weight, status: e.status, date: shortDate(e.dueDate),
+    id: String(e.id), name: e.name, subject: e.subject, kind: e.kind, weight: e.weight, status: e.status, due: e.dueDate,
     reviewed: o.grades.filter((g) => g.evaluationId === e.id && g.status === "verified").length,
     total: o.roster.filter((s) => s.course_id === e.course).length,
   }));
@@ -77,19 +74,27 @@ function evaluationItems(o: Overview, list: Ev[]): EvaluationItem[] {
 
 /* ---------- Inicio ---------- */
 
+/**
+ * Datos del inicio. El servicio devuelve datos (franja del día, fecha ISO, periodo, conteos) y la pantalla compone el
+ * texto en el idioma de la app (idiomas, paso 3).
+ */
 export interface DashboardData {
-  greeting: string; name: string; dateLine: string; inReview: number; toVerify: number; verifiedMonth: string; avg: string; avgLabel: string;
-  hero: { id: string; title: string; meta: string; pending: number; verified: number; total: number } | null;
+  slot: "morning" | "afternoon" | "evening"; name: string; date: string; period: string; year: string;
+  inReview: number; toVerify: number; verifiedMonth: string; avg: number; avgOf: { subject: string; course: string } | null;
+  hero: { id: string; title: string; course: string; total: number; hoursAgo?: number; pending: number; verified: number } | null;
   evaluations: EvaluationItem[];
-  attention: Array<{ id: string; evaluationId: string; name: string; detail: string }>;
+  attention: Array<{ id: string; evaluationId: string; name: string; noDetection: boolean; evaluation: string }>;
 }
 
-/** Los valores del sistema (sus cifras fijas), para el modo demostración. */
+/**
+ * Los valores del sistema (sus cifras fijas), para el modo demostración. La línea del sistema dice «Martes 30 de
+ * septiembre · Periodo 3 · 2026»: el 30 de septiembre que cae en martes es el de 2025, y el año se muestra aparte.
+ */
 const DEMO_DASHBOARD: DashboardData = {
-  greeting: "Buenos días", name: "Ana Lucía", dateLine: "Martes 30 de septiembre · Periodo 3 · 2026", inReview: 2, toVerify: 8, verifiedMonth: "112", avg: "3.9", avgLabel: "promedio de Matemáticas 7A",
-  hero: { id: "", title: "Parcial 2 · Matemáticas", meta: "7A · 24 estudiantes · subido hace 2 horas", pending: 8, verified: 18, total: 24 },
+  slot: "morning", name: "Ana Lucía", date: "2025-09-30", period: "Periodo 3", year: "2026", inReview: 2, toVerify: 8, verifiedMonth: "112", avg: 3.9, avgOf: { subject: "Matemáticas", course: "7A" },
+  hero: { id: "", title: "Parcial 2 · Matemáticas", course: "7A", total: 24, hoursAgo: 2, pending: 8, verified: 18 },
   evaluations: EVALUATIONS.filter((e) => e.status === "en-revision").concat(EVALUATIONS.filter((e) => e.status === "borrador").slice(0, 1)),
-  attention: STUDENTS.filter((s) => s.status === "needs-review").map((s) => ({ id: s.id, evaluationId: "", name: s.name, detail: (isNaN(s.avg) ? "Sin detección · " : "Baja confianza · ") + s.last })),
+  attention: STUDENTS.filter((s) => s.status === "needs-review").map((s) => ({ id: s.id, evaluationId: "", name: s.name, noDetection: isNaN(s.avg), evaluation: s.last ?? "" })),
 };
 
 export function dashboardOf(o: Overview, fullName: string): DashboardData {
@@ -112,19 +117,19 @@ export function dashboardOf(o: Overview, fullName: string): DashboardData {
   const names = new Map(o.roster.map((s) => [s.id, s.full_name]));
   const evName = new Map(o.evals.map((e) => [e.id, e.name]));
   return {
-    greeting: h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches",
+    slot: h < 12 ? "morning" : h < 19 ? "afternoon" : "evening",
     name: fullName.split(" ").slice(0, 2).join(" "),
-    dateLine: weekdayDate(todayIso()) + " · " + (a?.periodName ?? "") + " · " + todayIso().slice(0, 4),
+    date: todayIso(), period: a?.periodName ?? "", year: todayIso().slice(0, 4),
     inReview: inReview.length, toVerify, verifiedMonth: String(verifiedMonth),
-    avg: isNaN(avg) ? "—" : avg.toFixed(1), avgLabel: a ? "promedio de " + a.subject + " " + a.courseId : "promedio del curso",
+    avg, avgOf: a ? { subject: a.subject, course: a.courseId } : null,
     hero: heroItem && firstEv ? {
-      id: heroItem.id, title: firstEv.name + " · " + firstEv.subject, meta: firstEv.course + " · " + heroItem.total + " estudiantes",
-      pending: heroItem.total - heroItem.reviewed, verified: heroItem.reviewed, total: heroItem.total,
+      id: heroItem.id, title: firstEv.name + " · " + firstEv.subject, course: firstEv.course, total: heroItem.total,
+      pending: heroItem.total - heroItem.reviewed, verified: heroItem.reviewed,
     } : null,
     evaluations: items.filter((e) => e.status === "en-revision").concat(items.filter((e) => e.status === "borrador").slice(0, 1)),
     attention: o.grades.filter((g) => mine.has(g.evaluationId) && g.status === "needs-review").slice(0, 8).map((g) => ({
       id: g.studentId + ":" + g.evaluationId, evaluationId: String(g.evaluationId), name: names.get(g.studentId) ?? g.studentId,
-      detail: (g.value === null ? "Sin detección · " : "Baja confianza · ") + (evName.get(g.evaluationId) ?? ""),
+      noDetection: g.value === null, evaluation: evName.get(g.evaluationId) ?? "",
     })),
   };
 }
@@ -141,7 +146,7 @@ export function studentsOf(o: Overview): TeacherStudent[] {
     return {
       name: s.full_name, id: s.id, course: s.course_id,
       avg: weighted(ver.map((g) => ({ value: g.value!, weight: evById.get(g.evaluationId)?.weight ?? 0 }))),
-      status: last?.status ?? "pending", last: last ? evById.get(last.evaluationId)?.name ?? "" : "Sin calificaciones",
+      status: last?.status ?? "pending", last: last ? evById.get(last.evaluationId)?.name ?? "" : null,
     };
   });
 }

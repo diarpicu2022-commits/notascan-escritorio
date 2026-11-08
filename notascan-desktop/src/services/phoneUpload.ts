@@ -13,9 +13,10 @@ export interface PhoneSession { id: string; token: string; expiresAt: string }
 
 export async function startPhoneUpload(evaluationId: number): Promise<PhoneSession> {
   const { data, error } = await supabase().rpc("start_phone_upload", { p_evaluation: evaluationId });
-  if (error) throw new Error(error.message || "No pudimos generar el código.");
+  // Sin texto propio: la pantalla pone «No pudimos generar el código» en el idioma (idiomas, paso 3).
+  if (error) throw new Error(error.message || "");
   const row = (Array.isArray(data) ? data[0] : data) as { session_id: string; token: string; expires_at: string } | undefined;
-  if (!row) throw new Error("No pudimos generar el código.");
+  if (!row) throw new Error("");
   return { id: row.session_id, token: row.token, expiresAt: row.expires_at };
 }
 

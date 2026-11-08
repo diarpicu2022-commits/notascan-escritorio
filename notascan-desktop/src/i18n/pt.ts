@@ -3,6 +3,7 @@
  * Não se traduz (I6): marca, nomes próprios, o que a escola escreve e a escala colombiana Superior, Alto, Básico, Bajo.
  */
 import type { Messages } from "./es";
+import { docentePt } from "./docente.pt";
 
 export const pt: Messages = {
   lang: {
@@ -147,8 +148,8 @@ export const pt: Messages = {
     dot: { processing: "Processando", success: "Concluído", warning: "Revisar", error: "Erro" },
   },
   confirm: {
-    title: (n) => `Confirmar ${n} notas?`,
-    text: "As notas verificadas serão salvas.",
+    title: (n) => (n === 1 ? "Confirmar 1 nota?" : `Confirmar ${n} notas?`),
+    text: "As notas conferidas serão salvas.",
     ok: "Confirmar e salvar",
   },
   reset: {
@@ -180,4 +181,6 @@ export const pt: Messages = {
     saveFailed: "Não conseguimos salvar a senha. Verifique sua conexão e tente de novo.",
     savedNoAccess: "Sua senha foi salva, mas sua conta ainda não tem acesso. Fale com a coordenação.",
   },
+  /* Paso 3: pantallas del Docente. */
+  tch: docentePt,
 };

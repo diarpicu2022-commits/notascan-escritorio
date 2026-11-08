@@ -5,6 +5,8 @@
  * Se agregan claves por pasos. Paso 1: idioma, preferencias e inicio de sesión. Paso 2: marco común.
  * Modo oscuro, paso 2: grupo Tema de Preferencias.
  */
+import { docenteEs } from "./docente.es";
+
 export const es = {
   lang: {
     /** Cada idioma en su propio nombre, igual en los tres diccionarios (I2). */
@@ -186,6 +188,8 @@ export const es = {
     saveFailed: "No pudimos guardar la contraseña. Revisa tu conexión e inténtalo de nuevo.",
     savedNoAccess: "Tu contraseña quedó guardada, pero tu cuenta aún no tiene acceso. Habla con tu coordinación.",
   },
+  /* Paso 3: pantallas del Docente. */
+  tch: docenteEs,
 };
 
 export type Messages = typeof es;
