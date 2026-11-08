@@ -82,9 +82,6 @@ jobs:
           fi
 
       - name: Compilar NotaScan
-        # En macOS se compila con el panel de diagnóstico de la barra de título (src/dev/diagnostico.ts).
-        env:
-          VITE_DIAG: ${{ matrix.sistema == 'macos' && '1' || '' }}
         run: npx tauri build --bundles ${{ matrix.bundles }} --config "{\"build\":{\"beforeBuildCommand\":\"npm run $MODO\"}}"
 
       - name: Abrir y capturar (Windows)
