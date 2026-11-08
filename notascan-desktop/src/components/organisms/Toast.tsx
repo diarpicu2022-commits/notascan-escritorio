@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { cx } from "../../lib/cx";
 import { Button } from "../atoms/Button";
 import { Icon, type IconName } from "../atoms/Icon";
+import { useI18n } from "../../i18n/I18nProvider";
+
 
 type ToastTone = "success" | "error" | "info";
 const TOAST_ICON: Record<ToastTone, IconName> = { success: "check", error: "error", info: "ai" };
@@ -10,6 +12,7 @@ export interface ToastData { tone?: ToastTone; title: ReactNode; message?: React
 
 /** Aviso breve: role="status" (o "alert" si es un error) y cierre manual. */
 export function Toast({ tone = "success", title, message, onClose, className }: ToastData & { onClose?: () => void; className?: string }) {
+  const { t } = useI18n();
   return (
     <div className={cx("ns-toast", "ns-toast--" + tone, className)} role={tone === "error" ? "alert" : "status"}>
       <span className="ns-toast-icon" aria-hidden><Icon name={TOAST_ICON[tone]} size={16} strokeWidth={2.5} /></span>
@@ -17,7 +20,7 @@ export function Toast({ tone = "success", title, message, onClose, className }: 
         <div className="ns-toast-title">{title}</div>
         {message ? <div className="ns-toast-text">{message}</div> : null}
       </div>
-      {onClose ? <Button variant="ghost" size="sm" className="ns-btn--icon" aria-label="Cerrar aviso" onClick={onClose}><Icon name="close" size={16} /></Button> : null}
+      {onClose ? <Button variant="ghost" size="sm" className="ns-btn--icon" aria-label={t.common.closeNotice} onClick={onClose}><Icon name="close" size={16} /></Button> : null}
     </div>
   );
 }

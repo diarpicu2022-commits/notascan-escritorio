@@ -6,6 +6,8 @@ import { Icon } from "../atoms/Icon";
 import { Logo } from "../atoms/Logo";
 import { Sidebar } from "../organisms/Sidebar";
 import type { Institution } from "../../services/institution";
+import { useI18n } from "../../i18n/I18nProvider";
+
 
 export interface AppShellProps {
   items: NavItem[];
@@ -27,6 +29,7 @@ export interface AppShellProps {
 /** Plantilla: sidebar fijo + área principal sobre el lienzo de puntos. En ventanas estrechas el sidebar es un cajón. */
 export function AppShell({ items, active, user, course, courseLabel, school, density, topbar, overlay, onNavigate, onLogout, style, children }: AppShellProps) {
   const [drawer, setDrawer] = useState(false);
+  const { t } = useI18n();
   return (
     <div className="ns ns-app ns-canvas" style={style}>
       <div className={cx("ns-app-side", drawer && "is-open")}>
@@ -39,7 +42,7 @@ export function AppShell({ items, active, user, course, courseLabel, school, den
       <div style={{ minWidth: 0 }}>
         <div className="ns-app-topbar">
           <Logo size={24} />
-          <Button variant="icon" size="sm" aria-label="Abrir menú" onClick={() => setDrawer(true)}><Icon name="menu" size={18} /></Button>
+          <Button variant="icon" size="sm" aria-label={t.shell.openMenu} onClick={() => setDrawer(true)}><Icon name="menu" size={18} /></Button>
         </div>
         <main className={cx("ns-app-main", density && "ns-density-" + density)}>
           {topbar ? <div className="ns-app-tools">{topbar}</div> : null}

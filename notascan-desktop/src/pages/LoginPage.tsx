@@ -10,6 +10,12 @@ import { Button, Dots } from "../components/atoms/Button";
 import type { CodePurpose, LoginError } from "../app/AuthContext";
 import { useI18n } from "../i18n/I18nProvider";
 import { PreferencesDrawer } from "../components/organisms/Preferences";
+import type { Messages } from "../i18n/es";
+
+/** Texto de un error del servidor en el idioma de la app. */
+function authMessage(t: Messages, e: LoginError): string {
+  return e.code === "wrongRole" ? t.auth.wrongRole(t.roles[e.role ?? "teacher"]) : t.auth[e.code];
+}
 
 /** Ilustración propia del login: hoja de examen + teléfono escaneando, dentro de manchas orgánicas. */
 function LoginIllustration() {
@@ -155,23 +161,23 @@ function CodeFlow({ purpose, initialEmail, onAcceptCode, onSetPassword, onBack }
         <>
           <p className="ns-auth-note">{purpose === "invite" ? t.code.inviteNote : t.code.resetNote}</p>
           <AuthField id="code-email" label={t.login.email} icon="mail" type="email" placeholder={t.code.emailPlaceholder} auto="email"
-            value={email} onChange={(e) => setEmail(e.target.value)} error={tried && !okEmail ? t.code.errEmail : err?.field === "email" ? err.message : null} />
+            value={email} onChange={(e) => setEmail(e.target.value)} error={tried && !okEmail ? t.code.errEmail : err?.field === "email" ? authMessage(t, err) : null} />
           <AuthField id="code-token" label={t.code.code} icon="key" type="text" placeholder="12345678" auto="one-time-code"
             value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 10))}
-            error={tried && !okCode ? t.code.errCode : err?.field === "code" ? err.message : null} />
+            error={tried && !okCode ? t.code.errCode : err?.field === "code" ? authMessage(t, err) : null} />
         </>
       ) : (
         <>
           <p className="ns-auth-note">{t.code.verifiedFor(email.trim().toLowerCase())}</p>
           <AuthField id="code-pass" label={t.code.newPassword} icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="new-password"
             value={pw} onChange={(e) => setPw(e.target.value)}
-            error={tried && !strong ? t.code.errStrong : err?.field === "newPassword" ? err.message : null}
+            error={tried && !strong ? t.code.errStrong : err?.field === "newPassword" ? authMessage(t, err) : null}
             after={<button type="button" className="ns-auth-eye" aria-label={show ? t.login.hidePassword : t.login.showPassword} aria-pressed={show} onClick={() => setShow(!show)}><Icon name="eye" size={18} /></button>} />
           <AuthField id="code-pass2" label={t.code.repeat} icon="lock" type={show ? "text" : "password"} placeholder="••••••••" auto="new-password"
             value={pw2} onChange={(e) => setPw2(e.target.value)} error={tried && strong && pw !== pw2 ? t.code.errMatch : null} />
         </>
       )}
-      {err?.field === "form" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{err.message}</span> : null}
+      {err?.field === "form" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{authMessage(t, err)}</span> : null}
       <button type="submit" className="ns-auth-submit" aria-busy={busy || undefined} disabled={busy}>
         {busy ? <><Dots /> {step === "code" ? t.code.verifying : t.code.saving}</> : <>{step === "code" ? t.code.continue : t.code.saveAndEnter} <Icon name="arrow" size={18} /></>}
       </button>
@@ -200,8 +206,8 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const okEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), okPass = pass.length >= 6;
-  const emailErr = tried && !okEmail ? t.login.errEmail : serverErr?.field === "email" ? serverErr.message : null;
-  const passErr = tried && !okPass ? t.login.errPassword : serverErr?.field === "password" ? serverErr.message : null;
+  const emailErr = tried && !okEmail ? t.login.errEmail : serverErr?.field === "email" ? authMessage(t, serverErr) : null;
+  const passErr = tried && !okPass ? t.login.errPassword : serverErr?.field === "password" ? authMessage(t, serverErr) : null;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -258,7 +264,7 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
                 <input type="radio" name="ns-role" value={value} checked={role === value} onChange={() => { setRole(value); setServerErr(null); }} />{t.login.roles[value]}
               </label>
             ))}
-            {serverErr?.field === "role" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{serverErr.message}</span> : null}
+            {serverErr?.field === "role" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{authMessage(t, serverErr)}</span> : null}
           </fieldset>
           <AuthField id="auth-email" label={t.login.email} icon="mail" type="email" placeholder="nombre@ucc.edu.co" auto="email"
             value={email} onChange={(e) => setEmail(e.target.value)} error={emailErr} />
@@ -269,7 +275,7 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
             <label className="ns-auth-check"><input ref={remember} type="checkbox" defaultChecked />{t.login.remember}</label>
             <a href="#" onClick={(e) => { e.preventDefault(); forgot(); }}>{t.login.forgot}</a>
           </div>
-          {serverErr?.field === "form" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{serverErr.message}</span> : null}
+          {serverErr?.field === "form" ? <span className="ns-auth-error" role="alert"><Icon name="warning" size={14} />{authMessage(t, serverErr)}</span> : null}
           <button type="submit" className="ns-auth-submit" aria-busy={busy || undefined} disabled={busy}>
             {busy ? <><Dots /> {t.login.submitting}</> : <>{t.login.submit} <Icon name="arrow" size={18} /></>}
           </button>

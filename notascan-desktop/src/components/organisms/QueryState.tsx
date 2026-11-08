@@ -1,5 +1,7 @@
 import { Button } from "../atoms/Button";
 import { EmptyState } from "./EmptyState";
+import { useI18n } from "../../i18n/I18nProvider";
+
 
 /* Estados de las pantallas sin tabla, con las mismas piezas que la DataGrid del sistema:
    carga = bloques .ns-skel; error = EmptyState de error con «Reintentar». */
@@ -16,8 +18,9 @@ export function LoadingBlocks({ rows = 5, height = 48, label }: { rows?: number;
 
 /** Error de carga: siempre con salida. */
 export function ErrorState({ title, onRetry }: { title: string; onRetry: () => void }) {
+  const { t } = useI18n();
   return (
-    <EmptyState tone="error" title={title} message="Revisa tu conexión e inténtalo de nuevo."
-      action={<Button variant="secondary" icon="refresh" onClick={onRetry}>Reintentar</Button>} />
+    <EmptyState tone="error" title={title} message={t.common.retryHint}
+      action={<Button variant="secondary" icon="refresh" onClick={onRetry}>{t.common.retry}</Button>} />
   );
 }

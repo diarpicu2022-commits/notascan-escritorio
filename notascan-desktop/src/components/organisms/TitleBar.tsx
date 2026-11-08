@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Icon } from "../atoms/Icon";
 import { Logo } from "../atoms/Logo";
+import { useI18n } from "../../i18n/I18nProvider";
+
 
 /*
  * Barra de título de la app de escritorio (paso 6h, pedido de Diego: ventana sin bordes de Windows, más limpia).
@@ -22,6 +24,7 @@ export const IS_MAC = typeof navigator !== "undefined" && /Macintosh|Mac OS X/.t
 
 export function TitleBar() {
   const [max, setMax] = useState(false);
+  const { t } = useI18n();
   useEffect(() => {
     if (!IN_DESKTOP || IS_MAC) return;
     const w = getCurrentWindow();
@@ -48,11 +51,11 @@ export function TitleBar() {
         <span data-tauri-drag-region>NotaScan</span>
       </span>
       <div className="ns-titlebar-controls">
-        <button type="button" className="ns-titlebar-btn" aria-label="Minimizar" title="Minimizar" onClick={() => { void w.minimize(); }}><Icon name="minus" size={14} /></button>
-        <button type="button" className="ns-titlebar-btn" aria-label={max ? "Restaurar" : "Maximizar"} title={max ? "Restaurar" : "Maximizar"} onClick={() => { void w.toggleMaximize(); }}>
+        <button type="button" className="ns-titlebar-btn" aria-label={t.titlebar.minimize} title={t.titlebar.minimize} onClick={() => { void w.minimize(); }}><Icon name="minus" size={14} /></button>
+        <button type="button" className="ns-titlebar-btn" aria-label={max ? t.titlebar.restore : t.titlebar.maximize} title={max ? t.titlebar.restore : t.titlebar.maximize} onClick={() => { void w.toggleMaximize(); }}>
           <Icon name={max ? "restore" : "maximize"} size={14} />
         </button>
-        <button type="button" className="ns-titlebar-btn ns-titlebar-btn--close" aria-label="Cerrar" title="Cerrar" onClick={() => { void w.close(); }}><Icon name="close" size={14} /></button>
+        <button type="button" className="ns-titlebar-btn ns-titlebar-btn--close" aria-label={t.titlebar.close} title={t.titlebar.close} onClick={() => { void w.close(); }}><Icon name="close" size={14} /></button>
       </div>
     </header>
   );

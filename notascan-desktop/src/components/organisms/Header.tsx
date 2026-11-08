@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { cx } from "../../lib/cx";
 import { Sticker } from "../atoms/Sticker";
+import { useI18n } from "../../i18n/I18nProvider";
+
 
 export interface HeaderTab { value: string; label: string }
 
@@ -26,6 +28,7 @@ function renderTitle(title: string, hl?: string): ReactNode {
 
 /** Navegación local: contexto, título, descripción, una sola acción primaria y pestañas. */
 export function Header({ eyebrow, sticker, title, highlight, description, actions, tabs, tab, onTab, className }: HeaderProps) {
+  const { t: tr } = useI18n();
   return (
     <header className={cx("ns-header", className)}>
       <div>
@@ -40,7 +43,7 @@ export function Header({ eyebrow, sticker, title, highlight, description, action
       </div>
       {actions ? <div className="ns-header-actions">{actions}</div> : null}
       {tabs ? (
-        <div className="ns-tabs" role="tablist" aria-label={"Secciones de " + title}>
+        <div className="ns-tabs" role="tablist" aria-label={tr.shell.sectionsOf(title)}>
           {tabs.map((t) => (
             <button key={t.value} role="tab" type="button" className="ns-tab" aria-selected={tab === t.value} onClick={() => onTab?.(t.value)}>{t.label}</button>
           ))}
