@@ -6,6 +6,8 @@ import { Badge } from "../atoms/Badge";
 import { Button } from "../atoms/Button";
 import { IconAction } from "../atoms/Controls";
 import { Icon, type IconName } from "../atoms/Icon";
+import { useI18n } from "../../i18n/I18nProvider";
+
 
 /* Reglas del sistema: Modal para confirmar, aprobar, restablecer o destruir;
    Drawer para consultar, editar y filtrar sin salir de la tabla. Foco atrapado y Escape cierra. */
@@ -92,11 +94,12 @@ interface ConfirmActionProps {
 
 /** Confirmación de una acción con Cancelar enfocado por defecto. */
 export function ConfirmAction({ open, onCancel, onConfirm, title, description, confirmLabel, confirmIcon, icon, tone, danger, inline, loading, children }: ConfirmActionProps) {
+  const { t } = useI18n();
   return (
     <Modal
       open={open} onClose={onCancel} alert inline={inline} icon={icon || "warning"} tone={tone} title={title} description={description}
       actions={<>
-        <Button variant="secondary" onClick={onCancel} data-autofocus>Cancelar</Button>
+        <Button variant="secondary" onClick={onCancel} data-autofocus>{t.common.cancel}</Button>
         <Button variant={danger ? "danger" : "primary"} icon={confirmIcon} loading={loading} onClick={onConfirm}>{confirmLabel}</Button>
       </>}
     >
@@ -121,6 +124,7 @@ interface ConfirmDialogProps {
 /** Confirmación masiva al guardar: vidrio, sello y foco atrapado (role="alertdialog"). */
 export function ConfirmDialog({ open, count, title, description, note, confirmLabel, loading, inline, onCancel, onConfirm }: ConfirmDialogProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
   const titleId = useId(), descId = titleId + "-d";
   useEffect(() => {
     if (!open) return;
@@ -146,12 +150,12 @@ export function ConfirmDialog({ open, count, title, description, note, confirmLa
     <div className={cx("ns-scrim", inline && "ns-scrim--inline")} onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel?.(); }}>
       <div ref={ref} className="ns-dialog ns-glass" role="alertdialog" aria-modal aria-labelledby={titleId} aria-describedby={descId}>
         <span className="ns-dialog-seal" aria-hidden><Icon name="lock" size={20} /></span>
-        <h2 id={titleId} className="ns-dialog-title">{title || "¿Confirmar " + count + " calificaciones?"}</h2>
-        <p id={descId} className="ns-dialog-text">{description || "Las calificaciones verificadas serán guardadas."}</p>
+        <h2 id={titleId} className="ns-dialog-title">{title || t.confirm.title(count)}</h2>
+        <p id={descId} className="ns-dialog-text">{description || t.confirm.text}</p>
         {note ? <Badge tone="review">{note}</Badge> : null}
         <div className="ns-dialog-actions">
-          <Button variant="secondary" onClick={onCancel} data-autofocus>Cancelar</Button>
-          <Button variant="primary" icon="lock" loading={loading} onClick={onConfirm}>{confirmLabel || "Confirmar y guardar"}</Button>
+          <Button variant="secondary" onClick={onCancel} data-autofocus>{t.common.cancel}</Button>
+          <Button variant="primary" icon="lock" loading={loading} onClick={onConfirm}>{confirmLabel || t.confirm.ok}</Button>
         </div>
       </div>
     </div>
@@ -170,6 +174,7 @@ interface PasswordResetDialogProps {
 /** Restablecer acceso: nunca muestra ni recupera la contraseña, genera un acceso nuevo. */
 export function PasswordResetDialog({ open, onClose, user, inline, onSend }: PasswordResetDialogProps) {
   const [st, setSt] = useState<"ask" | "busy" | "done" | "error">("ask");
+  const { t } = useI18n();
   const timer = useRef<number>();
   useEffect(() => { if (open) setSt("ask"); }, [open]);
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -184,21 +189,21 @@ export function PasswordResetDialog({ open, onClose, user, inline, onSend }: Pas
   return (
     <Modal
       open={open} inline={inline} onClose={onClose} alert icon={done ? "check" : "key"} tone={done ? "sage" : undefined}
-      title={done ? "Solicitud enviada" : "Restablecer contraseña"}
-      description={done ? "La solicitud de restablecimiento fue realizada correctamente." : "¿Deseas generar un nuevo acceso para este usuario?"}
+      title={done ? t.reset.sent : t.reset.title}
+      description={done ? t.reset.sentText : t.reset.ask}
       actions={done
-        ? <Button onClick={onClose} data-autofocus>Entendido</Button>
+        ? <Button onClick={onClose} data-autofocus>{t.reset.ok}</Button>
         : <>
-          <Button variant="secondary" onClick={onClose} data-autofocus>Cancelar</Button>
-          <Button icon="key" loading={st === "busy"} loadingText="Generando…" onClick={go}>Restablecer contraseña</Button>
+          <Button variant="secondary" onClick={onClose} data-autofocus>{t.common.cancel}</Button>
+          <Button icon="key" loading={st === "busy"} loadingText={t.reset.generating} onClick={go}>{t.reset.title}</Button>
         </>}
     >
       <div className="ns-mini-profile"><Avatar name={u.name} size="sm" /><div><strong>{u.name}</strong><span className="ns-caption">{u.email}</span></div></div>
       {done
-        ? <p className="ns-caption">{"Se envió un enlace de un solo uso a " + (u.email || "su correo") + ". NotaScan nunca muestra contraseñas."}</p>
+        ? <p className="ns-caption">{t.reset.sentTo(u.email || t.reset.theirEmail)}</p>
         : st === "error"
-          ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />No pudimos enviar el enlace. Revisa tu conexión e inténtalo de nuevo.</span>
-          : <p className="ns-caption"><Icon name="lock" size={14} /> La contraseña actual no se muestra ni se recupera: se genera un acceso nuevo.</p>}
+          ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />{t.reset.error}</span>
+          : <p className="ns-caption"><Icon name="lock" size={14} />{" " + t.reset.note}</p>}
     </Modal>
   );
 }

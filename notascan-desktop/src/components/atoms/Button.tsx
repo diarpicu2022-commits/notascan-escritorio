@@ -1,6 +1,8 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cx } from "../../lib/cx";
 import { Icon, type IconName } from "./Icon";
+import { useI18n } from "../../i18n/I18nProvider";
+
 
 /** Tres puntos que laten mientras una acción está en curso. */
 export function Dots() {
@@ -26,8 +28,9 @@ export function Button({
   variant = "primary", size = "md", icon, iconRight, loading = false, loadingText, success = false, successText,
   block, state, className, type = "button", disabled, children, ...other
 }: ButtonProps) {
+  const { t } = useI18n();
   let content: ReactNode;
-  if (loading) content = <><Dots /><span>{loadingText || "Guardando…"}</span></>;
+  if (loading) content = <><Dots /><span>{loadingText || t.common.saving}</span></>;
   else if (success) content = <><Icon name="check" size={18} /><span>{successText || children}</span></>;
   else content = <>{icon ? <Icon name={icon} size={size === "sm" ? 16 : 18} /> : null}{children}{iconRight ? <Icon name={iconRight} size={18} /> : null}</>;
 

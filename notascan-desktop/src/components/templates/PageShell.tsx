@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import { useAuth } from "../../app/AuthContext";
 import { useShell } from "../../app/ShellContext";
-import { ROLES } from "../../data/roles";
 import { RoleShell } from "./RoleShell";
 import { DEMO } from "../../lib/supabase";
 import { useMenuContext, useMyInstitution } from "../../services/institution";
 import { usePendingCount } from "../../services/principal";
+import { useI18n } from "../../i18n/I18nProvider";
+
 
 /* Ítems que se iluminan en el menú cuando la página no tiene uno propio (ALIAS del sistema). */
 const ALIAS: Record<string, string> = { grade: "grades", review: "grades", evaluations: "grades" };
@@ -21,7 +22,8 @@ interface PageShellProps {
 export function PageShell({ active, counts, overlay, children }: PageShellProps) {
   const { role, navigate, logout } = useShell();
   const { profile } = useAuth();
-  const user = profile ? { name: profile.fullName, role: ROLES[role].user.role } : undefined;
+  const { t } = useI18n();
+  const user = profile ? { name: profile.fullName, role: t.shell.persona[role] } : undefined;
   // El colegio de la sesión va en el marco (en demostración, el marco del sistema sin cambios).
   const school = useMyInstitution(role !== "platform").data;
   const context = useMenuContext(role);

@@ -102,6 +102,9 @@ for (const role of ["teacher", "admin", "principal"]) {
   report.check(`${role}: botón Preferences junto a cerrar sesión`, (await btn.count()) === 1);
   const over = await page.locator(".ns-sidebar-user").evaluate((el) => el.scrollWidth - el.clientWidth);
   report.check(`${role}: el pie de la barra lateral no se desborda`, over <= 0, `${over}px`);
+  // Encontrado en el paso 2: el botón Preferencias le quita espacio al nombre, que se corta con «…».
+  const name = await page.locator(".ns-sidebar-user .ns-profile-name").evaluate((el) => ({ need: el.scrollWidth, has: el.clientWidth, text: el.textContent }));
+  report.check(`${role}: el nombre de la persona se lee entero junto a los botones`, name.need <= name.has, `${name.text}: necesita ${name.need}px, tiene ${name.has}px`);
   await btn.click();
   const dialog = page.getByRole("dialog", { name: "Preferences" });
   report.check(`${role}: abre el panel`, await dialog.isVisible());
@@ -111,6 +114,94 @@ for (const role of ["teacher", "admin", "principal"]) {
   await page.getByRole("button", { name: "Cerrar panel" }).click();
   report.check(`${role}: el botón cerrar (traducido) cierra el panel`, (await page.getByRole("dialog").count()) === 0);
   report.check(`${role}: consola limpia`, cons.length === 0, cons.join(" | "));
+  await ctx.close();
+}
+
+// 6. Paso 2 · Marco común: barra lateral, herramientas, búsqueda, conexión y avisos en cada idioma.
+const FRAME = {
+  en: { nav: { teacher: "Grades", admin: "Report cards", principal: "Analytics" }, chip: { teacher: "Teacher", admin: "Administration", principal: "Principal" },
+    search: "Search student…", conn: "Online", logout: "Sign out", syncNow: "Sync now", results: /^Students · \d+$/, link: "Grades", cancel: "Cancel" },
+  pt: { nav: { teacher: "Notas", admin: "Boletins", principal: "Análises" }, chip: { teacher: "Docente", admin: "Administração", principal: "Direção" },
+    search: "Buscar estudante…", conn: "Conectado", logout: "Sair", syncNow: "Sincronizar agora", results: /^Estudantes · \d+$/, link: "Notas", cancel: "Cancelar" },
+};
+// Español del marco que no debe quedar en inglés ni en portugués. No cuentan lo del colegio (I6): nombres, cursos,
+// materias, colegio y año lectivo de la demostración.
+const SPANISH_FRAME = {
+  en: /\b(Navegación|Calificaciones|Planilla|Conceptos|Recuperaciones|Asistencia|Comportamiento|Estudiantes|Reportes|Boletines|Matrículas|Usuarios|Periodos|Analítica|Solicitudes|Observador|Cerrar sesión|Buscar estudiante|Conectado|Periodo|Año lectivo|Institución|Secretaría|Rectoría|Administración|Docente|Rector)\b/,
+  pt: /\b(Navegación|Calificaciones|Planilla|Conceptos|Recuperaciones|Asistencia|Estudiantes|Reportes|Boletines|Usuarios|Periodos|Analítica|Solicitudes|Observador|Cerrar sesión|Buscar estudiante|Periodo|Año lectivo|Institución|Secretaría|Rectoría|Administración|Rector)\b/,
+};
+for (const lang of ["en", "pt"]) {
+  const f = FRAME[lang];
+  for (const role of ["teacher", "admin", "principal"]) {
+    for (const width of [1024, 1440]) {
+      const { ctx, page, cons } = await open(lang, "es-CO", `#/${role}/dashboard`, width);
+      const tag = `${lang} · ${role} a ${width}px`;
+      if (width === 1440) {
+        report.check(`${tag}: menú en su idioma («${f.nav[role]}»)`, (await page.locator(".ns-sidebar nav").getByText(f.nav[role], { exact: true }).count()) === 1);
+        report.check(`${tag}: chip de rol «${f.chip[role]}»`, ((await page.locator(".ns-role-chip").textContent()) ?? "").trim() === f.chip[role]);
+        report.check(`${tag}: búsqueda «${f.search}»`, ((await page.locator(".ns-gsearch-trigger span").textContent()) ?? "") === f.search);
+        report.check(`${tag}: cerrar sesión «${f.logout}»`, (await page.locator(".ns-sidebar-user").getByRole("button", { name: f.logout }).count()) === 1);
+        if (role === "teacher") report.check(`${tag}: conexión «${f.conn}»`, ((await page.locator(".ns-conn-pill > span:not(.ns-dot):not(.ns-chip-count)").first().textContent()) ?? "") === f.conn);
+        const text = (await page.locator(".ns-sidebar").innerText()) + "\n" + (await page.locator(".ns-app-tools").innerText());
+        const hit = text.match(SPANISH_FRAME[lang]);
+        report.check(`${tag}: sin español suelto en el marco`, !hit, hit ? `«${hit[0]}»` : "");
+        await page.screenshot({ path: join(OUT, `i18n-marco-${lang}-${role}.png`) });
+      }
+      // Recortes: ítems del menú, chip, búsqueda y píldora de conexión.
+      const clipped = await page.locator(".ns-nav-item > span:not([aria-hidden]), .ns-role-chip, .ns-gsearch-trigger span, .ns-conn-pill, .ns-sidebar-course span, .ns-profile-role").evaluateAll((els) =>
+        els.filter((el) => el.offsetParent && el.scrollWidth - el.clientWidth > 1).map((el) => el.textContent.trim().slice(0, 30)));
+      report.check(`${tag}: ningún texto del marco recortado`, clipped.length === 0, clipped.join(" | "));
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      checkOverflow(report, `#/${role}/dashboard (${lang})`, over, width);
+      report.check(`${tag}: consola limpia`, cons.length === 0, cons.join(" | "));
+      await ctx.close();
+    }
+  }
+
+  // Búsqueda global (Ctrl + K) y conexión del docente.
+  {
+    const { ctx, page, cons } = await open(lang, "es-CO", "#/teacher/dashboard");
+    await page.keyboard.press("Control+k");
+    const dlg = page.getByRole("dialog", { name: lang === "en" ? "Student search" : "Busca de estudantes" });
+    report.check(`${lang}: Ctrl + K abre la búsqueda con su nombre traducido`, await dlg.isVisible());
+    await page.keyboard.type("7A");
+    await page.waitForTimeout(150);
+    const head = ((await dlg.locator(".ns-overline").first().textContent()) ?? "").trim();
+    report.check(`${lang}: resultados «${head}»`, f.results.test(head), head);
+    report.check(`${lang}: accesos de la vista previa traducidos («${f.link}»)`, (await dlg.locator(".ns-gs-links").getByRole("button", { name: f.link, exact: true }).count()) === 1);
+    const hit = (await dlg.innerText()).match(SPANISH_FRAME[lang]);
+    report.check(`${lang}: sin español suelto en la búsqueda`, !hit, hit ? `«${hit[0]}»` : "");
+    if (lang === "pt") await page.screenshot({ path: join(OUT, "i18n-busqueda-pt.png") });
+    await page.keyboard.press("Escape");
+    await page.locator(".ns-conn-pill").click();
+    const pop = page.getByRole("dialog", { name: lang === "en" ? "Sync status" : "Estado da sincronização" });
+    report.check(`${lang}: el panel de conexión abre con su nombre`, await pop.isVisible());
+    report.check(`${lang}: botón «${f.syncNow}»`, (await pop.getByRole("button", { name: f.syncNow }).count()) === 1);
+    const popHit = (await pop.innerText()).match(/Última sincronización|Sincronizar ahora|Trabajar sin conexión|cambios? pendientes?/);
+    report.check(`${lang}: sin español suelto en el panel de conexión`, lang === "pt" ? !/Sincronizar ahora|Trabajar sin conexión|cambios? pendientes?/.test(await pop.innerText()) : !popHit, popHit ? `«${popHit[0]}»` : "");
+    report.check(`${lang}: consola limpia (búsqueda y conexión)`, cons.length === 0, cons.join(" | "));
+    await ctx.close();
+  }
+
+  // Piezas comunes en la vista de componentes: diálogos de confirmación, avisos y punto de estado.
+  {
+    const { ctx, page, cons } = await open(lang, "es-CO", "#/dev/components");
+    report.check(`${lang}: botón «${f.cancel}» en las confirmaciones`, (await page.getByRole("button", { name: f.cancel, exact: true }).count()) >= 1);
+    const closeNotice = lang === "en" ? "Close notice" : "Fechar aviso";
+    report.check(`${lang}: cerrar aviso «${closeNotice}»`, (await page.getByRole("button", { name: closeNotice }).count()) >= 1);
+    report.check(`${lang}: ningún «Cerrar aviso» en español`, (await page.getByRole("button", { name: "Cerrar aviso" }).count()) === 0);
+    report.check(`${lang}: consola limpia (componentes)`, cons.length === 0, cons.join(" | "));
+    await ctx.close();
+  }
+}
+
+// En español el marco sigue diciendo lo mismo de antes.
+{
+  const { ctx, page } = await open("es", "es-CO", "#/teacher/dashboard");
+  const items = (await page.locator(".ns-sidebar nav .ns-nav-item > span:not([aria-hidden]):not(.ns-nav-item-count)").allTextContents()).join(", ");
+  report.check("es: el menú del docente es el de siempre", items === "Dashboard, Calificaciones, Planilla, Conceptos, Recuperaciones, Asistencia, Comportamiento, Estudiantes, Reportes", items);
+  report.check("es: chip «Docente» y búsqueda «Buscar estudiante…»", ((await page.locator(".ns-role-chip").textContent()) ?? "").trim() === "Docente"
+    && (await page.locator(".ns-gsearch-trigger span").textContent()) === "Buscar estudiante…");
   await ctx.close();
 }
 

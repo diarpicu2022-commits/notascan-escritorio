@@ -2,7 +2,7 @@
  * Textos en español: la fuente (anexo 2026-11-08-idiomas). en.ts y pt.ts tienen el mismo tipo; si les falta una clave,
  * la compilación falla. No se traduce lo de I6: marca, nombres propios, lo que escribe el colegio y la escala
  * Superior, Alto, Básico y Bajo.
- * Se agregan claves por pasos. Paso 1: idioma, preferencias e inicio de sesión.
+ * Se agregan claves por pasos. Paso 1: idioma, preferencias e inicio de sesión. Paso 2: marco común.
  */
 export const es = {
   lang: {
@@ -75,6 +75,107 @@ export const es = {
     continue: "Continuar",
     saveAndEnter: "Guardar y entrar",
     back: "Volver a iniciar sesión",
+  },
+  /* Paso 2: marco común (barra lateral, barra de título, cabeceras, búsqueda, conexión, estados y avisos). */
+  roles: { teacher: "Docente", admin: "Secretaría", principal: "Rectoría", platform: "Plataforma" },
+  shell: {
+    nav: "Navegación principal",
+    navSection: "Navegación",
+    closeMenu: "Cerrar menú",
+    openMenu: "Abrir menú",
+    logout: "Cerrar sesión",
+    pending: (n: number) => `${n} pendientes`,
+    roleChip: { admin: "Administración", principal: "Rectoría", teacher: "Docente", platform: "Plataforma" },
+    /** Cargo de la persona de ejemplo de cada rol. La materia es del colegio y no se traduce (I6). */
+    persona: { admin: "Secretaría académica", principal: "Rector", teacher: "Docente · Matemáticas", platform: "Plataforma NotaScan" },
+    contextLabel: { admin: "Año lectivo", principal: "Institución", teacher: "Periodo 3 · 2026", platform: "" },
+    schoolYear: "Año lectivo",
+    period: "Periodo",
+    noOpenPeriod: "Sin periodo abierto",
+    noCourses: "Sin cursos asignados",
+    sectionsOf: (title: string) => `Secciones de ${title}`,
+  },
+  nav: {
+    dashboard: "Dashboard", students: "Estudiantes", enrollment: "Matrículas", users: "Usuarios", structure: "Estructura académica",
+    curriculum: "Mallas curriculares", periods: "Periodos", reportcards: "Boletines", clearances: "Paz y Salvos", ranking: "Ranking académico",
+    analytics: "Analítica", teachers: "Seguimiento docente", requests: "Solicitudes", observer: "Observador", reports: "Reportes",
+    grades: "Calificaciones", gradebook: "Planilla", concepts: "Conceptos", recoveries: "Recuperaciones", attendance: "Asistencia",
+    behavior: "Comportamiento", schools: "Colegios",
+  },
+  titlebar: { minimize: "Minimizar", maximize: "Maximizar", restore: "Restaurar", close: "Cerrar" },
+  search: {
+    trigger: "Buscar estudiante (Ctrl + K)",
+    triggerText: "Buscar estudiante…",
+    dialog: "Búsqueda global de estudiantes",
+    placeholder: "Nombre, ID estudiantil, documento o curso",
+    input: "Buscar estudiante",
+    recent: "Búsquedas recientes",
+    byCourse: "Por curso",
+    results: (n: number) => `Estudiantes · ${n}`,
+    empty: "No hay resultados para esta búsqueda.",
+    course: (course: string, id: string) => `Curso ${course} · ID ${id}`,
+    links: { profile: "Perfil", grades: "Calificaciones", history: "Historial académico", attendance: "Asistencia", observer: "Observador", reportcards: "Boletines" },
+    keyNavigate: "navegar",
+    keyOpen: "abrir perfil",
+    keyClose: "cerrar",
+  },
+  enroll: { active: "Activo", pending: "Pendiente", retired: "Retirado", archived: "Archivado" },
+  conn: {
+    status: { online: "Conectado", syncing: "Sincronizando", offline: "Modo offline", error: "Error de sincronización" },
+    dialog: "Estado de sincronización",
+    offline: "Tus cambios quedarán pendientes de sincronización.",
+    error: "No pudimos sincronizar. Tus cambios siguen guardados en este equipo.",
+    last: "Última sincronización:",
+    pending: (n: number) => n === 1 ? `${n} cambio pendiente` : `${n} cambios pendientes`,
+    syncNow: "Sincronizar ahora",
+    syncing: "Sincronizando…",
+    workOffline: "Trabajar sin conexión (demostración)",
+    rejected: (n: number, list: string) => `La base no aceptó ${n === 1 ? "1 cambio" : n + " cambios"} (evaluación cerrada o sin permiso): ${list}.`,
+  },
+  common: {
+    cancel: "Cancelar",
+    retry: "Reintentar",
+    retryHint: "Revisa tu conexión e inténtalo de nuevo.",
+    closeNotice: "Cerrar aviso",
+    saving: "Guardando…",
+    progress: "Progreso",
+    advance: "Avance",
+    dot: { processing: "Procesando", success: "Completado", warning: "Revisar", error: "Error" },
+  },
+  confirm: {
+    title: (n: number | undefined) => `¿Confirmar ${n} calificaciones?`,
+    text: "Las calificaciones verificadas serán guardadas.",
+    ok: "Confirmar y guardar",
+  },
+  reset: {
+    sent: "Solicitud enviada",
+    title: "Restablecer contraseña",
+    sentText: "La solicitud de restablecimiento fue realizada correctamente.",
+    ask: "¿Deseas generar un nuevo acceso para este usuario?",
+    ok: "Entendido",
+    generating: "Generando…",
+    sentTo: (email: string) => `Se envió un enlace de un solo uso a ${email}. NotaScan nunca muestra contraseñas.`,
+    theirEmail: "su correo",
+    error: "No pudimos enviar el enlace. Revisa tu conexión e inténtalo de nuevo.",
+    note: "La contraseña actual no se muestra ni se recupera: se genera un acceso nuevo.",
+  },
+  forbidden: {
+    title: "No tienes permiso para ver esta sección.",
+    text: (section: string, mine: string) => `Esta sección es de ${section} y tu cuenta es de ${mine}.`,
+    home: "Ir a mi inicio",
+  },
+  /** Mensajes del servidor al entrar o crear la contraseña: AuthContext devuelve el código y el login pone el texto. */
+  auth: {
+    badCredentials: "Correo o contraseña incorrectos.",
+    notConfirmed: "Confirma tu correo antes de entrar.",
+    network: "No pudimos conectar con NotaScan. Revisa tu conexión e inténtalo de nuevo.",
+    noDesktop: "Tu cuenta no tiene acceso a la app de escritorio. Solicita acceso a tu coordinación.",
+    wrongRole: (role: string) => `Tu cuenta está registrada como ${role}.`,
+    resetFailed: "No pudimos enviar el correo. Inténtalo de nuevo en unos minutos.",
+    badCode: "El código no es válido o ya venció. Pide uno nuevo.",
+    weak: "Elige una contraseña más segura: al menos 8 caracteres con letras y números.",
+    saveFailed: "No pudimos guardar la contraseña. Revisa tu conexión e inténtalo de nuevo.",
+    savedNoAccess: "Tu contraseña quedó guardada, pero tu cuenta aún no tiene acceso. Habla con tu coordinación.",
   },
 };
 

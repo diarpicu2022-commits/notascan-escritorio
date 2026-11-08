@@ -4,8 +4,11 @@ import { DEMO, setRemember, supabase } from "../lib/supabase";
 
 export interface Profile { id: string; email: string; fullName: string; role: DesktopRole }
 
-/** Errores del login con el texto que ve la persona y el campo donde va. */
-export interface LoginError { field: "email" | "password" | "role" | "form" | "code" | "newPassword"; message: string }
+/** Qué salió mal. El texto sale del diccionario del idioma (`t.auth`, idiomas paso 2). */
+export type AuthErrorCode = "badCredentials" | "notConfirmed" | "network" | "noDesktop" | "wrongRole" | "resetFailed" | "badCode" | "weak" | "saveFailed" | "savedNoAccess";
+
+/** Errores del login: el campo donde va y el código del mensaje (con el rol de la cuenta si es `wrongRole`). */
+export interface LoginError { field: "email" | "password" | "role" | "form" | "code" | "newPassword"; code: AuthErrorCode; role?: DesktopRole }
 
 /** Para qué es el código del correo: activar una invitación o restablecer la contraseña. */
 export type CodePurpose = "invite" | "recovery";
@@ -22,8 +25,6 @@ interface AuthState {
   /** Guarda la contraseña nueva y entra con el rol del perfil. */
   setNewPassword: (password: string) => Promise<{ error: LoginError | null; role: DesktopRole | null }>;
 }
-
-const ROLE_NAME: Record<DesktopRole, string> = { teacher: "Docente", admin: "Secretaría", principal: "Rectoría", platform: "Plataforma" };
 
 const AuthContext = createContext<AuthState | null>(null);
 
@@ -85,19 +86,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sb = supabase();
     const { error } = await sb.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
     if (error) {
-      if (/invalid login credentials/i.test(error.message)) return fail({ field: "password", message: "Correo o contraseña incorrectos." });
-      if (/email not confirmed/i.test(error.message)) return fail({ field: "email", message: "Confirma tu correo antes de entrar." });
-      return fail({ field: "form", message: "No pudimos conectar con NotaScan. Revisa tu conexión e inténtalo de nuevo." });
+      if (/invalid login credentials/i.test(error.message)) return fail({ field: "password", code: "badCredentials" });
+      if (/email not confirmed/i.test(error.message)) return fail({ field: "email", code: "notConfirmed" });
+      return fail({ field: "form", code: "network" });
     }
     const p = await loadProfile().catch(() => null);
     if (!p) {
       await sb.auth.signOut();
-      return fail({ field: "email", message: "Tu cuenta no tiene acceso a la app de escritorio. Solicita acceso a tu coordinación." });
+      return fail({ field: "email", code: "noDesktop" });
     }
     // La plataforma no está entre las opciones de «Entrar como»: entra con cualquiera.
     if (p.role !== role && p.role !== "platform") {
       await sb.auth.signOut();
-      return fail({ field: "role", message: "Tu cuenta está registrada como " + ROLE_NAME[p.role] + "." });
+      return fail({ field: "role", code: "wrongRole", role: p.role });
     }
     setProfile(p);
     setStatus("signed-in");
@@ -114,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = useCallback<AuthState["resetPassword"]>(async (email) => {
     if (DEMO) return null;
     const { error } = await supabase().auth.resetPasswordForEmail(email.trim().toLowerCase());
-    return error ? { field: "form", message: "No pudimos enviar el correo. Inténtalo de nuevo en unos minutos." } : null;
+    return error ? { field: "form", code: "resetFailed" } : null;
   }, []);
 
   const acceptCode = useCallback<AuthState["acceptCode"]>(async (email, code, purpose) => {
@@ -132,8 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     signingIn.current = false;
     return /expired|invalid|not found/i.test(last)
-      ? { field: "code", message: "El código no es válido o ya venció. Pide uno nuevo." }
-      : { field: "form", message: "No pudimos conectar con NotaScan. Revisa tu conexión e inténtalo de nuevo." };
+      ? { field: "code", code: "badCode" }
+      : { field: "form", code: "network" };
   }, []);
 
   const setNewPassword = useCallback<AuthState["setNewPassword"]>(async (password) => {
@@ -141,14 +142,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await sb.auth.updateUser({ password });
     if (error) {
       return { error: /weak|short|characters/i.test(error.message)
-        ? { field: "newPassword", message: "Elige una contraseña más segura: al menos 8 caracteres con letras y números." }
-        : { field: "form", message: "No pudimos guardar la contraseña. Revisa tu conexión e inténtalo de nuevo." }, role: null };
+        ? { field: "newPassword", code: "weak" }
+        : { field: "form", code: "saveFailed" }, role: null };
     }
     const p = await loadProfile().catch(() => null);
     signingIn.current = false;
     if (!p) {
       await sb.auth.signOut();
-      return { error: { field: "form", message: "Tu contraseña quedó guardada, pero tu cuenta aún no tiene acceso. Habla con tu coordinación." }, role: null };
+      return { error: { field: "form", code: "savedNoAccess" }, role: null };
     }
     setProfile(p);
     setStatus("signed-in");
@@ -166,4 +167,3 @@ export function useAuth(): AuthState {
   return ctx;
 }
 
-export { ROLE_NAME };
