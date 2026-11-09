@@ -1,6 +1,6 @@
 # Anexo de diseño · Modo oscuro de NotaScan escritorio
 
-Fecha: 2026-11-08 · Fase: contrato firmado, pasos 1, 2 y 3 hechos. Diego eligió la dirección B · Campo marino el 2026-11-08. El contrato está en la sección 11 y lo hecho en los pasos 1, 2 y 3, con sus mediciones, en las secciones 12, 13 y 14. Las secciones 3 a 10 son la investigación que llevó a esa elección y no se reescriben.
+Fecha: 2026-11-08 · Fase: contrato firmado, pasos 1, 2 y 3 hechos y paso 4 parado en cuatro decisiones. Diego eligió la dirección B · Campo marino el 2026-11-08. El contrato está en la sección 11 y lo hecho en los pasos 1 a 4, con sus mediciones, en las secciones 12 a 15. Las secciones 3 a 10 son la investigación que llevó a esa elección y no se reescriben.
 
 Origen del pedido. El profesor pidió el 2026-10-07 modo claro y oscuro a elección de la persona (Claro, Oscuro, Como el sistema), guardado en el dispositivo. Diego decidió el 2026-10-08 que el oscuro se deriva del sistema NotaScan, que no es otra marca, que se mide el contraste y que se ven capturas antes de aplicarlo en todo.
 
@@ -652,3 +652,103 @@ Queda pendiente, sin medir. Faltan los tres botones nativos con `setTheme` en un
 - Pasos 4 (Planilla, tablas, `Drawer`, `Modal` y gráficas) y 5 (estados).
 
 El siguiente paso es el 4. No se empieza sin el visto bueno de Diego sobre este.
+
+Diego aprobó el paso 3 el 2026-11-08.
+
+## 15. Paso 4 · Resto de pantallas en oscuro
+
+Hecho el 2026-11-08 en la rama `feature/modo-oscuro`, después de integrar `feature/idiomas` (pantallas de Secretaría en tres idiomas). Lo respaldan las cláusulas O2 a O6. Este paso queda **parado en cuatro decisiones** que piden a Diego un color fuera del contrato o un cambio de forma. Están al final y no se aplicó ninguna.
+
+### Recorrido
+
+`scripts/verify-dark-screens.mjs` (`npm run verify:dark-screens`) recorre las 37 rutas de Docente, Secretaría, Rectoría y Plataforma, más el inicio de sesión y la vista de componentes (`#/dev/components`, que trae `Modal`, `Drawer`, `ConfirmDialog`, `ConfirmAction` y el diálogo de contraseña). Abre además cinco diálogos reales, que son Preferencias, la búsqueda Ctrl+K, la confirmación de guardado de la revisión, el alta de un colegio en Plataforma y el registro de un estudiante en Secretaría. Lo hace a 1024 y 1440 px con el tema guardado como lo haría la persona, y son 88 cargas en total. Las capturas son del tamaño de la ventana, sin página completa, y están en `verify-out/p4/`.
+
+En cada carga mide sobre los estilos calculados de lo que se pinta.
+
+- Todo el texto visible contra su fondo real, componiendo las capas semitransparentes. El mínimo es AA, y 3:1 en texto grande.
+- Las cifras de decisión a 7:1 (O6). Son la nota de la tarjeta, las cifras del panel, los KPI, el cambio de nota, el centro de los anillos y las notas y promedios de la Planilla.
+- O4, todo texto sobre relleno dorado con tinta oscura.
+- Los bordes de 2 px a 3:1 contra lo que tienen detrás, o el relleno a 3:1.
+- Las superficies claras sueltas (luminancia mayor que 0.5) fuera del papel de O5. Las líneas de 4 px o menos cuentan como tinta.
+- El foco en las primeras 12 paradas de Tab de cada ruta a 1440.
+- En las gráficas, cada serie a 3:1 contra el fondo, y la separación entre series comparada con la del claro.
+- La consola.
+
+### Qué se corrigió
+
+Todo sale del generador (`scripts/generar-tema-oscuro.mjs`). `notascan.css` sigue sin tocarse.
+
+1. **Superficies dentro de un campo navy.** Una insignia «Borrador» sobre el periodo elegido, el icono del panel principal o un botón secundario dentro de un bloque navy son superficies propias (papel, marfil o suaves). En claro son claras con tinta navy, pero en oscuro heredaban el `--navy` de campo y quedaban navy sobre papel (1.36:1). Una regla generada con `:is()` las devuelve a los tokens oscuros de B. Son 229 selectores leídos de `notascan.css` y `amendments.css`.
+2. **Fondos claros escritos a mano.** El generador ya no depende solo de la lista hecha a mano. Encuentra los diez fondos claros literales y pasa cada uno al token claro más cercano, que en oscuro resuelve su par de B. Así se arreglaron la búsqueda Ctrl+K, que era casi blanca con texto marfil (1.14:1), la medalla de bronce de la clasificación (1.03:1) y el sello de verificado. La lista a mano sigue y gana donde elegía otro token.
+3. **Dorados repintados.** La cabecera de fila de las tablas (`.ns-table th[scope="row"]`) es transparente con tinta navy, pero el parche dorado de `.ns-table th` le ponía tinta oscura sobre fondo oscuro (1.09:1, en Estructura de Secretaría). El generador ahora busca las variantes más específicas que el sistema repinta sin dorado y les devuelve su tinta.
+4. **Escudo del boletín.** Dentro del papel (O5), los campos del sistema también resuelven los tokens claros. Las iniciales del escudo pasaron de 4.23:1 a las del claro.
+5. **Resumen del perfil del estudiante.** El componente escribe `color: var(--ivory-deep)` sobre el bloque navy (enmienda de octubre). En oscuro quedaba oscuro sobre navy (1.20:1). Dentro de ese bloque ahora usa el `--muted` de campo.
+
+6. **Foco dentro de un relleno dorado.** Los encabezados que ordenan la tabla de colegios de Plataforma viven en una cabecera dorada. El contorno de foco era el `--focus` dorado claro sobre el dorado (1.33:1). Dentro de un relleno dorado el foco lleva ahora la tinta `#161513` (7.72:1), igual que en claro lleva el navy. El botón dorado en sí no cambia, porque su contorno cae fuera, sobre la página.
+
+Hubo además ajustes del propio comprobador.
+
+- El foco de los campos que lo dibujan en su envoltorio (los roles y los campos del login) se mide en el envoltorio.
+- Después de cada Tab espera 60 ms. Sin esa espera medía el contorno a mitad de su transición de 1 ms, y el de los roles del login salía navy sobre navy cuando en la captura se ve dorado.
+- El separador fuerte de 2 px cuenta como tinta y no como superficie.
+- Con `NS_ONLY` se repite una sola pantalla.
+
+### Mediciones
+
+`verify:dark-screens` pasa 7 de 10 comprobaciones. Las tres que fallan son las decisiones 1, 2 y 3 de abajo.
+
+| Comprobación | Resultado |
+|---|---|
+| Texto con AA (3:1 en grande) | 9347 textos en 88 cargas, todos pasan |
+| Texto sin medir (degradado o imagen detrás) | 6, en la foto del examen y la franja rayada de «sin peso» |
+| Cifras de decisión a 7:1 (O6) | 254 cifras. Fallan solo las notas bajas de la Planilla, entre 5.75 y 6.52 (decisión 1) |
+| O4, texto sobre dorado con tinta oscura | 142 textos, todos a 4.5:1 o más |
+| Bordes de 2 px a 3:1 | 3254 bordes. Fallan los de los campos navy, entre 1.36 y 1.49 (decisión 2) |
+| Superficies claras sueltas fuera del papel | ninguna |
+| Foco en las primeras 12 paradas de Tab | 466 paradas, todas visibles a 3:1 o más |
+| Gráficas, series contra el fondo | 28 series, todas a 3:1 o más |
+| Gráficas, ejes y rótulos | el más bajo 6.50:1 |
+| Gráficas, separación entre series | baja frente al claro (decisión 3) |
+| Consola | limpia en las 88 cargas |
+
+Los campos navy que fallan el borde se reparten así en las dos anchuras. Controles con estado son el ítem activo del menú (42), los chips marcados (13), el periodo elegido (2), el peso de la evaluación (2), la casilla marcada (1) y la bandeja de rectoría (1). Bloques y adornos son la marca del panel lateral (42), los bloques navy (7), los sellos navy (4), los paneles principales (6), la barra de progreso invertida (3) y el escudo del boletín en la lista (1).
+
+La tabla completa, con la muestra de cada medición, está en `verify-out/oscuro-p4-mediciones.md`. Las 88 capturas están en `verify-out/p4/`.
+
+### Regresión
+
+Corrida completa sobre `npm run build:demo`, con `NS_PORT=4193`.
+
+| Verificación | Base | Ahora |
+|---|---|---|
+| `verify:shell` | 61/62 | 61/62 |
+| `verify:components` | 120/121 | 120/121 |
+| `verify:card` | 50/51 | 50/51 |
+| `verify:teacher` | 122/123 | entre 118 y 121 de 123 |
+| `verify:admin` | 104/105 | 104/105 |
+| `verify:principal` | 75/76 | 75/76 |
+| `verify:print` | 5/5 | 5/5 |
+| `verify:states` | 98/98 | 98/98 |
+| `verify:i18n` | 965/965 | 965/965 |
+| `verify:tokens` | 25/26 | 25/26 |
+| `verify:dark` | 138/138 | 138/138 |
+| `verify:theme` | 49/49 | 49/49 |
+| `verify:titlebar` | 89/89 | 89/89 |
+| `verify:dark-screens` | nuevo | 7/10 |
+
+`verify:teacher` no es una regresión de este paso. Sus fallas extra son comparaciones de píxeles del claro contra el sistema (entre 3.8 % y 16 %) que cambian de pantalla en cada corrida. En la primera fallaron evaluaciones, conceptos y perfil, en la segunda el panel, y en la tercera evaluaciones, comportamiento y reportes. Para descartar el tema se compiló el commit anterior, sin los cambios de este paso, y dio 121/123 con la falla en reportes. Las capas nuevas solo actúan con `data-theme="dark"`, y `verify:dark` mide que el claro pinta igual píxel a píxel. El equipo estaba cargado con otras corridas de pruebas en paralelo (la compilación tardó 20 s en vez de 5 s), y eso mueve los tiempos de las animaciones que esas comparaciones capturan. Queda anotado para repetirlo con el equipo libre.
+
+### Decisiones para Diego (el paso para aquí)
+
+1. **Las notas bajas de la Planilla no llegan a 7:1.** `.ns-gcell.is-low` usa `--burgundy` `#e38a80`, que da 6.52:1 sobre papel y 5.75:1 en la fila marcada. Pasa AA pero no la cláusula O6. No se arregla sin cambiar el burdeos del contrato. La propuesta es `--burgundy` `#eea49a` en oscuro, que da 8.27:1 sobre papel, 7.29:1 en la fila marcada, 9.05:1 sobre la página y 7.47:1 sobre `--burgundy-soft`. Los rellenos burdeos con tinta oscura ganan contraste.
+2. **El borde de los campos navy no se separa del carbón.** El campo `#22345c` contra la página `#161513` da 1.49:1, y contra el papel 1.36:1. Su borde es del mismo color del campo. En los bloques (Continúa donde quedaste, el panel del login, los KPI principales) lo separa la repisa y el texto, y no es un control. Pero en controles con estado sí cuenta para WCAG 1.4.11, y son el ítem activo del menú, los chips marcados, el periodo elegido, la casilla marcada y la bandeja de rectoría. La alternativa dentro del contrato es que, en oscuro, los campos que son controles lleven borde de 2 px en la tinta `#ece4d4` (13:1), sin tocar los bloques. Cambia el aspecto, así que necesita su visto bueno.
+3. **Separación entre series en las gráficas.** Contra el fondo todas las series pasan, y mejor que en claro (el dorado pasa de 2.62:1 a 7.72:1). Entre ellas la separación baja, porque la serie navy pasa a marfil. Entre barras normales y bajas cae de 4.91:1 a 1.87:1, entre las líneas de 2026 y 2025 de 2.37:1 a 1.40:1, y entre las porciones navy y dorada del anillo de 4.91:1 a 1.87:1. Se siguen distinguiendo por tono, por la línea de meta, por el trazo punteado de 2025 y por la leyenda, que es lo mismo que pasa en claro entre salvia y dorado (1.25:1). Si Diego quiere más separación, la opción dentro del contrato es que la serie principal use el campo navy `#22345c` con borde marfil. Eso cambia el aspecto de todas las gráficas.
+4. **La ilustración del login.** Sigue pendiente desde la sección 8. La hoja del examen dibujada pasa a oscura, y falta decidir si sigue la regla del papel.
+
+### Pendiente
+
+- Las cuatro decisiones de arriba.
+- Paso 5 (estados).
+- La prueba en un Mac real del paso 3.
+
+El siguiente paso, cuando Diego decida, es aplicar lo que elija y volver a medir con `verify:dark-screens`.
