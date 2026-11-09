@@ -1075,3 +1075,71 @@ página (`box-decoration-break: clone`); el encabezado de la tabla se repite y l
 Verificación: `verify:print` 5/5 imprime a PDF real una tabla de 60 filas y la mide con PyMuPDF (A4 595×842 pt,
 3 páginas, ≥ 14 mm a cada lado también arriba en las páginas 2 y 3, encabezado en cada página); `verify:teacher-data`
 62/62 (la hoja cabe en los 794 px del A4). En la app de escritorio, el diálogo de impresión muestra la hoja limpia.
+
+## Multiplataforma: Windows, Linux y macOS (2026-11-08)
+
+Pedido del profesor: NotaScan debe funcionar en Windows, Linux y macOS. Decisiones de Diego del 2026-11-08:
+
+- **Barra de título según el sistema (enmienda 10, aprobada por Diego el 2026-11-08).** En macOS se usa la barra nativa transparente con los tres botones del sistema a la izquierda y el diseño de NotaScan detrás. En Windows y Linux sigue la barra propia del paso 6h. Motivo: en macOS los controles de ventana van a la izquierda y una barra al estilo de Windows se ve ajena.
+- **Verificación en las máquinas de GitHub.** Diego no tiene Mac ni Linux a mano. Se compila y se abre la app en los equipos macOS y Linux de GitHub Actions y se sacan capturas de ahí. Lo que no se pueda medir así (impresora real, firma de Apple) queda pendiente y se dice.
+
+### Paso A · Fuentes dentro de la app (hecho 2026-11-08)
+
+Hasta hoy Fraunces e Inter se pedían a Google Fonts desde `index.html`. Sin internet caían a Georgia y a la letra del sistema, y cada arranque le enviaba la IP del equipo a Google, algo que la política de datos no declara. Ahora van dentro del instalador (`src/styles/fonts.css`, paquetes `@fontsource-variable/fraunces` e `@fontsource-variable/inter`, licencia OFL 1.1).
+
+El contrato no cambia. Se usan los mismos nombres de familia que los tokens y los mismos ejes que la petición anterior (Fraunces con opsz y wght, Inter con wght). No se añadió cursiva real, porque antes tampoco se cargaba y cambiaría el aspecto. Solo latín y latín extendido, que cubren español, inglés y portugués.
+
+Verificación (`npm run verify:fonts`, 28/28):
+
+- Sin internet, las cuatro pantallas principales cargan Fraunces e Inter desde la app y no sale ninguna petición a Google.
+- Comparadas contra la versión anterior con Google Fonts, salen iguales: 0,000 % de píxeles distintos en Login, Secretaría y Rectoría, y 0,016 % en Docente.
+- Control: la versión anterior sí descarga de Google, y una versión sin fuentes da entre 3,4 % y 6,7 % de diferencia, así que la comparación detecta un cambio de letra.
+
+Las pruebas de fidelidad armaban la referencia del sistema encima de la página de la app y conservaban su enlace a Google Fonts. Al quitarlo, la referencia quedó sin fuentes y fallaron decenas de comparaciones. Se corrigió el arnés (`harness`, `verify-card`, `verify-components`, `verify-shell`, `verify-teacher`) para que la referencia cargue sus fuentes como `notascan-ui/index.html`. Con eso la regresión queda como antes del cambio: shell 61/62, components 120/121, card 50/51, teacher 122/123, admin 104/105, principal 75/76, print 5/5, states 98/98. La única falla común ya estaba antes del cambio: colores literales en `PhoneUpload.tsx:33` y `print.css:12`.
+
+La página pública `mobile-subir/` sigue con Google Fonts. Es una web aparte y se revisa cuando toque el paso de cookies y rastreo de la web.
+
+### Paso B · Barra de título según el sistema (hecho 2026-11-08, enmienda 10)
+
+- **macOS**: `src-tauri/tauri.macos.conf.json` pide la barra nativa transparente (`titleBarStyle: Overlay`, título oculto) y coloca los tres botones del sistema a 14 px del borde y centrados en la barra de 32 px (`trafficLightPosition` 14, 16). La app pinta detrás el mismo fondo y borde de siempre y la marca a 78 px, justo después de los botones (14 + 3 × 12 + 2 × 8 = 66, más los 12 px que la marca tiene en Windows). No hay botones propios ni se consulta si la ventana está maximizada.
+- **Windows y Linux**: la barra del paso 6h, sin cambios.
+- La app reconoce macOS por el agente de usuario de WKWebView («Macintosh»). Tauri solo aplica `tauri.macos.conf.json` al compilar en un Mac.
+- Fuera del contrato no entra nada nuevo: mismos tokens (`--paper`, `--ivory-deep`, `--muted`) y la misma marca.
+
+Verificación (`npm run verify:titlebar`, 23/23). Simula la app de escritorio con el agente de usuario de cada sistema:
+
+- macOS: 0 botones propios, marca a 78 px, barra y marca arrastrables, contenido debajo de la barra, consola limpia.
+- Windows y Linux: Minimizar, Maximizar y Cerrar con su nombre accesible, marca a 12 px, y la barra idéntica a la del commit anterior (0 píxeles distintos).
+- La barra mide 33 px de alto, 32 más 1 px de borde. Así estaba desde el paso 6h y el contenido sigue empezando en 32 px.
+
+**Pendiente de medir en el Mac de GitHub (paso C):** que los botones del sistema queden de verdad centrados a 16 px y que la marca no se monte sobre ellos. El valor 16 sale de leer cómo los coloca `tao` 0.37.1 (`inset_traffic_lights`), no de una medición.
+
+Arreglo del arnés: las referencias del sistema ahora esperan `document.fonts.ready` después de montar. Sin eso, la referencia de Login salió sin sus fuentes en una de cuatro corridas (1,910 %), un fallo intermitente que dejó el arreglo del paso A.
+
+### Paso C · Compilar y medir en los tres sistemas (hecho 2026-11-08)
+
+El flujo `.github/workflows/notascan-multiplataforma.yml` corre en cada PR. Compila NotaScan en Windows (`windows-latest`, instaladores `.msi` y `.exe`), Linux (`ubuntu-22.04`, `.deb` y `.AppImage`) y macOS (`macos-latest`, `.app` y `.dmg`). Luego abre la app, saca una captura y la mide con `scripts/ci/medir-captura.py`. Los instaladores y las capturas quedan como artefactos de la corrida.
+
+El medidor busca la marca dorada de la barra (`--gold`) y el fondo papel (`--paper`) a su alrededor. En macOS mide también los tres botones del sistema. Reconoce dos paletas, la de Sonoma y Sequoia y la que trae el Mac de GitHub (rojo 255,92,95, amarillo 250,200,0, verde 52,199,89).
+
+Lo que encontró la CI y se corrigió en el camino:
+
+- En macOS la franja de la barra salía vacía. WebKit desplaza `#root` en su propia capa y recortaba la barra, que vivía dentro. Ahora la barra se dibuja en `<body>`. Se confirmó con un panel de diagnóstico temporal, que ya se quitó.
+- El Mac de GitHub tiene una pantalla de 1024 × 768 y la ventana no cabía. Si no cabe, se recorta al área útil y se centra. En Windows sigue abriendo maximizada.
+- La posición calculada en el paso B no era la real. En el Mac de la CI los botones miden 14 px y terminan en 73 px. La marca pasó de 78 a 85 px (12 px después del último botón, como pide la enmienda 10) y los botones bajaron 2 px (`trafficLightPosition` 14, 18) para quedar centrados con ella. `verify:titlebar` se ajustó a 85 px.
+
+La corrida 42535903057 del 2026-11-08 salió en verde en los tres sistemas.
+
+| Sistema | Medición | Detalle |
+|---|---|---|
+| Windows | 5/5 | Abre maximizada, marca a 14 px del borde, escala 1,00 |
+| Linux | 4/4 | Marca y fondo papel correctos, escala 1,00 |
+| macOS | 11/11 | Botones en orden cerrar, minimizar y zoom, centrados con la marca (0,0 px de desfase), primer botón a 14 px del borde y 14 px de aire entre el último botón y la marca |
+
+Capturas en `docs/ux/capturas/2026-11-08 ci windows.png`, `ci linux.png`, `ci macos.png` y `ci macos barra.png`.
+
+Pendiente, porque no se puede medir en las máquinas de GitHub:
+
+- Los instaladores de macOS no van firmados ni notarizados (hace falta una cuenta de Apple Developer). Al abrirlos, Gatekeeper avisa y hay que permitirlos a mano en Ajustes.
+- La impresión de boletines y reportes con una impresora real en Linux y macOS.
+- La app con pantallas de escala 2 (Retina). La CI solo tiene escala 1.

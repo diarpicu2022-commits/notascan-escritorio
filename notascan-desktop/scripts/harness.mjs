@@ -9,7 +9,9 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const DS = join(ROOT, "..", "notascan-ui");
 export const OUT = join(ROOT, "verify-out");
 mkdirSync(OUT, { recursive: true });
-export const URL_BASE = "http://localhost:4173/";
+/** Puerto de la vista previa. `NS_PORT` permite correr dos copias de las pruebas a la vez (dos ramas). */
+export const PORT = process.env.NS_PORT || "4173";
+export const URL_BASE = `http://localhost:${PORT}/`;
 
 export function createReport() {
   const results = [];
@@ -55,10 +57,10 @@ export function findOffSystemValues() {
 
 /** Arranca `vite preview` sobre dist/ y Chromium; devuelve un cierre que limpia ambos. */
 export async function startPreview() {
-  const server = spawn(process.execPath, [join(ROOT, "node_modules/vite/bin/vite.js"), "preview", "--port", "4173", "--strictPort"], { cwd: ROOT });
+  const server = spawn(process.execPath, [join(ROOT, "node_modules/vite/bin/vite.js"), "preview", "--port", PORT, "--strictPort"], { cwd: ROOT });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error("vite preview no arrancó")), 30000);
-    server.stdout.on("data", (d) => { if (String(d).includes("4173")) { clearTimeout(t); res(); } });
+    server.stdout.on("data", (d) => { if (String(d).includes(PORT)) { clearTimeout(t); res(); } });
     server.stderr.on("data", (d) => { if (/in use|error/i.test(String(d))) { clearTimeout(t); rej(new Error(String(d))); } });
   });
   // Mismo modo de suavizado de texto en todas las páginas: si no, Chromium alterna LCD y gris
@@ -161,7 +163,9 @@ export async function openReference(ctx, hash) {
   const cons = watchConsole(page);
   await page.goto(URL_BASE + "#/dev/tokens", { waitUntil: "networkidle" });
   await page.evaluate(() => {
-    document.head.querySelectorAll("style,link[rel=stylesheet]:not([href*=fonts])").forEach((n) => n.remove());
+    document.head.querySelectorAll("style,link[rel=stylesheet]").forEach((n) => n.remove());
+    // La referencia carga sus fuentes como notascan-ui/index.html (Google Fonts); la app ya las trae dentro.
+    const fl = document.createElement("link"); fl.rel = "stylesheet"; fl.href = "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700;800&display=swap"; document.head.appendChild(fl);
     const m = document.createElement("div"); m.id = "ref"; document.body.replaceChildren(m);
   });
   await page.addStyleTag({ path: join(DS, "css/tokens.css") });
@@ -172,6 +176,7 @@ export async function openReference(ctx, hash) {
   await page.evaluate((h) => history.replaceState(null, "", h), hash);
   await page.addScriptTag({ path: join(DS, "js/notascan.js") });
   await page.evaluate(() => ReactDOM.createRoot(document.getElementById("ref")).render(React.createElement(NotaScan.NotaScanApp)));
+  await page.evaluate(() => document.fonts.ready); // las fuentes de Google de la referencia llegan después del montaje
   return { page, cons };
 }
 

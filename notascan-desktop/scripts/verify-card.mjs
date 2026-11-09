@@ -22,7 +22,9 @@ try {
   const refConsole = watchConsole(ref);
   await ref.goto(URL_BASE + "#/dev/tokens", { waitUntil: "networkidle" }); // mismo origen y fuentes
   await ref.evaluate(() => {
-    document.head.querySelectorAll("style,link[rel=stylesheet]:not([href*=fonts])").forEach((n) => n.remove());
+    document.head.querySelectorAll("style,link[rel=stylesheet]").forEach((n) => n.remove());
+    // La referencia carga sus fuentes como notascan-ui/index.html (Google Fonts); la app ya las trae dentro.
+    const fl = document.createElement("link"); fl.rel = "stylesheet"; fl.href = "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700;800&display=swap"; document.head.appendChild(fl);
     const mount = document.createElement("div");
     mount.id = "ref";
     document.body.replaceChildren(mount);
@@ -48,6 +50,7 @@ try {
           picks.map((r, i) => h(N.StudentGradeCard, { key: r.student.id, index: i + 1, student: r.student, detected: r.detected, confidence: r.confidence, status: r.status, animate: false })),
           h(N.StudentGradeCardSkeleton || "div", { key: "sk" }))));
   }, { rows, idx: ROWS_IDX });
+  await ref.evaluate(() => document.fonts.ready); // las fuentes de Google de la referencia llegan después del montaje
   await ref.waitForTimeout(900);
   await mine.waitForTimeout(900);
 

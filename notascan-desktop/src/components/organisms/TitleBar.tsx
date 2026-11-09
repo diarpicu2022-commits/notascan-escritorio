@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
+import { createPortal } from "react-dom";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Icon } from "../atoms/Icon";
 import { Logo } from "../atoms/Logo";
@@ -12,10 +13,25 @@ import { Logo } from "../atoms/Logo";
 /** ¿Estamos dentro de la app de escritorio (Tauri) y no en un navegador? */
 export const IN_DESKTOP = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
+/*
+ * Enmienda 10 (2026-11-08, Diego): barra de título según el sistema.
+ * En macOS la ventana trae la barra nativa transparente (src-tauri/tauri.macos.conf.json) con los tres botones del
+ * sistema a la izquierda: aquí solo se pinta el fondo, el borde y la marca a su derecha, sin botones propios.
+ * En Windows y Linux sigue la barra propia del paso 6h. WKWebView, el motor de macOS, se anuncia como «Macintosh».
+ */
+export const IS_MAC = typeof navigator !== "undefined" && /Macintosh|Mac OS X/.test(navigator.userAgent);
+
+/*
+ * La barra va directo en <body>, fuera de #root (2026-11-08). #root es la caja que desplaza la app y empieza debajo de
+ * la barra. En macOS, WebKit desplaza esas cajas en su propia capa gráfica y recorta lo fijo que llevan dentro, así
+ * que en el Mac de la CI la barra existía pero no se veía. Fuera de #root no la recorta nadie, en ningún sistema.
+ */
+const toBody = (bar: ReactElement) => createPortal(bar, document.body);
+
 export function TitleBar() {
   const [max, setMax] = useState(false);
   useEffect(() => {
-    if (!IN_DESKTOP) return;
+    if (!IN_DESKTOP || IS_MAC) return;
     const w = getCurrentWindow();
     let off: (() => void) | undefined;
     const sync = () => { void w.isMaximized().then(setMax); };
@@ -25,7 +41,15 @@ export function TitleBar() {
   }, []);
   if (!IN_DESKTOP) return null;
   const w = getCurrentWindow();
-  return (
+  if (IS_MAC) return toBody(
+    <header className="ns-titlebar ns-titlebar--mac" data-tauri-drag-region>
+      <span className="ns-titlebar-brand" data-tauri-drag-region>
+        <Logo size={13} markOnly />
+        <span data-tauri-drag-region>NotaScan</span>
+      </span>
+    </header>
+  );
+  return toBody(
     <header className="ns-titlebar" data-tauri-drag-region>
       <span className="ns-titlebar-brand" data-tauri-drag-region>
         <Logo size={13} markOnly />

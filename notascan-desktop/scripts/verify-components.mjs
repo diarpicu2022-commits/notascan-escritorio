@@ -63,7 +63,9 @@ try {
   const refConsole = watchConsole(ref);
   await ref.goto(URL_BASE + "#/dev/tokens", { waitUntil: "networkidle" });
   await ref.evaluate(() => {
-    document.head.querySelectorAll("style,link[rel=stylesheet]:not([href*=fonts])").forEach((n) => n.remove());
+    document.head.querySelectorAll("style,link[rel=stylesheet]").forEach((n) => n.remove());
+    // La referencia carga sus fuentes como notascan-ui/index.html (Google Fonts); la app ya las trae dentro.
+    const fl = document.createElement("link"); fl.rel = "stylesheet"; fl.href = "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700;800&display=swap"; document.head.appendChild(fl);
     const m = document.createElement("div"); m.id = "ref"; document.body.replaceChildren(m);
   });
   await ref.addStyleTag({ path: join(DS, "css/tokens.css") });
@@ -84,6 +86,7 @@ try {
           specs.map((s) => h("section", { key: s[0], "data-spec": s[0], style: { display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "var(--space-3)" } },
             h("span", { className: "ns-overline" }, s[0]), h("div", { "data-spec-body": true }, s[1]))))));
   });
+  await ref.evaluate(() => document.fonts.ready); // las fuentes de Google de la referencia llegan después del montaje
   await Promise.all([ref.waitForTimeout(1500), mine.waitForTimeout(1500)]);
 
   const names = await mine.locator("[data-spec]").evaluateAll((els) => els.map((e) => e.dataset.spec));

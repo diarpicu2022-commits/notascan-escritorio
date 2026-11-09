@@ -7,3 +7,7 @@ Thumbs.db
 .secrets/
 .env.local
 .tmp-sql/
+
+# Python
+__pycache__/
+*.pyc
