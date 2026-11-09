@@ -25,6 +25,7 @@ import { FilterGroup } from "../../components/molecules/Filters";
 import { forcedState } from "../../services/client";
 import { queryState } from "../teacher/states";
 import { useI18n } from "../../i18n/I18nProvider";
+import { usePrintNotice } from "../../components/organisms/PrintNotice";
 import { seenText } from "../../i18n/seen";
 import type { Messages } from "../../i18n/es";
 
@@ -124,6 +125,7 @@ export function AnalyticsPage() {
   const [showToast, toastNode] = useToast();
   const { t } = useI18n();
   const x = t.pri.analytics;
+  const [askPrint, printNotice] = usePrintNotice();
   // «Exportar informe» (6c): el informe del periodo que se ve, en PDF, Excel o CSV; en demostración, el botón del sistema.
   async function exportReport() {
     if (!an.data || !school || !me) {
@@ -150,11 +152,12 @@ export function AnalyticsPage() {
         description={x.exportDesc(t.tch.periodName(an.data?.period ?? ""))}
         actions={[
           <Button key="c" variant="secondary" onClick={() => setExporting(false)}>{t.common.cancel}</Button>,
-          <Button key="g" icon="download" onClick={exportReport}>{x.exportFmt(FORMAT_LABEL[fmt])}</Button>,
+          <Button key="g" icon="download" onClick={() => askPrint(() => { void exportReport(); })}>{x.exportFmt(FORMAT_LABEL[fmt])}</Button>,
         ]}>
         <FilterGroup label={x.format} value={fmt} onChange={(v) => setFmt(v as ReportFormat)} options={[{ value: "pdf", label: "PDF" }, { value: "xlsx", label: "Excel" }, { value: "csv", label: "CSV" }]} />
       </Modal>
       {printing ? <PrintReport data={printing} onDone={() => setPrinting(null)} /> : null}
+      {printNotice}
       {toastNode}
     </PageShell>
   );

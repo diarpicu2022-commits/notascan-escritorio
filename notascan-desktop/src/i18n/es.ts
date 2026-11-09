@@ -187,6 +187,12 @@ export const es = {
   adm: secretariaEs,
   /* Paso 5: Rectoría, consola de la plataforma y último acceso. */
   ...rectoriaEs,
+  /* Paso 6: aviso de impresos (I7). En español no se muestra. */
+  printNotice: {
+    title: "Los documentos salen en español",
+    text: "Los boletines y los reportes son documentos oficiales y siempre se imprimen y exportan en español.",
+    ok: "Continuar",
+  },
 };
 
 export type Messages = typeof es;

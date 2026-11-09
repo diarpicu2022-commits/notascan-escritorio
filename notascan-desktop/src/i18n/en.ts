@@ -182,4 +182,9 @@ export const en: Messages = {
   adm: secretariaEn,
   /* Paso 5: Rectoría, consola de la plataforma y último acceso. */
   ...rectoriaEn,
+  printNotice: {
+    title: "Documents come out in Spanish",
+    text: "Report cards and reports are official documents and are always printed and exported in Spanish.",
+    ok: "Continue",
+  },
 };

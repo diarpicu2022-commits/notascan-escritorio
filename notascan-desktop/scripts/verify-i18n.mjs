@@ -1,4 +1,4 @@
-// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común), paso 3 (Docente), paso 4 (Secretaría) y paso 5 (Rectoría y plataforma).
+// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común), paso 3 (Docente), paso 4 (Secretaría), paso 5 (Rectoría y plataforma) y paso 6 (textos legales y aviso de impresos).
 // Requiere `npm run build:demo` antes.
 import { createReport, startPreview, watchConsole, URL_BASE, OUT, sampleTextContrast, checkOverflow } from "./harness.mjs";
 import { join } from "node:path";
@@ -629,6 +629,57 @@ for (const lang of ["en", "pt"]) {
         await c2.ctx.close();
       }
     }
+  }
+}
+
+// 10. Paso 6 · Textos legales en el idioma y aviso de impresos (I7).
+{
+  const LEGAL6 = {
+    es: { open: "Política de tratamiento de datos", head: "Política de tratamiento de datos personales", governs: null },
+    en: { open: "Data processing policy", head: "Personal data processing policy", governs: "The Spanish version is the one that governs" },
+    pt: { open: "Política de tratamento de dados", head: "Política de tratamento de dados pessoais", governs: "A versão em espanhol é a que vale" },
+  };
+  for (const lang of ["es", "en", "pt"]) {
+    const L = LEGAL6[lang];
+    const { ctx, page, cons } = await open(lang, "es-CO", "#/login");
+    await page.getByRole("button", { name: L.open, exact: true }).first().click();
+    await page.waitForTimeout(300);
+    const text = await page.getByRole("dialog").innerText();
+    report.check(`Paso 6 ${lang}: la política del login está en el idioma`, text.includes(L.head), text.slice(0, 120).replace(/\n/g, " · "));
+    if (L.governs) {
+      report.check(`Paso 6 ${lang}: la política dice que rige el español`, text.includes(L.governs));
+      report.check(`Paso 6 ${lang}: la política dice que es borrador para abogado`, /lawyer|advogado/.test(text));
+      report.check(`Paso 6 ${lang}: la política lleva versión y fecha`, /2026\.1/.test(text) && /(October 6, 2026|6 de outubro de 2026)/.test(text));
+    } else report.check("Paso 6 es: la política en español no lleva notas nuevas", !/governs|vale o espanhol/.test(text));
+    report.check(`Paso 6 ${lang}: consola limpia (política)`, cons.length === 0, cons.join(" | "));
+    await ctx.close();
+  }
+  // Aviso de impresos: en inglés y portugués aparece antes de generar; en español no.
+  const NOTICE = { es: null, en: "Documents come out in Spanish", pt: "Os documentos saem em espanhol" };
+  for (const lang of ["es", "en", "pt"]) {
+    const { ctx, page, cons } = await open(lang, "es-CO", "#/teacher/reports");
+    await page.locator(".ns-report button").first().click();
+    await page.waitForTimeout(300);
+    const dlg = page.locator("[role=alertdialog]");
+    if (NOTICE[lang]) {
+      report.check(`Paso 6 ${lang}: aviso de impresos antes de generar un reporte`, (await dlg.count()) === 1 && (await dlg.innerText()).includes(NOTICE[lang]));
+      if (lang === "pt") await page.screenshot({ path: join(OUT, "i18n-aviso-impresos-pt.png") });
+      await dlg.getByRole("button").last().click();
+      await page.waitForTimeout(300);
+      report.check(`Paso 6 ${lang}: al continuar, el reporte se genera`, (await page.locator(".ns-toast-region").count()) > 0);
+    } else {
+      report.check("Paso 6 es: sin aviso, el reporte se genera como antes", (await dlg.count()) === 0 && (await page.locator(".ns-toast-region").count()) > 0);
+    }
+    report.check(`Paso 6 ${lang}: consola limpia (aviso)`, cons.length === 0, cons.join(" | "));
+    await ctx.close();
+  }
+  for (const lang of ["en", "pt"]) {
+    const { ctx, page, cons } = await open(lang, "es-CO", "#/admin/reportcards");
+    await page.locator(".ns-grid-actions button[aria-label]").first().click();
+    await page.waitForTimeout(300);
+    report.check(`Paso 6 ${lang}: aviso de impresos antes de generar un boletín`, (await page.locator("[role=alertdialog]").innerText().catch(() => "")).includes(NOTICE[lang]));
+    report.check(`Paso 6 ${lang}: consola limpia (boletines)`, cons.length === 0, cons.join(" | "));
+    await ctx.close();
   }
 }
 

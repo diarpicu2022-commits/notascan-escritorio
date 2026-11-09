@@ -14,6 +14,7 @@ import { DataGrid } from "../DataGrid";
 import { Block } from "../Layout";
 import { ConfirmAction, Drawer } from "../Overlays";
 import { useToast } from "../Toast";
+import { usePrintNotice } from "../PrintNotice";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { shortDayYear } from "../../../i18n/dates";
 import type { Lang } from "../../../i18n/format";
@@ -38,6 +39,7 @@ export function StudentTable({ readOnly: ro = false, onNavigate }: { readOnly?: 
   const [showToast, toastNode] = useToast();
   const { t: tr, lang } = useI18n();
   const x = tr.adm.stu;
+  const [askPrint, printNotice] = usePrintNotice();
   // Dato viejo: si la recarga falla pero hay datos de antes, se siguen mostrando y se avisa desde cuándo.
   useEffect(() => {
     if (query.isRefetchError) showToast({ tone: "error", title: x.refreshError, message: x.refreshErrorText(clock(query.dataUpdatedAt)) });
@@ -74,7 +76,7 @@ export function StudentTable({ readOnly: ro = false, onNavigate }: { readOnly?: 
         </>}
         bulkActions={(sel, clear) => [
           <Button key="x" size="sm" variant="secondary" icon="download" onClick={() => showToast({ tone: "success", title: x.exported, message: x.exportedText(sel.length) })}>{x.export}</Button>,
-          <Button key="b" size="sm" variant="secondary" icon="book" onClick={() => showToast({ tone: "info", title: x.queued, message: x.queuedText(sel.length) })}>{x.generate}</Button>,
+          <Button key="b" size="sm" variant="secondary" icon="book" onClick={() => askPrint(() => showToast({ tone: "info", title: x.queued, message: x.queuedText(sel.length) }))}>{x.generate}</Button>,
           <Button key="a" size="sm" icon="archive" onClick={() => ask("archive", sel, clear)}>{x.archive}</Button>,
         ]}
         columns={[
@@ -118,6 +120,7 @@ export function StudentTable({ readOnly: ro = false, onNavigate }: { readOnly?: 
           );
         }}
       />
+      {printNotice}
       {toastNode}
     </>
   );

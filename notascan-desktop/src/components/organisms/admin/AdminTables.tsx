@@ -19,6 +19,7 @@ import { ConfirmAction, Modal } from "../Overlays";
 import { ReportCardView } from "../ReportCardDocument";
 import { PrintDocuments } from "../PrintDocuments";
 import { useToast } from "../Toast";
+import { usePrintNotice } from "../PrintNotice";
 import { useI18n } from "../../../i18n/I18nProvider";
 
 /* ---------- Boletines ---------- */
@@ -52,7 +53,10 @@ export function ReportCardManager() {
   const grades = DEMO ? ["6", "7", "8"].map((g) => ({ value: g, label: t.adm.gradeName(GRADE_NAME[g]) }))
     : (d?.courses ?? []).filter((c, i, all) => all.findIndex((y) => y.gradeId === c.gradeId) === i).map((c) => ({ value: c.gradeId, label: t.adm.gradeName(c.gradeName) }));
   const courseIds = DEMO ? COURSES : (d?.courses ?? []).map((c) => c.id);
-  function generate(list: RcRow[]) {
+  const [askPrint, printNotice] = usePrintNotice();
+  // I7: en inglés y portugués se avisa antes de generar que el boletín sale en español.
+  const generate = (list: RcRow[]) => askPrint(() => generateNow(list));
+  function generateNow(list: RcRow[]) {
     const ok = list.filter((s) => s.rc !== "blocked");
     if (DEMO) {
       const o = { ...gen };
@@ -114,6 +118,7 @@ export function ReportCardManager() {
       </Modal>
       <div className="ns-sticky-cta"><Button size="lg" icon="book" disabled={!rows.some((r) => r.rc !== "blocked")} onClick={() => setConfirmAll(true)}>{x.generateAll}</Button></div>
       {printing ? <PrintDocuments docs={printing.map((r) => cardOf(r, period))} onDone={afterPrint} /> : null}
+      {printNotice}
       {toastNode}
     </>
   );

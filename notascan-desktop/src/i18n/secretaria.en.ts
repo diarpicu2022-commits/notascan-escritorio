@@ -579,7 +579,7 @@ export const secretariaEn: typeof secretariaEs = {
       "Your account is personal: NotaScan records who verifies grades, takes attendance or decides requests.",
       "Data subjects can see, correct, export and ask for deletion of their data at the academic office.",
     ],
-    fullNote: "The full policy and terms are shown in Spanish, the version that applies.",
+    fullNote: "",
     check: "I have read and accept the data processing policy and the terms of use",
     error: "We couldn't save your acceptance. Check your connection and try again.",
   },
