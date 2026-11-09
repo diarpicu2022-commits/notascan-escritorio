@@ -1115,3 +1115,31 @@ Verificación (`npm run verify:titlebar`, 23/23). Simula la app de escritorio co
 **Pendiente de medir en el Mac de GitHub (paso C):** que los botones del sistema queden de verdad centrados a 16 px y que la marca no se monte sobre ellos. El valor 16 sale de leer cómo los coloca `tao` 0.37.1 (`inset_traffic_lights`), no de una medición.
 
 Arreglo del arnés: las referencias del sistema ahora esperan `document.fonts.ready` después de montar. Sin eso, la referencia de Login salió sin sus fuentes en una de cuatro corridas (1,910 %), un fallo intermitente que dejó el arreglo del paso A.
+
+### Paso C · Compilar y medir en los tres sistemas (hecho 2026-11-08)
+
+El flujo `.github/workflows/notascan-multiplataforma.yml` corre en cada PR. Compila NotaScan en Windows (`windows-latest`, instaladores `.msi` y `.exe`), Linux (`ubuntu-22.04`, `.deb` y `.AppImage`) y macOS (`macos-latest`, `.app` y `.dmg`). Luego abre la app, saca una captura y la mide con `scripts/ci/medir-captura.py`. Los instaladores y las capturas quedan como artefactos de la corrida.
+
+El medidor busca la marca dorada de la barra (`--gold`) y el fondo papel (`--paper`) a su alrededor. En macOS mide también los tres botones del sistema. Reconoce dos paletas, la de Sonoma y Sequoia y la que trae el Mac de GitHub (rojo 255,92,95, amarillo 250,200,0, verde 52,199,89).
+
+Lo que encontró la CI y se corrigió en el camino:
+
+- En macOS la franja de la barra salía vacía. WebKit desplaza `#root` en su propia capa y recortaba la barra, que vivía dentro. Ahora la barra se dibuja en `<body>`. Se confirmó con un panel de diagnóstico temporal, que ya se quitó.
+- El Mac de GitHub tiene una pantalla de 1024 × 768 y la ventana no cabía. Si no cabe, se recorta al área útil y se centra. En Windows sigue abriendo maximizada.
+- La posición calculada en el paso B no era la real. En el Mac de la CI los botones miden 14 px y terminan en 73 px. La marca pasó de 78 a 85 px (12 px después del último botón, como pide la enmienda 10) y los botones bajaron 2 px (`trafficLightPosition` 14, 18) para quedar centrados con ella. `verify:titlebar` se ajustó a 85 px.
+
+La corrida 42535903057 del 2026-11-08 salió en verde en los tres sistemas.
+
+| Sistema | Medición | Detalle |
+|---|---|---|
+| Windows | 5/5 | Abre maximizada, marca a 14 px del borde, escala 1,00 |
+| Linux | 4/4 | Marca y fondo papel correctos, escala 1,00 |
+| macOS | 11/11 | Botones en orden cerrar, minimizar y zoom, centrados con la marca (0,0 px de desfase), primer botón a 14 px del borde y 14 px de aire entre el último botón y la marca |
+
+Capturas en `docs/ux/capturas/2026-11-08 ci windows.png`, `ci linux.png`, `ci macos.png` y `ci macos barra.png`.
+
+Pendiente, porque no se puede medir en las máquinas de GitHub:
+
+- Los instaladores de macOS no van firmados ni notarizados (hace falta una cuenta de Apple Developer). Al abrirlos, Gatekeeper avisa y hay que permitirlos a mano en Ajustes.
+- La impresión de boletines y reportes con una impresora real en Linux y macOS.
+- La app con pantallas de escala 2 (Retina). La CI solo tiene escala 1.

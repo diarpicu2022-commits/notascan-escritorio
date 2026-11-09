@@ -6,8 +6,9 @@ Lo primero que se lee al retomar.
 
 - **Multiplataforma (desde 2026-11-08, rama `feature/multiplataforma`)**: el profe pidió Windows, Linux y macOS. Rama base
   `develop` creada ese día y puesta como rama por defecto. Paso A (fuentes dentro de la app) hecho, `verify:fonts` 28/28.
-  Paso B (barra nativa en macOS, enmienda 10) hecho, `verify:titlebar` 23/23. Sigue C (GitHub Actions que compila y
-  prueba en los tres sistemas, y mide en el Mac la posición real de los botones del sistema).
+  Paso B (barra nativa en macOS, enmienda 10) hecho, `verify:titlebar` 23/23. Paso C (GitHub Actions) hecho: compila,
+  abre y mide la app en los tres sistemas, corrida 42535903057 en verde (Windows 5/5, Linux 4/4, macOS 11/11). PR #1 listo
+  para revisión hacia `develop`. Pendiente: firma de Apple, impresora real y pantallas Retina.
   Después: modo oscuro, selector de tema e idiomas es/en/pt. Detalle en el anexo, sección «Multiplataforma».
 
 - Contrato de diseño: design system `../notascan-ui/` (no se sale de él). Anexo: `docs/ux/anexos/2026-10-01-app-escritorio.md`.
