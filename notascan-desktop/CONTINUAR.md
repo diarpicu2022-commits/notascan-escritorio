@@ -4,11 +4,12 @@ Lo primero que se lee al retomar.
 
 ## Estado
 
-- **Multiplataforma**: pasos A, B y C hechos, PR #1 mergeado en `develop` el 2026-11-09.
+- **Multiplataforma**: pasos A, B y C hechos (CI en verde en Windows 5/5, Linux 4/4 y macOS 11/11), PR #1 mergeado en
+  `develop` el 2026-11-09. Pendiente: firma de Apple, impresora real y pantallas Retina.
 - **Idiomas es/en/pt**: hecho (`docs/ux/anexos/2026-11-08-idiomas.md`), juntado en `feature/modo-oscuro`.
 - **Modo oscuro**: pasos 1 a 5 hechos, el 5 con visto bueno de Diego el 2026-11-09. Dirección Campo marino
   (`docs/ux/anexos/2026-11-08-modo-oscuro.md`). `verify:dark` 138/138 y `verify:dark-states` 17/17 con idiomas y
-  multiplataforma juntados. PR de `feature/modo-oscuro` hacia `develop` abierto el 2026-11-09. Pendientes en la
+  multiplataforma juntados. PR #2 de `feature/modo-oscuro` hacia `develop` abierto el 2026-11-09. Pendientes en la
   sección 16 del anexo (Sin permiso y error de sincronización en oscuro, Mac real, revisión nativa en/pt).
 
 - Contrato de diseño: design system `../notascan-ui/` (no se sale de él). Anexo: `docs/ux/anexos/2026-10-01-app-escritorio.md`.
