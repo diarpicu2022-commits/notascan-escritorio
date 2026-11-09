@@ -67,7 +67,7 @@ jobs:
         if: matrix.sistema == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb imagemagick x11-utils xdotool libgl1-mesa-dri
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb imagemagick x11-utils x11-apps xdotool libgl1-mesa-dri
 
       - name: Dependencias
         run: npm ci && python -m pip install --quiet pillow
@@ -112,7 +112,7 @@ jobs:
           echo "--- ventanas visibles" >> app-linux.log
           xwininfo -root -tree | grep -i notascan >> app-linux.log || echo "sin ventana NotaScan" >> app-linux.log
           sleep 15
-          xwd -root -silent | convert xwd:- png:captura-linux.png
+          xwd -root -silent -out pantalla.xwd && convert pantalla.xwd captura-linux.png
 
       - name: Abrir y capturar (macOS)
         if: matrix.sistema == 'macos'

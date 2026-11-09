@@ -14,8 +14,13 @@ from PIL import Image
 
 GOLD = (0xB8, 0x92, 0x4B)
 PAPER = (0xFF, 0xFD, 0xF8)
-# Botones de ventana de macOS activos (Sonoma y Sequoia), con margen para el suavizado.
-MAC_BUTTONS = {"cerrar": (255, 95, 87), "minimizar": (254, 188, 46), "zoom": (40, 200, 64)}
+# Botones de ventana de macOS activos, con margen para el suavizado. Dos paletas: la de Sonoma y Sequoia y la que
+# trae el Mac de GitHub en noviembre de 2026 (medida en la captura: rojo 255,92,95, amarillo 250,200,0, verde 52,199,89).
+MAC_BUTTONS = {
+    "cerrar": [(255, 95, 87), (255, 92, 95)],
+    "minimizar": [(254, 188, 46), (250, 200, 0)],
+    "zoom": [(40, 200, 64), (52, 199, 89)],
+}
 
 
 def near(px, ref, tol):
@@ -40,7 +45,8 @@ def components(img, ref, tol, box):
                     hit.remove(q)
                     stack.append(q)
         xs, ys = [p[0] for p in pts], [p[1] for p in pts]
-        comps.append({"x0": min(xs), "x1": max(xs), "y0": min(ys), "y1": max(ys), "cx": sum(xs) / len(xs), "cy": sum(ys) / len(ys), "n": len(pts)})
+        # Centro de la caja, no promedio de puntos: la «N» tapa parte del dorado de la marca y movería el promedio.
+        comps.append({"x0": min(xs), "x1": max(xs), "y0": min(ys), "y1": max(ys), "cx": (min(xs) + max(xs)) / 2, "cy": (min(ys) + max(ys)) / 2, "n": len(pts)})
     return sorted(comps, key=lambda c: -c["n"])
 
 
@@ -82,10 +88,16 @@ def main():
     check("fondo papel junto a la marca", near(beside, PAPER, 10), f"rgb{beside}")
     check("marca a la izquierda, donde la pone el sistema", mark["x0"] < 200 * scale, f"x = {mark['x0']} px")
 
+    if system == "windows":
+        # Maximizada, la marca queda a 14 px del borde de la pantalla. Si la ventana pierde el maximizado se corre.
+        check("ventana maximizada (marca a 14 px del borde de la pantalla)", abs(mark["x0"] - 14 * scale) <= 2 * scale, f"x = {mark['x0']} px")
+
     if system == "macos":
         found = {}
-        for name, ref in MAC_BUTTONS.items():
-            found[name] = cluster(img, ref, 40, (0, max(0, int(mark["y0"] - 20 * scale)), int(mark["x0"]), int(mark["y1"] + 20 * scale)))
+        box = (0, max(0, int(mark["y0"] - 20 * scale)), int(mark["x0"]), int(mark["y1"] + 20 * scale))
+        for name, refs in MAC_BUTTONS.items():
+            hits = [c for c in (cluster(img, ref, 30, box) for ref in refs) if c]
+            found[name] = max(hits, key=lambda c: c["n"]) if hits else None
             check(f"botón {name} del sistema a la izquierda de la marca", found[name] and found[name]["n"] >= 20,
                   "no aparece (¿ventana inactiva o tapada?)" if not found[name] else f"centro ({found[name]['cx']:.0f}, {found[name]['cy']:.0f})")
         if all(found.values()):

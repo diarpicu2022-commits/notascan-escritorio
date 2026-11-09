@@ -67,7 +67,7 @@ for (const os of ["mac", "windows", "linux"]) {
   if (os === "mac") {
     report.check("mac: sin botones propios (los pone el sistema)", m.buttons === 0, `${m.buttons} botones`);
     // Botones del sistema: 14 px + 3 × 12 px + 2 × 8 px = 66 px; la marca va 12 px después.
-    report.check("mac: la marca empieza a 78 px, después de los botones del sistema", Math.round(m.brandX) === 78, `${m.brandX}px`);
+    report.check("mac: la marca empieza a 85 px, 12 px después de los botones del sistema (de 14 a 73 px)", Math.round(m.brandX) === 85, `${m.brandX}px`);
     report.check("mac: no se consulta el estado de maximizado (no hay botón que lo muestre)", !(await page.evaluate(() => (window.__tauriCalls || []).some((c) => c.includes("is_maximized")))));
   } else {
     report.check(`${os}: minimizar, maximizar y cerrar`, m.buttons === 3, `${m.buttons} botones`);
