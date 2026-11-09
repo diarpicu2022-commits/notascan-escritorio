@@ -26,6 +26,8 @@ import { useRealSync } from "../services/offlineQueue";
 import { ConsentGate } from "../components/organisms/ConsentGate";
 import { useAuth } from "./AuthContext";
 import { DEMO } from "../lib/supabase";
+import { forcedSyncError } from "../services/client";
+import { useI18n } from "../i18n/I18nProvider";
 import { ForbiddenPage } from "../pages/ForbiddenPage";
 
 function hhmm(d: Date) {
@@ -62,7 +64,7 @@ function Redirect({ to }: { to: string }) {
 export function App() {
   const auth = useAuth();
   const [route, setRoute] = useState<Route>(() => parseHash());
-  const [sync, setSync] = useState<SyncStatus>({ status: "online", last: "08:42", pending: 0 });
+  const [sync, setSync] = useState<SyncStatus>(() => forcedSyncError() ? { status: "error", last: "08:42", pending: 2 } : { status: "online", last: "08:42", pending: 0 });
   const syncTimer = useRef<number>();
 
   useEffect(() => {
@@ -72,14 +74,17 @@ export function App() {
   }, []);
 
   const realSync = useRealSync(auth.profile?.id);
+  const { t } = useI18n();
   const demoSync = useMemo(() => ({
     sync, setSync,
+    // Error forzado: un cambio que la base no aceptó, como lo cuenta la cola real (paso 6f).
+    notice: forcedSyncError() && sync.status === "error" ? t.conn.rejected(1, "7A · Parcial 2 · Antonella Ordóñez Guerrero") : null,
     onSync: () => {
       setSync((s) => ({ ...s, status: "syncing" }));
       // Sin backend en esta fase: se simula la sincronización.
       syncTimer.current = window.setTimeout(() => setSync({ status: "online", last: hhmm(new Date()), pending: 0 }), 1200);
     },
-  }), [sync]);
+  }), [sync, t]);
   // Con sesión real, la conexión y la cola son las del equipo (paso 6f); en demostración, la simulación del sistema.
   const syncValue = DEMO ? demoSync : realSync;
 
