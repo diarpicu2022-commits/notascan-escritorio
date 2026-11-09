@@ -17,7 +17,6 @@ const GRADES: Record<string, string> = { "Primero": "1º ano", "Segundo": "2º a
 export const secretariaPt: typeof secretariaEs = {
   fixed: (v) => FIXED[v] ?? v,
   gradeName: (v) => GRADES[v] ?? v,
-  lastSeen: (v) => v.replace(/^Hoy, /, "Hoje, ").replace(/^Ayer, /, "Ontem, ").replace(/^Hace 1 días$/, "Há 1 dia").replace(/^Hace (\d+) días$/, "Há $1 dias").replace(/^Nunca$/, "Nunca"),
   roles: { teacher: "Docente", guardian: "Responsável", staff: "Administrativo", director: "Direção" },
   userStatus: { active: "Ativo", inactive: "Desativado", invited: "Convite enviado", none: "Sem conta" },
   periodStatus: { closed: "Fechado", open: "Aberto", draft: "Rascunho" },

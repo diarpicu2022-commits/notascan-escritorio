@@ -2,6 +2,7 @@ import { COURSES, ALL_STUDENTS } from "./students";
 import { SUBJECTS, TEACHERS } from "./academic";
 import type { BadgeTone } from "../components/atoms/Badge";
 import type { IconName } from "../components/atoms/Icon";
+import type { Seen } from "../i18n/seen";
 
 /* Datos simulados de Secretaría (notascan-ui): usuarios, malla curricular, periodos e importación. */
 
@@ -9,7 +10,8 @@ export const PERIODS = ["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"];
 
 export type UserRole = "teacher" | "guardian" | "staff" | "director";
 export type UserStatus = "active" | "inactive" | "invited" | "none";
-export interface DirectoryUser { id: string; name: string; email: string; role: UserRole; status: UserStatus; last: string }
+/** `last`: último acceso como dato; la pantalla lo escribe en el idioma (idiomas, paso 5). */
+export interface DirectoryUser { id: string; name: string; email: string; role: UserRole; status: UserStatus; last: Seen }
 
 /** Etiquetas en español (las pantallas usan t.adm.roles, t.adm.userStatus y t.adm.rowState); se conservan los tonos. */
 export const USER_ROLES: Record<UserRole, string> = { teacher: "Docente", guardian: "Acudiente", staff: "Administrativo", director: "Directivo" };
@@ -21,14 +23,14 @@ export const USERS: DirectoryUser[] = (() => {
   TEACHERS.forEach((t, i) => {
     out.push({
       id: "u" + i, name: t.name, email: t.name.split(" ")[0].toLowerCase() + "." + plain(t.name.split(" ")[1].toLowerCase()) + "@losandes.edu.co",
-      role: "teacher", status: i === 3 ? "inactive" : "active", last: ["Hoy, 08:42", "Ayer, 17:10", "Hoy, 07:55", "Hace 9 días", "Hoy, 09:20", "Ayer, 15:02"][i],
+      role: "teacher", status: i === 3 ? "inactive" : "active", last: t.last,
     });
   });
   ALL_STUDENTS.slice(0, 16).forEach((s, i) => {
-    out.push({ id: "g" + i, name: s.guardian + " " + s.last.split(" ")[1], email: s.guardian.split(" ")[0].toLowerCase() + i + "@correo.com", role: "guardian", status: i % 7 === 3 ? "invited" : "active", last: i % 7 === 3 ? "Nunca" : "Hace " + (i + 1) + " días" });
+    out.push({ id: "g" + i, name: s.guardian + " " + s.last.split(" ")[1], email: s.guardian.split(" ")[0].toLowerCase() + i + "@correo.com", role: "guardian", status: i % 7 === 3 ? "invited" : "active", last: i % 7 === 3 ? { k: "never" } : { k: "days", n: i + 1 } });
   });
   ([["Patricia Ortega", "staff"], ["Rubén Bravo", "staff"], ["Claudia Enríquez", "staff"], ["Hernando Villota", "director"], ["Marcela Narváez", "director"]] as Array<[string, UserRole]>).forEach((x, i) => {
-    out.push({ id: "s" + i, name: x[0], email: x[0].split(" ")[0].toLowerCase() + "@losandes.edu.co", role: x[1], status: "active", last: "Hoy, 0" + (7 + i) + ":1" + i });
+    out.push({ id: "s" + i, name: x[0], email: x[0].split(" ")[0].toLowerCase() + "@losandes.edu.co", role: x[1], status: "active", last: { k: "today", time: "0" + (7 + i) + ":1" + i } });
   });
   return out;
 })();

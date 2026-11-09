@@ -57,3 +57,13 @@ export function weekInitials(lang: Lang): string[] {
   // 2026-09-07 es lunes.
   return Array.from({ length: 7 }, (_, i) => fmt(lang, new Date(2026, 8, 7 + i), { weekday: "narrow" }).toUpperCase());
 }
+
+/** «1 oct 2026, 08:15» (con año) o «1 oct, 08:15» (historial). En inglés y portugués, Intl con su hora. */
+export function dayTime(lang: Lang, iso: string, withYear = true): string {
+  const d = new Date(iso);
+  if (lang === "es") {
+    const hm = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+    return d.getDate() + " " + SHORT_ES[d.getMonth()] + (withYear ? " " + d.getFullYear() : "") + ", " + hm;
+  }
+  return fmt(lang, d, { day: "numeric", month: "short", ...(withYear ? { year: "numeric" } : {}), hour: "numeric", minute: "2-digit" });
+}

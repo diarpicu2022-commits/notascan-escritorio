@@ -1,4 +1,4 @@
-// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común), paso 3 (Docente) y paso 4 (Secretaría).
+// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común), paso 3 (Docente), paso 4 (Secretaría) y paso 5 (Rectoría y plataforma).
 // Requiere `npm run build:demo` antes.
 import { createReport, startPreview, watchConsole, URL_BASE, OUT, sampleTextContrast, checkOverflow } from "./harness.mjs";
 import { join } from "node:path";
@@ -496,6 +496,138 @@ for (const lang of ["en", "pt"]) {
       const { ctx, page } = await open(lang, "es-CO", "#/admin/students");
       report.check(`Secretaría ${lang}: el grado se muestra «${L.grade}»`, (await page.locator(".ns-app-main td").filter({ hasText: L.grade }).count()) > 0);
       await ctx.close();
+    }
+  }
+}
+
+// 9. Paso 5 · Rectoría y consola de la plataforma, en inglés y portugués.
+{
+  const ID = "20261175";
+  const SCREENS = [
+    ...["dashboard", "analytics", "teachers", "requests", "students", "observer", "reports"].map((p) => [`rectoria-${p}`, `#/principal/${p}`]),
+    ...["profile", "grades", "info"].map((t) => [`rectoria-perfil-${t}`, `#/principal/profile/${ID}?tab=${t}`]),
+    ["plataforma-colegios", "#/platform/dashboard"], ["plataforma-ficha", "#/platform/school/demo-sf"], ["plataforma-ficha-merced", "#/platform/school/demo-lm"],
+  ];
+  // Palabras de interfaz en español. No entran las de I6 (nombres, colegios como «Colegio San Felipe Neri», ciudades,
+  // el motivo y el detalle que escribe el docente) ni las que también son portuguesas (solo cuentan en inglés).
+  const COMMON = ["Solicitud", "Solicitudes", "Rectoría", "Panorama", "Esperan", "decisión", "Docentes con pendientes", "Seguimiento", "Analítica",
+    "Rendimiento", "Promedio", "Índice", "reprobación", "Tasa", "inasistencia", "Evolución", "Aprueban", "Reprueban", "Pendientes", "Aprobadas",
+    "Rechazadas", "Rechazar", "Historial", "Nota actual", "Cambio solicitado", "Creada por", "Aprobada por", "Rechazada por", "Supervisión",
+    "Recordatorio", "Al día", "Retraso", "Amarillo", "Rojo", "Última actualización", "Hoy", "Ayer", "Hace", "días", "Colegios", "Dar de alta",
+    "Ciudad", "Adopción", "semanas", "Último acceso", "Implementación", "Activos", "Suspendidos", "Crece", "Estable", "Se cae", "Sin uso",
+    "Identidad", "Servicio", "Guardar", "Secretaría", "Agregar", "Invitación", "Sin invitar", "Requiere atención", "Todo en orden", "Iniciales",
+    "escudo", "Resolución", "Elegir", "Así se verá", "boletín", "Convivencia", "Observador", "Anotaciones", "Estudiantes", "Reportes", "Generar",
+    "Sexto", "Séptimo", "Octavo", "Noveno", "Décimo", "Undécimo", "Meta", "Sin registros", "periodo"];
+  const ONLY_EN = ["Motivo", "Verde", "Uso", "Contrato", "Código", "Departamento", "Consultar", "Aprobar", "Revisar", "Materias", "Docente", "Nunca",
+    "Cancelar", "Atención", "Estudiante"];
+  const words = (lang) => (lang === "en" ? COMMON.concat(ONLY_EN) : COMMON.filter((w) => !["Sexto", "Meta", "Panorama", "Índice", "semanas"].includes(w)));
+  const spanishRe = (lang) => new RegExp(`(?<![\\p{L}_])(${words(lang).join("|")})(?![\\p{L}_])|\\b\\d{1,2} (sep|dic|ene|abr)\\b`, "u");
+  const shownText = (page) => page.evaluate(() => {
+    const out = [];
+    for (const src of [document.querySelector(".ns-app-main"), ...document.querySelectorAll("[role=dialog], [role=alertdialog]")]) {
+      if (!src) continue;
+      const root = src.cloneNode(true);
+      root.querySelectorAll(".ns-paper-scroll, .ns-paper, .ns-reason, .ns-tl-item strong, .ns-tl-item .ns-caption, [aria-hidden=true], input, textarea, select option:not(:checked)").forEach((n) => n.remove());
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) out.push(w.currentNode.textContent);
+    }
+    // Lo que escribió Rectoría al rechazar (I6): «… por Nombre: motivo» se mide hasta los dos puntos.
+    return out.join(" | ").replace(/(by|por) ([^:|]+): [^|]*/g, "$1 $2");
+  });
+  const CLIP = ".ns-app-main button, .ns-app-main [role=tab], .ns-app-main .ns-badge, .ns-app-main .ns-sticker, .ns-app-main th, .ns-app-main label, .ns-app-main .ns-chip, .ns-app-main .ns-overline, .ns-app-main .ns-bento-label, .ns-app-main .ns-course-tag, [role=dialog] button, [role=dialog] label, [role=alertdialog] button";
+  const clippedIn = (page) => page.locator(CLIP).evaluateAll((els) => els.filter((el) => el.offsetParent && el.getClientRects().length && el.clientWidth > 1 && !el.closest(".ns-sr") && el.scrollWidth - el.clientWidth > 1)
+    .map((el) => `${el.tagName.toLowerCase()} «${el.textContent.trim().slice(0, 40)}» ${el.scrollWidth}>${el.clientWidth}`));
+  async function measure(page, lang, tag) {
+    const text = await shownText(page);
+    const hit = text.match(spanishRe(lang));
+    report.check(`${tag}: sin español de interfaz`, !hit, hit ? `«${hit[0]}» en …${text.slice(Math.max(0, hit.index - 50), hit.index + 40).replace(/\s+/g, " ")}…` : "");
+    const clipped = await clippedIn(page);
+    report.check(`${tag}: ningún botón, pestaña, insignia, encabezado o etiqueta recortado`, clipped.length === 0, clipped.join(" | "));
+  }
+  const shot = (page, name) => page.screenshot({ path: join(OUT, `i18n-rectoria-${name}.png`) }); // tamaño de la ventana
+
+  for (const lang of ["en", "pt"]) {
+    for (const width of [1024, 1440]) {
+      for (const [name, hash] of SCREENS) {
+        const { ctx, page, cons } = await open(lang, "es-CO", hash, width);
+        await page.waitForTimeout(800);
+        const tag = `Paso 5 ${lang} · ${name} a ${width}px`;
+        if (width === 1440) report.check(`${tag}: <html lang="${lang}">`, (await page.getAttribute("html", "lang")) === lang);
+        await measure(page, lang, tag);
+        const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        checkOverflow(report, `${hash} (${lang})`, over, width);
+        if (width === 1440) await shot(page, `${name}-${lang}`);
+        report.check(`${tag}: consola limpia`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+    }
+
+    const L = lang === "en"
+      ? { approve: "Approve", reject: "Reject", remind: "Send reminder", add: "Add a school", status: "Status", saveService: "Save service", today: /^Today, \d{1,2}:\d{2}\s?[AP]M$/, ago: /^9 days ago$/, date: /Oct 1, 2026/, created: /^Created by Laura Benavides$/ }
+      : { approve: "Aprovar", reject: "Recusar", remind: "Enviar lembrete", add: "Cadastrar uma escola", status: "Situação", saveService: "Salvar serviço", today: /^Hoje, \d{1,2}:\d{2}$/, ago: /^Há 9 dias$/, date: /1 de out\.? de 2026/, created: /^Criada por Laura Benavides$/ };
+    for (const width of [1024, 1440]) {
+      const big = width === 1440;
+      // Solicitudes: detalle con fecha e historial en el idioma; aprobar y rechazar.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/principal/requests", width);
+        const detail = page.locator(".ns-inbox-detail");
+        report.check(`Paso 5 ${lang} a ${width}px: fecha de la solicitud en el idioma`, L.date.test(await detail.locator("dd").nth(3).innerText()), await detail.locator("dd").nth(3).innerText());
+        report.check(`Paso 5 ${lang} a ${width}px: historial «creada por» en el idioma`, L.created.test((await detail.locator(".ns-history li span").first().innerText()).trim()));
+        await page.getByRole("button", { name: L.approve, exact: true }).click();
+        await page.waitForTimeout(300);
+        await measure(page, lang, `Paso 5 ${lang} · aprobar solicitud a ${width}px`);
+        if (big) await shot(page, `aprobar-${lang}`);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        await page.getByRole("button", { name: L.reject, exact: true }).click();
+        await page.waitForTimeout(300);
+        await page.locator("[role=alertdialog] textarea").fill("Falta el soporte.");
+        await measure(page, lang, `Paso 5 ${lang} · rechazar solicitud a ${width}px`);
+        if (big) await shot(page, `rechazar-${lang}`);
+        await page.locator("[role=alertdialog]").getByRole("button", { name: L.reject, exact: true }).click();
+        await page.waitForTimeout(400);
+        await measure(page, lang, `Paso 5 ${lang} · solicitud rechazada a ${width}px`);
+        report.check(`Paso 5 ${lang} a ${width}px: consola limpia (solicitudes)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+      // Seguimiento docente: último acceso en el idioma y recordatorio.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/principal/teachers", width);
+        const cells = await page.locator(".ns-app-main td").allInnerTexts();
+        report.check(`Paso 5 ${lang} a ${width}px: último acceso «hoy» en el idioma`, cells.some((c) => L.today.test(c.trim())), cells.filter((c) => /\d:\d\d/.test(c)).join(" · "));
+        report.check(`Paso 5 ${lang} a ${width}px: último acceso «hace 9 días» en el idioma`, cells.some((c) => L.ago.test(c.trim())));
+        await page.getByRole("button", { name: L.remind }).first().click();
+        await page.waitForTimeout(300);
+        const toast = await page.locator(".ns-toast-region").innerText().catch(() => "");
+        report.check(`Paso 5 ${lang} a ${width}px: aviso del recordatorio en el idioma`, toast.length > 0 && !spanishRe(lang).test(toast), toast.replace(/\n/g, " · "));
+        report.check(`Paso 5 ${lang} a ${width}px: consola limpia (seguimiento)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+      // Plataforma: dar de alta un colegio (con errores), identidad y suspender.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/platform/dashboard", width);
+        await page.getByRole("button", { name: L.add }).first().click();
+        await page.waitForTimeout(400);
+        await page.getByRole("dialog").getByRole("button").last().click();
+        await measure(page, lang, `Paso 5 ${lang} · nuevo colegio con errores a ${width}px`);
+        if (big) await shot(page, `nuevo-colegio-${lang}`);
+        await ctx.close();
+        const c2 = await open(lang, "es-CO", "#/platform/school/demo-lm", width);
+        await c2.page.locator(".ns-identity-grid input").first().fill("");
+        await c2.page.locator(".ns-identity-grid input").nth(2).fill("123");
+        await c2.page.locator(".ns-header-actions button").last().click();
+        await c2.page.waitForTimeout(300);
+        await measure(c2.page, lang, `Paso 5 ${lang} · identidad con errores a ${width}px`);
+        if (big) await shot(c2.page, `identidad-${lang}`);
+        await c2.page.getByLabel(L.status).selectOption("suspended");
+        await c2.page.getByRole("button", { name: L.saveService }).click();
+        await c2.page.waitForTimeout(300);
+        report.check(`Paso 5 ${lang} a ${width}px: abre «suspender»`, await c2.page.locator("[role=alertdialog]").isVisible());
+        await measure(c2.page, lang, `Paso 5 ${lang} · suspender colegio a ${width}px`);
+        if (big) await shot(c2.page, `suspender-${lang}`);
+        report.check(`Paso 5 ${lang} a ${width}px: consola limpia (plataforma)`, cons.length === 0 && c2.cons.length === 0, cons.concat(c2.cons).join(" | "));
+        await c2.ctx.close();
+      }
     }
   }
 }

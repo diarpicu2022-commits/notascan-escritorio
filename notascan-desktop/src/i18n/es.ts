@@ -6,6 +6,7 @@
  */
 import { docenteEs } from "./docente.es";
 import { secretariaEs } from "./secretaria.es";
+import { rectoriaEs } from "./rectoria.es";
 
 export const es = {
   lang: {
@@ -184,6 +185,8 @@ export const es = {
   tch: docenteEs,
   /* Paso 4: pantallas de Secretaría. */
   adm: secretariaEs,
+  /* Paso 5: Rectoría, consola de la plataforma y último acceso. */
+  ...rectoriaEs,
 };
 
 export type Messages = typeof es;

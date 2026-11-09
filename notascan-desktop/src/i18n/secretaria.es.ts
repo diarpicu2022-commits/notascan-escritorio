@@ -13,7 +13,6 @@ export const secretariaEs = {
   /** Valores de las listas fijas del sistema: se guardan en español y se traducen solo al mostrarlos. */
   fixed: same,
   gradeName: same,
-  lastSeen: same,
   roles: { teacher: "Docente", guardian: "Acudiente", staff: "Administrativo", director: "Directivo" },
   userStatus: { active: "Activo", inactive: "Desactivado", invited: "Invitación enviada", none: "Sin cuenta" },
   periodStatus: { closed: "Cerrado", open: "Abierto", draft: "Borrador" },

@@ -5,6 +5,7 @@
 import type { Messages } from "./es";
 import { docenteEn } from "./docente.en";
 import { secretariaEn } from "./secretaria.en";
+import { rectoriaEn } from "./rectoria.en";
 
 export const en: Messages = {
   lang: {
@@ -179,4 +180,6 @@ export const en: Messages = {
   tch: docenteEn,
   /* Paso 4: pantallas de Secretaría. */
   adm: secretariaEn,
+  /* Paso 5: Rectoría, consola de la plataforma y último acceso. */
+  ...rectoriaEn,
 };

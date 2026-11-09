@@ -14,10 +14,11 @@ import { DataGrid } from "../DataGrid";
 import { ConfirmAction, Drawer, PasswordResetDialog } from "../Overlays";
 import { useToast } from "../Toast";
 import { useI18n } from "../../../i18n/I18nProvider";
+import { seenText } from "../../../i18n/seen";
 
 type DrawerUser = DirUser & { _view?: boolean; _new?: boolean };
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const NEW_USER: DrawerUser = { id: "", kind: "staff", name: "", email: "", role: "teacher", status: "none", last: "Nunca", _new: true };
+const NEW_USER: DrawerUser = { id: "", kind: "staff", name: "", email: "", role: "teacher", status: "none", last: { k: "never" }, _new: true };
 
 /** Docentes, acudientes, administrativos y directivos: invitar, editar, restablecer acceso o desactivar. */
 export function UserDirectory({ invite, onInviteClose }: { invite?: boolean; onInviteClose?: () => void }) {
@@ -37,7 +38,7 @@ export function UserDirectory({ invite, onInviteClose }: { invite?: boolean; onI
   const [showToast, toastNode] = useToast();
   const [inviting, setInviting] = useState<string | null>(null);
   useEffect(() => { if (invite) { setDrawer(NEW_USER); } }, [invite]);
-  const { t: tr } = useI18n();
+  const { t: tr, lang } = useI18n();
   const x = tr.adm.usr;
   /** Envía el código de activación (función invite-staff) a alguien registrado sin cuenta activa. */
   function invite1(email: string, name: string) {
@@ -47,7 +48,7 @@ export function UserDirectory({ invite, onInviteClose }: { invite?: boolean; onI
         if (DEMO) setRows((rs) => rs.map((x) => (x.email === email ? { ...x, status: "invited" } : x)));
         showToast({ tone: "success", title: x.invited, message: x.invitedText(name, email) });
       },
-      (e) => showToast({ tone: "error", title: x.inviteError, message: e instanceof Error ? e.message : "" }),
+      (e) => showToast({ tone: "error", title: x.inviteError, message: e instanceof Error && e.message ? e.message : tr.plat.inviteFailed }),
     ).finally(() => setInviting(null));
   }
   useEffect(() => { setForm(drawer ? { ...drawer } : null); setTried(false); }, [drawer]);
@@ -91,7 +92,7 @@ export function UserDirectory({ invite, onInviteClose }: { invite?: boolean; onI
           { key: "email", label: x.cols.email, sortable: true },
           { key: "role", label: x.cols.role, sortable: true, render: (u) => <span className="ns-course-tag">{tr.adm.roles[u.role]}</span> },
           { key: "status", label: x.cols.state, sortable: true, render: (u) => { const s = USER_STATUS[u.status]; return <Badge tone={s[1]} icon={s[2]}>{tr.adm.userStatus[u.status]}</Badge>; } },
-          { key: "last", label: x.cols.last, render: (u) => tr.adm.lastSeen(u.last) },
+          { key: "last", label: x.cols.last, render: (u) => seenText(tr, lang, u.last) },
         ]}
         rowActions={(u) => [
           <IconAction key="e" icon="edit" label={x.edit(u.name)} onClick={() => setDrawer(u)} />,
@@ -127,7 +128,7 @@ export function UserDirectory({ invite, onInviteClose }: { invite?: boolean; onI
       >
         {drawer && f ? (drawer._view ? (
           <dl className="ns-dl">
-            {[[x.cols.email, drawer.email || x.noEmail], [x.cols.role, tr.adm.roles[drawer.role]], [x.cols.state, tr.adm.userStatus[drawer.status]], [x.cols.last, tr.adm.lastSeen(drawer.last)]].map((y) => <Fragment key={y[0]}><dt>{y[0]}</dt><dd>{y[1]}</dd></Fragment>)}
+            {[[x.cols.email, drawer.email || x.noEmail], [x.cols.role, tr.adm.roles[drawer.role]], [x.cols.state, tr.adm.userStatus[drawer.status]], [x.cols.last, seenText(tr, lang, drawer.last)]].map((y) => <Fragment key={y[0]}><dt>{y[0]}</dt><dd>{y[1]}</dd></Fragment>)}
           </dl>
         ) : (
           <div className="ns-form-grid ns-form-grid--1">
