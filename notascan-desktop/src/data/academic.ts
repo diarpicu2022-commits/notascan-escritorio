@@ -1,6 +1,7 @@
 import { formatGrade } from "../lib/grade";
 import type { IconName } from "../components/atoms/Icon";
 import type { ReviewStatus } from "../types/domain";
+import type { Seen } from "../i18n/seen";
 import { COURSES, seeded, type StudentRecord } from "./students";
 
 /* Datos y reglas académicas simuladas de notascan-ui (sin backend en esta fase).
@@ -17,13 +18,14 @@ export const SUBJECTS = [
   { id: "tec", name: "Tecnología", code: "TEC-06", category: "Tecnología e informática" },
 ];
 
+/** `last`: último acceso como dato; la pantalla lo escribe en el idioma (idiomas, paso 5). */
 export const TEACHERS = [
-  { id: "t1", name: "Ana Lucía Rosero", subjects: ["Matemáticas"], courses: ["6A", "7A", "7B"], pending: 0, pct: 100, last: "Hoy, 08:42", status: "ok" },
-  { id: "t2", name: "Carlos Pérez", subjects: ["Física"], courses: ["7A", "8A", "8B"], pending: 2, pct: 82, last: "Ayer, 17:10", status: "warn" },
-  { id: "t3", name: "Laura Benavides", subjects: ["Lengua Castellana"], courses: ["6A", "6B"], pending: 0, pct: 100, last: "Hoy, 07:55", status: "ok" },
-  { id: "t4", name: "Jorge Insuasty", subjects: ["Inglés"], courses: ["6B", "7B", "8B"], pending: 5, pct: 48, last: "Hace 9 días", status: "late" },
-  { id: "t5", name: "Diana Cabrera", subjects: ["Ciencias Naturales"], courses: ["6A", "6B", "7A"], pending: 1, pct: 91, last: "Hoy, 09:20", status: "warn" },
-  { id: "t6", name: "Mauricio Ordóñez", subjects: ["Tecnología"], courses: ["8A", "8B"], pending: 0, pct: 100, last: "Ayer, 15:02", status: "ok" },
+  { id: "t1", name: "Ana Lucía Rosero", subjects: ["Matemáticas"], courses: ["6A", "7A", "7B"], pending: 0, pct: 100, last: { k: "today", time: "08:42" } as Seen, status: "ok" },
+  { id: "t2", name: "Carlos Pérez", subjects: ["Física"], courses: ["7A", "8A", "8B"], pending: 2, pct: 82, last: { k: "yesterday", time: "17:10" } as Seen, status: "warn" },
+  { id: "t3", name: "Laura Benavides", subjects: ["Lengua Castellana"], courses: ["6A", "6B"], pending: 0, pct: 100, last: { k: "today", time: "07:55" } as Seen, status: "ok" },
+  { id: "t4", name: "Jorge Insuasty", subjects: ["Inglés"], courses: ["6B", "7B", "8B"], pending: 5, pct: 48, last: { k: "days", n: 9 } as Seen, status: "late" },
+  { id: "t5", name: "Diana Cabrera", subjects: ["Ciencias Naturales"], courses: ["6A", "6B", "7A"], pending: 1, pct: 91, last: { k: "today", time: "09:20" } as Seen, status: "warn" },
+  { id: "t6", name: "Mauricio Ordóñez", subjects: ["Tecnología"], courses: ["8A", "8B"], pending: 0, pct: 100, last: { k: "yesterday", time: "15:02" } as Seen, status: "ok" },
 ] as const;
 
 /* ---------- Docente: lista corta y evaluaciones del periodo ---------- */

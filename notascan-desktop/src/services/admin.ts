@@ -5,6 +5,7 @@ import { INITIAL_ASSIGN, PERIODS, USERS, type Assignment, type DirectoryUser, ty
 import { ALL_STUDENTS, COURSES } from "../data/students";
 import { demoData, demoInitial, forcedState, allRows } from "./client";
 import { es, type Messages } from "../i18n/es";
+import { seenOf, type Seen } from "../i18n/seen";
 
 /*
  * Secretaría · configuración (paso 6b.3a): estructura académica, malla curricular, periodos y usuarios.
@@ -311,13 +312,9 @@ export type DirUser = DirectoryUser & { kind: "staff" | "guardian"; profileId?: 
 const ROLE_FROM_DB: Record<string, UserRole> = { teacher: "teacher", admin: "staff", principal: "director" };
 const ROLE_TO_DB: Record<string, string> = { teacher: "teacher", staff: "admin", director: "principal" };
 
-/** «Hoy, 08:42», «Ayer, 17:10», «Hace 9 días» o «Nunca». */
-export function lastSeen(iso: string | null): string {
-  if (!iso) return "Nunca";
-  const d = new Date(iso), now = new Date();
-  const hm = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-  const days = Math.floor((new Date(now.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86400000);
-  return days <= 0 ? "Hoy, " + hm : days === 1 ? "Ayer, " + hm : "Hace " + days + " días";
+/** Último acceso como dato (hoy, ayer, hace N días o nunca); la pantalla lo escribe con `seenText`. */
+export function lastSeen(iso: string | null): Seen {
+  return seenOf(iso, "calendar");
 }
 
 const DEMO_USERS: DirUser[] = USERS.map((u) => ({ ...u, kind: u.role === "guardian" ? "guardian" : "staff" }));
@@ -337,7 +334,7 @@ async function fetchUsers(): Promise<DirUser[]> {
   });
   // Los acudientes aún no tienen cuenta: su acceso llega con la app móvil.
   const guardians: DirUser[] = ((g.data ?? []) as Array<{ id: number; full_name: string; email: string | null }>).map((x) => ({
-    id: "g:" + x.id, kind: "guardian", guardianId: x.id, name: x.full_name, email: x.email ?? "", role: "guardian", status: "none", last: "Nunca",
+    id: "g:" + x.id, kind: "guardian", guardianId: x.id, name: x.full_name, email: x.email ?? "", role: "guardian", status: "none", last: { k: "never" },
   }));
   return staff.concat(guardians);
 }

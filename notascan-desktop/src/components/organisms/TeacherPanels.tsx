@@ -51,7 +51,7 @@ export function RecoveryTable({ data, onSave }: RecoveryTableProps) {
               const c = r.recovery ? validateGrade(r.recovery) : null;
               return (
                 <div className="ns-rec-input">
-                  <input className={cx("ns-input ns-input--grade", c && !c.valid && "is-invalid")} value={r.recovery} inputMode="decimal" placeholder="0.0"
+                  <input className={cx("ns-input ns-input--grade", c && !c.valid && "is-invalid")} value={r.recovery} inputMode="decimal" placeholder={shownGrade(0)}
                     aria-label={x.inputAria(r.name)} aria-invalid={c && !c.valid ? true : undefined}
                     onChange={(e) => upd(r.id, { recovery: e.target.value.replace(/[^0-9.,]/g, "").slice(0, 4), saved: false })} />
                 </div>

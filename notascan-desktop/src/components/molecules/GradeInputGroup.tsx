@@ -1,6 +1,6 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { cx } from "../../lib/cx";
-import { formatGrade, validateGrade } from "../../lib/grade";
+import { validateGrade } from "../../lib/grade";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { GradeCheck } from "../../types/domain";
 import { GradeInput } from "../atoms/GradeInput";
@@ -23,7 +23,7 @@ interface GradeInputGroupProps {
 export function GradeInputGroup({ id, detected, value, onChange, label, actions, autoFocus, onKeyDown, className }: GradeInputGroupProps) {
   const { t, shownGrade } = useI18n();
   const c = t.tch.card;
-  const shown = value !== undefined ? value : formatGrade(detected);
+  const shown = value !== undefined ? value : shownGrade(detected);
   const check = validateGrade(shown);
   const manual = detected === null || detected === undefined || isNaN(detected);
   const edited = !manual && check.valid && Math.abs(check.value - detected) > 0.001;

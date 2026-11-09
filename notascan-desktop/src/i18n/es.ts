@@ -7,6 +7,7 @@
  */
 import { docenteEs } from "./docente.es";
 import { secretariaEs } from "./secretaria.es";
+import { rectoriaEs } from "./rectoria.es";
 
 export const es = {
   lang: {
@@ -33,7 +34,7 @@ export const es = {
     hint: "Como el sistema sigue el modo claro u oscuro que tengas en Windows o macOS.",
   },
   login: {
-    illustration: "Un teléfono escanea la hoja de un examen y detecta la nota 4.5",
+    illustration: "Un teléfono escanea la hoja de un examen y detecta la nota 4,5",
     steps: ["La IA detecta", "tú verificas", "el sistema guarda"] as [string, string, string],
     hello: "¡Hola",
     welcome: "Bienvenido de nuevo a NotaScan.",
@@ -193,6 +194,14 @@ export const es = {
   tch: docenteEs,
   /* Paso 4: pantallas de Secretaría. */
   adm: secretariaEs,
+  /* Paso 5: Rectoría, consola de la plataforma y último acceso. */
+  ...rectoriaEs,
+  /* Paso 6: aviso de impresos (I7). En español no se muestra. */
+  printNotice: {
+    title: "Los documentos salen en español",
+    text: "Los boletines y los reportes son documentos oficiales y siempre se imprimen y exportan en español.",
+    ok: "Continuar",
+  },
 };
 
 export type Messages = typeof es;

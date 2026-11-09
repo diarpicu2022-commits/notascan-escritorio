@@ -8,6 +8,14 @@
 | [Política de tratamiento de datos](politica-de-tratamiento-de-datos.md) | 2026.1 | Todos; se muestra dentro de la app |
 | [Autorización del acudiente](autorizacion-acudiente.md) | 2026.1 | Acudiente, al matricular (impresa y firmada) |
 | [Términos y condiciones](terminos-y-condiciones.md) | 2026.1 | Personal del colegio, al entrar por primera vez |
+| [Privacy policy (English draft)](<Privacy policy (English draft).md>) | 2026.1 | Traducción al inglés de la política, para la app en inglés |
+| [Terms of use (English draft)](<Terms of use (English draft).md>) | 2026.1 | Traducción al inglés de los términos |
+| [Política de privacidade (rascunho em português)](<Politica de privacidade (rascunho em portugues).md>) | 2026.1 | Traducción al portugués de la política, para la app en portugués |
+| [Termos de uso (rascunho em português)](<Termos de uso (rascunho em portugues).md>) | 2026.1 | Traducción al portugués de los términos |
+
+Las traducciones son borradores técnicos. La versión que rige es la española, y cada traducción lo dice al comienzo.
+Los archivos en español conservan su nombre con guiones porque la migración `20261006120000_autorizaciones.sql` guarda
+esa ruta en la base. Cambiarlo exige una migración nueva.
 
 Marco: Ley 1581 de 2012, Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015). Si hay usuarios de otros
 países, revisar la norma que aplique.

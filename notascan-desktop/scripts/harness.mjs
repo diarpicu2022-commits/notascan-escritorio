@@ -184,17 +184,27 @@ export async function openReference(ctx, hash) {
 /** DOM serializado sin ids generados ni estilos de posición, para comparar estructura y textos. */
 export const normalizeDom = (loc) => loc.evaluate((root) => {
   const walk = (el) => {
-    if (el.nodeType === 3) return el.textContent.trim() ? `"${el.textContent.trim()}"` : "";
+    // Idiomas, I5: la app escribe la nota con coma decimal («4,5») y el sistema con punto. Se comparan igual.
+    const dec = (s) => s.replace(/(\d),(\d)/g, "$1.$2");
+    if (el.nodeType === 3) return el.textContent.trim() ? `"${dec(el.textContent.trim())}"` : "";
     if (el.nodeType !== 1) return "";
     // Enmienda 11 (idiomas, 2026-11-08): lo agregado al sistema no entra en la comparación.
     if (el.getAttribute("data-enmienda") === "11") return "";
     const attrs = [...el.attributes]
       .filter((a) => !["id", "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant", "for", "name"].includes(a.name))
-      .map((a) => `${a.name}=${a.value}`).sort().join(" ");
+      .map((a) => `${a.name}=${dec(a.value)}`).sort().join(" ");
     return `<${el.tagName.toLowerCase()} ${attrs}>${[...el.childNodes].map(walk).join("")}</${el.tagName.toLowerCase()}>`;
   };
   return walk(root);
 });
+
+/**
+ * Idiomas, I5: la app escribe las notas con coma («4,5») y notascan-ui con punto; la coma cambia el ancho de las cifras.
+ * En las comparaciones de píxeles se tapan, en los dos lados, los elementos que muestran notas. Son estos:
+ * nota de la tarjeta y su sello, cifras del bento y de los indicadores, notas de tablas, planilla y conceptos, el cambio
+ * de nota de las solicitudes, la nota grande del perfil y la nota de la foto en el panel de lectura.
+ */
+export const I5_MASK = ".ns-card-grade, .ns-stamp b, .ns-bento-value, .ns-countup, .ns-table-grade, .ns-gcell, .ns-gb-avg, .ns-gb tfoot td, .ns-change, .ns-change-big strong, .ns-concept-grade, .ns-big-ivory, .ns-photo-grade, .ns-kpi strong, .ns-orig, .ns-gig-note";
 
 /** % de píxeles distintos, tolerando 1 px de suavizado. */
 export function pixelDiff(page, a, b) {
@@ -239,8 +249,8 @@ export async function compareRoute(browser, report, hash, label, shotPrefix, omi
     while (at < r.length && r[at] === m[at]) at++;
     report.check(`${label} · ${part}: DOM idéntico al sistema`, r === m, r === m ? "" : `…${r.slice(Math.max(0, at - 60), at + 90)}… vs …${m.slice(Math.max(0, at - 60), at + 90)}…`);
   }
-  const a = await ref.locator(".ns-app-main").screenshot({ animations: "disabled" });
-  const b = await mine.locator(".ns-app-main").screenshot({ animations: "disabled", path: join(OUT, `${shotPrefix}-${label.replace(/[/?=]/g, "-")}.png`) });
+  const a = await ref.locator(".ns-app-main").screenshot({ animations: "disabled", mask: [ref.locator(I5_MASK)] });
+  const b = await mine.locator(".ns-app-main").screenshot({ animations: "disabled", mask: [mine.locator(I5_MASK)], path: join(OUT, `${shotPrefix}-${label.replace(/[/?=]/g, "-")}.png`) });
   const d = await pixelDiff(mine, a, b);
   report.check(`${label} · contenido: píxeles iguales al sistema (≤ 0.5 %)`, d.pct <= 0.5, `${d.size}, ${d.pct.toFixed(3)} %`);
   report.check(`${label}: consola sin errores (ambos lados)`, rc.length === 0 && mc.length === 0, [...rc, ...mc].join(" | "));

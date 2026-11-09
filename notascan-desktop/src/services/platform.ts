@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEMO, supabase } from "../lib/supabase";
 import { DEMO_INSTITUTION, toInstitution, type Institution, type InstitutionRow, type InstitutionStatus } from "./institution";
 import { demoData, demoInitial, forcedState } from "./client";
+import { es, type Messages } from "../i18n/es";
 
 /*
  * Consola de la plataforma (paso 7d). Solo cifras agregadas por colegio (platform_stats): ningún nombre, documento
@@ -11,10 +12,11 @@ import { demoData, demoInitial, forcedState } from "./client";
 const throwIf = (r: { error: unknown }) => { if (r.error) throw r.error; };
 const msgOf = (e: unknown) => (e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "");
 
-export function platformMessage(e: unknown): string {
+/** Las reglas de la base llegan en español y se muestran tal cual (D4); lo demás, en el idioma de la app. */
+export function platformMessage(e: unknown, t: Messages = es): string {
   const m = msgOf(e);
-  if (/ya está registrado|Escribe|Solo la plataforma|check/.test(m)) return /check/.test(m) ? "Revisa el DANE (12 dígitos) y las iniciales (hasta 3 letras)." : m;
-  return "No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.";
+  if (/ya está registrado|Escribe|Solo la plataforma|check/.test(m)) return /check/.test(m) ? t.plat.checkDane : m;
+  return t.adm.err.failed;
 }
 
 export type Adoption = "grows" | "steady" | "drops" | "idle";
@@ -92,7 +94,9 @@ export function useSchools() {
 
 /* ---------- Requiere atención ---------- */
 
-export interface Attention { key: string; tone: "gold" | "burgundy"; title: string; detail: string; target: "identity" | "service" | "usage" | "secretaries" }
+/** Un aviso de «Requiere atención»: la pantalla escribe título y detalle con `key` y `days` (idiomas, paso 5). */
+export type AttentionKey = "contract-over" | "contract-soon" | "idle" | "drops" | "no-admin" | "no-login" | "no-logo" | "no-legal";
+export interface Attention { key: AttentionKey; tone: "gold" | "burgundy"; days?: number; target: "identity" | "service" | "usage" | "secretaries" }
 
 const daysUntil = (iso: string) => Math.ceil((new Date(iso + "T23:59:59").getTime() - Date.now()) / 86400000);
 
@@ -102,15 +106,15 @@ export function attentionOf(s: SchoolRow): Attention[] {
   const i = s.institution;
   if (s.contractUntil) {
     const d = daysUntil(s.contractUntil);
-    if (d < 0 && i.status !== "suspended") out.push({ key: "contract-over", tone: "burgundy", title: "Contrato vencido hace " + -d + (d === -1 ? " día" : " días"), detail: "Renueva el contrato o suspende el colegio.", target: "service" });
-    else if (d >= 0 && d <= 30) out.push({ key: "contract-soon", tone: "gold", title: "El contrato vence en " + d + (d === 1 ? " día" : " días"), detail: "Conviene acordar la renovación antes del cierre.", target: "service" });
+    if (d < 0 && i.status !== "suspended") out.push({ key: "contract-over", tone: "burgundy", days: -d, target: "service" });
+    else if (d >= 0 && d <= 30) out.push({ key: "contract-soon", tone: "gold", days: d, target: "service" });
   }
-  if (i.status === "active" && s.weekly.length && s.weekly.slice(-2).every((n) => n === 0)) out.push({ key: "idle", tone: "burgundy", title: "Sin uso en las últimas dos semanas", detail: "No hay notas verificadas ni asistencia tomada.", target: "usage" });
-  if (s.adoption === "drops" && i.status === "active") out.push({ key: "drops", tone: "gold", title: "El uso viene cayendo", detail: "Las últimas 4 semanas tienen más de un 20 % menos de actividad que las 4 anteriores.", target: "usage" });
-  if (!s.secretaries) out.push({ key: "no-admin", tone: "burgundy", title: "Sin cuenta de Secretaría registrada", detail: "Nadie del colegio puede configurar la estructura ni matricular.", target: "secretaries" });
-  else if (!s.accounts && i.status !== "suspended") out.push({ key: "no-login", tone: "gold", title: "Nadie del colegio ha entrado todavía", detail: "La Secretaría registrada aún no activa su cuenta. Puedes reenviarle la invitación.", target: "secretaries" });
-  if (!i.logoUrl) out.push({ key: "no-logo", tone: "gold", title: "Sin logo", detail: "Los boletines salen con las iniciales del colegio.", target: "identity" });
-  if (!i.resolution.trim() || !i.dane.trim()) out.push({ key: "no-legal", tone: "gold", title: "Faltan resolución o DANE", detail: "El encabezado de los boletines sale incompleto.", target: "identity" });
+  if (i.status === "active" && s.weekly.length && s.weekly.slice(-2).every((n) => n === 0)) out.push({ key: "idle", tone: "burgundy", target: "usage" });
+  if (s.adoption === "drops" && i.status === "active") out.push({ key: "drops", tone: "gold", target: "usage" });
+  if (!s.secretaries) out.push({ key: "no-admin", tone: "burgundy", target: "secretaries" });
+  else if (!s.accounts && i.status !== "suspended") out.push({ key: "no-login", tone: "gold", target: "secretaries" });
+  if (!i.logoUrl) out.push({ key: "no-logo", tone: "gold", target: "identity" });
+  if (!i.resolution.trim() || !i.dane.trim()) out.push({ key: "no-legal", tone: "gold", target: "identity" });
   return out;
 }
 
@@ -183,7 +187,8 @@ export async function sendInvitation(target: { institutionId?: string; email?: s
     // El cuerpo de la respuesta trae el motivo en español (sin cuenta de Secretaría, ya activa, límite de correos…).
     const ctx = (error as { context?: Response }).context;
     const detail = ctx ? await ctx.json().then((b: { error?: string }) => b.error, () => undefined) : undefined;
-    throw new Error(detail || "No pudimos enviar la invitación. Revisa tu conexión e inténtalo de nuevo.");
+    // Sin motivo de la función: mensaje vacío y la pantalla pone «No pudimos enviar la invitación» en el idioma.
+    throw new Error(detail || "");
   }
   return (data as { sent?: string[] }).sent ?? [];
 }

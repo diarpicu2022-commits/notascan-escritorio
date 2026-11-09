@@ -32,7 +32,7 @@ function df(lang: Lang, opts: Intl.DateTimeFormatOptions, key: string): Intl.Dat
 }
 
 /** Nota de 1,0 a 5,0 con una cifra decimal. */
-export const formatGrade = (lang: Lang, value: number) => nf(lang, 1).format(value);
+export const formatGrade = (lang: Lang, value: number) => nf(lang, 1).format(Math.round(value * 10) / 10);
 /** Número con los decimales pedidos y separador de miles del idioma. */
 export const formatNumber = (lang: Lang, value: number, digits = 0) => nf(lang, digits).format(value);
 /** «8 nov 2026», «Nov 8, 2026», «8 de nov. de 2026». */

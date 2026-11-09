@@ -112,11 +112,11 @@ export function DashboardPage() {
                 <ul className="ns-list">
                   {reminders.map((r) => (
                     <li key={"r" + r.id} className="ns-list-item">
-                      <Avatar name={r.sender} size="sm" />
-                      <div className="ns-list-main"><strong>{x.reminderOf(r.sender)}</strong><span className="ns-caption">{r.message}</span></div>
+                      <Avatar name={r.sender || t.roles.principal} size="sm" />
+                      <div className="ns-list-main"><strong>{x.reminderOf(r.sender || t.roles.principal)}</strong><span className="ns-caption">{r.message}</span></div>
                       <Button variant="secondary" size="sm" icon="check" loading={seen.isPending && seen.variables === r.id} loadingText={t.common.saving}
                         onClick={() => seen.mutateAsync(r.id).catch(() => showToast({ tone: "error", title: x.seenError, message: t.common.retryHint }))}
-                        aria-label={x.seenAria(r.sender)}>{x.seen}</Button>
+                        aria-label={x.seenAria(r.sender || t.roles.principal)}>{x.seen}</Button>
                     </li>
                   ))}
                   {d.attention.map((s) => (

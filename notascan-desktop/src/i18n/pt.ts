@@ -5,6 +5,7 @@
 import type { Messages } from "./es";
 import { docentePt } from "./docente.pt";
 import { secretariaPt } from "./secretaria.pt";
+import { rectoriaPt } from "./rectoria.pt";
 
 export const pt: Messages = {
   lang: {
@@ -186,4 +187,11 @@ export const pt: Messages = {
   tch: docentePt,
   /* Paso 4: pantallas de Secretaría. */
   adm: secretariaPt,
+  /* Paso 5: Rectoría, consola de la plataforma y último acceso. */
+  ...rectoriaPt,
+  printNotice: {
+    title: "Os documentos saem em espanhol",
+    text: "Os boletins e os relatórios são documentos oficiais e sempre são impressos e exportados em espanhol.",
+    ok: "Continuar",
+  },
 };

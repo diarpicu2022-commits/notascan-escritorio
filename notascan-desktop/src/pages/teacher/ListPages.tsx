@@ -23,6 +23,7 @@ import { Block, BlockTitle } from "../../components/organisms/Layout";
 import { Toast, type ToastData } from "../../components/organisms/Toast";
 import { PageShell } from "../../components/templates/PageShell";
 import { useI18n } from "../../i18n/I18nProvider";
+import { usePrintNotice } from "../../components/organisms/PrintNotice";
 import { shortDayYear } from "../../i18n/dates";
 
 /** 05 · ¿Qué puedo consultar o exportar? Solo calificaciones verificadas. */
@@ -62,7 +63,10 @@ function RealReportsPage() {
   const evals = useCourseEvaluations(pick === "evaluation" ? curCourse : undefined, curPeriod?.id);
   const teacherOnly = profile?.role === "teacher" ? profile.email : null;
 
-  async function run(kind: ReportKind, format: ReportFormat, params: Record<string, unknown>, save = true) {
+  const [askPrint, printNotice] = usePrintNotice();
+  // I7: en inglés y portugués se avisa antes de generar o descargar que el reporte sale en español.
+  const run = (kind: ReportKind, format: ReportFormat, params: Record<string, unknown>, save = true) => askPrint(() => { void runNow(kind, format, params, save); });
+  async function runNow(kind: ReportKind, format: ReportFormat, params: Record<string, unknown>, save = true) {
     if (!school || !profile) {
       showToast({ tone: "error", title: x.error, message: x.noSchool });
       return;
@@ -164,6 +168,7 @@ function RealReportsPage() {
             : <EmptyState icon="file" title={pick === "student" ? x.noStudents : x.noEvaluations} message={x.otherCourse} />}
       </Modal>
       {printing ? <PrintReport data={printing} onDone={() => setPrinting(null)} /> : null}
+      {printNotice}
       {toastNode}
     </PageShell>
   );
@@ -177,14 +182,16 @@ function DemoReportsPage() {
   const { t, lang } = useI18n();
   const x = t.tch.rep;
   useEffect(() => () => window.clearTimeout(timer.current), []);
-  function gen(name: string) {
+  const [askPrint, printNotice] = usePrintNotice();
+  const gen = (name: string) => askPrint(() => genNow(name));
+  function genNow(name: string) {
     setToast({ tone: "success", title: x.ready, message: name + " · " + fmt.toUpperCase() });
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setToast(null), 3500);
   }
   const types = REPORT_TYPES.map((r) => ({ ...r, t: x.types[r.kind][0], d: x.types[r.kind][1] }));
   return (
-    <PageShell active="reports" overlay={toast ? <div className="ns-toast-region"><Toast {...toast} /></div> : null}>
+    <PageShell active="reports" overlay={<>{toast ? <div className="ns-toast-region"><Toast {...toast} /></div> : null}{printNotice}</>}>
       <Header eyebrow={x.eyebrow} title={x.title} highlight={x.title} description={x.descTeacher} />
       <div className="ns-row" style={{ justifyContent: "space-between" }}>
         <FilterGroup label={t.tch.f.format} value={fmt} onChange={setFmt} options={[{ value: "pdf", label: "PDF" }, { value: "xlsx", label: "Excel" }, { value: "csv", label: "CSV" }]} />

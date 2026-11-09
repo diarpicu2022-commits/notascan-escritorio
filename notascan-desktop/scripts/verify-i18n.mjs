@@ -1,6 +1,7 @@
-// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común), paso 3 (Docente) y paso 4 (Secretaría).
+// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común), paso 3 (Docente), paso 4 (Secretaría), paso 5 (Rectoría y plataforma) paso 6 (textos legales y aviso de impresos) y paso 7 (barrido final y notas con coma).
 // Requiere `npm run build:demo` antes.
-import { createReport, startPreview, watchConsole, URL_BASE, OUT, sampleTextContrast, checkOverflow } from "./harness.mjs";
+import { createReport, startPreview, watchConsole, URL_BASE, OUT, ROOT, sampleTextContrast, checkOverflow } from "./harness.mjs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const report = createReport();
@@ -499,6 +500,219 @@ for (const lang of ["en", "pt"]) {
     }
   }
 }
+
+// 9. Paso 5 · Rectoría y consola de la plataforma, en inglés y portugués.
+{
+  const ID = "20261175";
+  const SCREENS = [
+    ...["dashboard", "analytics", "teachers", "requests", "students", "observer", "reports"].map((p) => [`rectoria-${p}`, `#/principal/${p}`]),
+    ...["profile", "grades", "info"].map((t) => [`rectoria-perfil-${t}`, `#/principal/profile/${ID}?tab=${t}`]),
+    ["plataforma-colegios", "#/platform/dashboard"], ["plataforma-ficha", "#/platform/school/demo-sf"], ["plataforma-ficha-merced", "#/platform/school/demo-lm"],
+  ];
+  // Palabras de interfaz en español. No entran las de I6 (nombres, colegios como «Colegio San Felipe Neri», ciudades,
+  // el motivo y el detalle que escribe el docente) ni las que también son portuguesas (solo cuentan en inglés).
+  const COMMON = ["Solicitud", "Solicitudes", "Rectoría", "Panorama", "Esperan", "decisión", "Docentes con pendientes", "Seguimiento", "Analítica",
+    "Rendimiento", "Promedio", "Índice", "reprobación", "Tasa", "inasistencia", "Evolución", "Aprueban", "Reprueban", "Pendientes", "Aprobadas",
+    "Rechazadas", "Rechazar", "Historial", "Nota actual", "Cambio solicitado", "Creada por", "Aprobada por", "Rechazada por", "Supervisión",
+    "Recordatorio", "Al día", "Retraso", "Amarillo", "Rojo", "Última actualización", "Hoy", "Ayer", "Hace", "días", "Colegios", "Dar de alta",
+    "Ciudad", "Adopción", "semanas", "Último acceso", "Implementación", "Activos", "Suspendidos", "Crece", "Estable", "Se cae", "Sin uso",
+    "Identidad", "Servicio", "Guardar", "Secretaría", "Agregar", "Invitación", "Sin invitar", "Requiere atención", "Todo en orden", "Iniciales",
+    "escudo", "Resolución", "Elegir", "Así se verá", "boletín", "Convivencia", "Observador", "Anotaciones", "Estudiantes", "Reportes", "Generar",
+    "Sexto", "Séptimo", "Octavo", "Noveno", "Décimo", "Undécimo", "Meta", "Sin registros", "periodo"];
+  const ONLY_EN = ["Motivo", "Verde", "Uso", "Contrato", "Código", "Departamento", "Consultar", "Aprobar", "Revisar", "Materias", "Docente", "Nunca",
+    "Cancelar", "Atención", "Estudiante"];
+  const words = (lang) => (lang === "en" ? COMMON.concat(ONLY_EN) : COMMON.filter((w) => !["Sexto", "Meta", "Panorama", "Índice", "semanas"].includes(w)));
+  const spanishRe = (lang) => new RegExp(`(?<![\\p{L}_])(${words(lang).join("|")})(?![\\p{L}_])|\\b\\d{1,2} (sep|dic|ene|abr)\\b`, "u");
+  const shownText = (page) => page.evaluate(() => {
+    const out = [];
+    for (const src of [document.querySelector(".ns-app-main"), ...document.querySelectorAll("[role=dialog], [role=alertdialog]")]) {
+      if (!src) continue;
+      const root = src.cloneNode(true);
+      root.querySelectorAll(".ns-paper-scroll, .ns-paper, .ns-reason, .ns-tl-item strong, .ns-tl-item .ns-caption, [aria-hidden=true], input, textarea, select option:not(:checked)").forEach((n) => n.remove());
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) out.push(w.currentNode.textContent);
+    }
+    // Lo que escribió Rectoría al rechazar (I6): «… por Nombre: motivo» se mide hasta los dos puntos.
+    return out.join(" | ").replace(/(by|por) ([^:|]+): [^|]*/g, "$1 $2");
+  });
+  const CLIP = ".ns-app-main button, .ns-app-main [role=tab], .ns-app-main .ns-badge, .ns-app-main .ns-sticker, .ns-app-main th, .ns-app-main label, .ns-app-main .ns-chip, .ns-app-main .ns-overline, .ns-app-main .ns-bento-label, .ns-app-main .ns-course-tag, [role=dialog] button, [role=dialog] label, [role=alertdialog] button";
+  const clippedIn = (page) => page.locator(CLIP).evaluateAll((els) => els.filter((el) => el.offsetParent && el.getClientRects().length && el.clientWidth > 1 && !el.closest(".ns-sr") && el.scrollWidth - el.clientWidth > 1)
+    .map((el) => `${el.tagName.toLowerCase()} «${el.textContent.trim().slice(0, 40)}» ${el.scrollWidth}>${el.clientWidth}`));
+  async function measure(page, lang, tag) {
+    const text = await shownText(page);
+    const hit = text.match(spanishRe(lang));
+    report.check(`${tag}: sin español de interfaz`, !hit, hit ? `«${hit[0]}» en …${text.slice(Math.max(0, hit.index - 50), hit.index + 40).replace(/\s+/g, " ")}…` : "");
+    const clipped = await clippedIn(page);
+    report.check(`${tag}: ningún botón, pestaña, insignia, encabezado o etiqueta recortado`, clipped.length === 0, clipped.join(" | "));
+  }
+  const shot = (page, name) => page.screenshot({ path: join(OUT, `i18n-rectoria-${name}.png`) }); // tamaño de la ventana
+
+  for (const lang of ["en", "pt"]) {
+    for (const width of [1024, 1440]) {
+      for (const [name, hash] of SCREENS) {
+        const { ctx, page, cons } = await open(lang, "es-CO", hash, width);
+        await page.waitForTimeout(800);
+        const tag = `Paso 5 ${lang} · ${name} a ${width}px`;
+        if (width === 1440) report.check(`${tag}: <html lang="${lang}">`, (await page.getAttribute("html", "lang")) === lang);
+        await measure(page, lang, tag);
+        const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        checkOverflow(report, `${hash} (${lang})`, over, width);
+        if (width === 1440) await shot(page, `${name}-${lang}`);
+        report.check(`${tag}: consola limpia`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+    }
+
+    const L = lang === "en"
+      ? { approve: "Approve", reject: "Reject", remind: "Send reminder", add: "Add a school", status: "Status", saveService: "Save service", today: /^Today, \d{1,2}:\d{2}\s?[AP]M$/, ago: /^9 days ago$/, date: /Oct 1, 2026/, created: /^Created by Laura Benavides$/ }
+      : { approve: "Aprovar", reject: "Recusar", remind: "Enviar lembrete", add: "Cadastrar uma escola", status: "Situação", saveService: "Salvar serviço", today: /^Hoje, \d{1,2}:\d{2}$/, ago: /^Há 9 dias$/, date: /1 de out\.? de 2026/, created: /^Criada por Laura Benavides$/ };
+    for (const width of [1024, 1440]) {
+      const big = width === 1440;
+      // Solicitudes: detalle con fecha e historial en el idioma; aprobar y rechazar.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/principal/requests", width);
+        const detail = page.locator(".ns-inbox-detail");
+        report.check(`Paso 5 ${lang} a ${width}px: fecha de la solicitud en el idioma`, L.date.test(await detail.locator("dd").nth(3).innerText()), await detail.locator("dd").nth(3).innerText());
+        report.check(`Paso 5 ${lang} a ${width}px: historial «creada por» en el idioma`, L.created.test((await detail.locator(".ns-history li span").first().innerText()).trim()));
+        await page.getByRole("button", { name: L.approve, exact: true }).click();
+        await page.waitForTimeout(300);
+        await measure(page, lang, `Paso 5 ${lang} · aprobar solicitud a ${width}px`);
+        if (big) await shot(page, `aprobar-${lang}`);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        await page.getByRole("button", { name: L.reject, exact: true }).click();
+        await page.waitForTimeout(300);
+        await page.locator("[role=alertdialog] textarea").fill("Falta el soporte.");
+        await measure(page, lang, `Paso 5 ${lang} · rechazar solicitud a ${width}px`);
+        if (big) await shot(page, `rechazar-${lang}`);
+        await page.locator("[role=alertdialog]").getByRole("button", { name: L.reject, exact: true }).click();
+        await page.waitForTimeout(400);
+        await measure(page, lang, `Paso 5 ${lang} · solicitud rechazada a ${width}px`);
+        report.check(`Paso 5 ${lang} a ${width}px: consola limpia (solicitudes)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+      // Seguimiento docente: último acceso en el idioma y recordatorio.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/principal/teachers", width);
+        const cells = await page.locator(".ns-app-main td").allInnerTexts();
+        report.check(`Paso 5 ${lang} a ${width}px: último acceso «hoy» en el idioma`, cells.some((c) => L.today.test(c.trim())), cells.filter((c) => /\d:\d\d/.test(c)).join(" · "));
+        report.check(`Paso 5 ${lang} a ${width}px: último acceso «hace 9 días» en el idioma`, cells.some((c) => L.ago.test(c.trim())));
+        await page.getByRole("button", { name: L.remind }).first().click();
+        await page.waitForTimeout(300);
+        const toast = await page.locator(".ns-toast-region").innerText().catch(() => "");
+        report.check(`Paso 5 ${lang} a ${width}px: aviso del recordatorio en el idioma`, toast.length > 0 && !spanishRe(lang).test(toast), toast.replace(/\n/g, " · "));
+        report.check(`Paso 5 ${lang} a ${width}px: consola limpia (seguimiento)`, cons.length === 0, cons.join(" | "));
+        await ctx.close();
+      }
+      // Plataforma: dar de alta un colegio (con errores), identidad y suspender.
+      {
+        const { ctx, page, cons } = await open(lang, "es-CO", "#/platform/dashboard", width);
+        await page.getByRole("button", { name: L.add }).first().click();
+        await page.waitForTimeout(400);
+        await page.getByRole("dialog").getByRole("button").last().click();
+        await measure(page, lang, `Paso 5 ${lang} · nuevo colegio con errores a ${width}px`);
+        if (big) await shot(page, `nuevo-colegio-${lang}`);
+        await ctx.close();
+        const c2 = await open(lang, "es-CO", "#/platform/school/demo-lm", width);
+        await c2.page.locator(".ns-identity-grid input").first().fill("");
+        await c2.page.locator(".ns-identity-grid input").nth(2).fill("123");
+        await c2.page.locator(".ns-header-actions button").last().click();
+        await c2.page.waitForTimeout(300);
+        await measure(c2.page, lang, `Paso 5 ${lang} · identidad con errores a ${width}px`);
+        if (big) await shot(c2.page, `identidad-${lang}`);
+        await c2.page.getByLabel(L.status).selectOption("suspended");
+        await c2.page.getByRole("button", { name: L.saveService }).click();
+        await c2.page.waitForTimeout(300);
+        report.check(`Paso 5 ${lang} a ${width}px: abre «suspender»`, await c2.page.locator("[role=alertdialog]").isVisible());
+        await measure(c2.page, lang, `Paso 5 ${lang} · suspender colegio a ${width}px`);
+        if (big) await shot(c2.page, `suspender-${lang}`);
+        report.check(`Paso 5 ${lang} a ${width}px: consola limpia (plataforma)`, cons.length === 0 && c2.cons.length === 0, cons.concat(c2.cons).join(" | "));
+        await c2.ctx.close();
+      }
+    }
+  }
+}
+
+// 10. Paso 6 · Textos legales en el idioma y aviso de impresos (I7). Un error aquí se anota y la corrida sigue.
+try {
+  const LEGAL6 = {
+    es: { open: "Política de tratamiento de datos", head: "Política de tratamiento de datos personales", governs: null },
+    en: { open: "Data processing policy", head: "Personal data processing policy", governs: "The Spanish version is the one that governs" },
+    pt: { open: "Política de tratamento de dados", head: "Política de tratamento de dados pessoais", governs: "A versão em espanhol é a que vale" },
+  };
+  // Los documentos que la app importa al compilar. En la demostración el login no muestra el enlace de la política y
+  // la aceptación (ConsentGate) no aparece: solo con sesión real. Se revisan los archivos y, si el enlace está, el diálogo.
+  const FILES = { es: "politica-de-tratamiento-de-datos.md", en: "Privacy policy (English draft).md", pt: "Politica de privacidade (rascunho em portugues).md" };
+  const legalSrc = readFileSync(join(ROOT, "src/components/organisms/LegalDocument.tsx"), "utf8");
+  for (const lang of ["es", "en", "pt"]) {
+    const L = LEGAL6[lang];
+    const { ctx, page, cons } = await open(lang, "es-CO", "#/login");
+    report.check(`Paso 6 ${lang}: la app importa el documento`, legalSrc.includes(FILES[lang]));
+    let text = readFileSync(join(ROOT, "docs/legal", FILES[lang]), "utf8").replace(/\*\*/g, "");
+    const link = page.getByRole("link", { name: L.open, exact: true });
+    if (await link.count()) { await link.first().click(); await page.waitForTimeout(300); text = await page.getByRole("dialog").innerText(); }
+    report.check(`Paso 6 ${lang}: la política del login está en el idioma`, text.includes(L.head), text.slice(0, 120).replace(/\n/g, " · "));
+    if (L.governs) {
+      report.check(`Paso 6 ${lang}: la política dice que rige el español`, text.includes(L.governs));
+      report.check(`Paso 6 ${lang}: la política dice que es borrador para abogado`, /lawyer|advogado/.test(text));
+      report.check(`Paso 6 ${lang}: la política lleva versión y fecha`, /2026\.1/.test(text) && /(October 6, 2026|6 de outubro de 2026)/.test(text));
+    } else report.check("Paso 6 es: la política en español no lleva notas nuevas", !/governs|vale o espanhol/.test(text));
+    report.check(`Paso 6 ${lang}: consola limpia (política)`, cons.length === 0, cons.join(" | "));
+    await ctx.close();
+  }
+  // Aviso de impresos: en inglés y portugués aparece antes de generar; en español no.
+  const NOTICE = { es: null, en: "Documents come out in Spanish", pt: "Os documentos saem em espanhol" };
+  for (const lang of ["es", "en", "pt"]) {
+    const { ctx, page, cons } = await open(lang, "es-CO", "#/teacher/reports");
+    await page.locator(".ns-report button").first().click();
+    await page.waitForTimeout(300);
+    const dlg = page.locator("[role=alertdialog]");
+    if (NOTICE[lang]) {
+      report.check(`Paso 6 ${lang}: aviso de impresos antes de generar un reporte`, (await dlg.count()) === 1 && (await dlg.innerText()).includes(NOTICE[lang]));
+      if (lang === "pt") await page.screenshot({ path: join(OUT, "i18n-aviso-impresos-pt.png") });
+      await dlg.getByRole("button").last().click();
+      await page.waitForTimeout(300);
+      report.check(`Paso 6 ${lang}: al continuar, el reporte se genera`, (await page.locator(".ns-toast-region").count()) > 0);
+    } else {
+      report.check("Paso 6 es: sin aviso, el reporte se genera como antes", (await dlg.count()) === 0 && (await page.locator(".ns-toast-region").count()) > 0);
+    }
+    report.check(`Paso 6 ${lang}: consola limpia (aviso)`, cons.length === 0, cons.join(" | "));
+    await ctx.close();
+  }
+  for (const lang of ["en", "pt"]) {
+    const { ctx, page, cons } = await open(lang, "es-CO", "#/admin/reportcards");
+    await page.locator(".ns-grid-actions button[aria-label]").first().click();
+    await page.waitForTimeout(300);
+    report.check(`Paso 6 ${lang}: aviso de impresos antes de generar un boletín`, (await page.locator("[role=alertdialog]").innerText().catch(() => "")).includes(NOTICE[lang]));
+    report.check(`Paso 6 ${lang}: consola limpia (boletines)`, cons.length === 0, cons.join(" | "));
+    await ctx.close();
+  }
+} catch (e) { report.check("Paso 6: la sección corre completa", false, String(e).slice(0, 160)); }
+
+// 11. Paso 7 · Barrido final: en español las notas van con coma («4,5») y ninguna queda con punto.
+try {
+  const ROUTES7 = ["#/teacher/dashboard", "#/teacher/review", "#/teacher/gradebook", "#/teacher/students", "#/teacher/recoveries", "#/teacher/concepts",
+    "#/admin/reportcards", "#/admin/ranking", "#/principal/dashboard", "#/principal/requests", "#/teacher/profile/20261175?tab=grades"];
+  for (const hash of ROUTES7) {
+    const { ctx, page, cons } = await open("es", "es-CO", hash);
+    await page.waitForTimeout(900);
+    // Notas visibles: una cifra, coma o punto, una cifra, sin más dígitos alrededor. Se excluye lo impreso (D2 sigue igual).
+    const text = await page.evaluate(() => {
+      const root = document.querySelector(".ns-app-main").cloneNode(true);
+      root.querySelectorAll(".ns-paper-scroll, [aria-hidden=true]").forEach((n) => n.remove());
+      // Cada nodo de texto por separado: las celdas de una tabla no se pegan entre sí.
+      const out = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) out.push(w.currentNode.textContent);
+      return out.join(" ") + " " + [...root.querySelectorAll("[aria-label]")].map((n) => n.getAttribute("aria-label")).join(" ");
+    });
+    const dot = text.match(/(?<![\d.,])[1-5]\.\d(?![\d.,%])/);
+    const comma = /(?<![\d.,])[1-5],\d(?![\d.,])/.test(text);
+    report.check(`Paso 7 es · ${hash}: notas con coma decimal`, comma && !dot, dot ? `queda «${dot[0]}»` : comma ? "" : "no se encontró ninguna nota");
+    report.check(`Paso 7 es · ${hash}: consola limpia`, cons.length === 0, cons.join(" | "));
+    if (hash === "#/teacher/gradebook") await page.screenshot({ path: join(OUT, "i18n-notas-con-coma-es.png") });
+    await ctx.close();
+  }
+} catch (e) { report.check("Paso 7: la sección corre completa", false, String(e).slice(0, 160)); }
 
 // 5. Formatos (I5). Node 24 carga el .ts quitando los tipos.
 const { formatGrade, formatDate, formatTime } = await import("../src/i18n/format.ts").catch((e) => { report.check("Se carga src/i18n/format.ts", false, String(e)); return {}; });

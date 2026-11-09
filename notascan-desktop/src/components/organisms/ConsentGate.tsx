@@ -3,7 +3,7 @@ import { Button } from "../atoms/Button";
 import { Checkbox } from "../atoms/Field";
 import { SegmentedTabs } from "../atoms/Controls";
 import { Modal } from "./Overlays";
-import { LEGAL, LegalDocument } from "./LegalDocument";
+import { LegalDocument, legalFor } from "./LegalDocument";
 import { usePolicyConsent } from "../../services/privacy";
 import { useI18n } from "../../i18n/I18nProvider";
 
@@ -16,7 +16,9 @@ export function ConsentGate({ onLogout }: { onLogout: () => void }) {
   const [checked, setChecked] = useState(false);
   const [doc, setDoc] = useState<"resumen" | "politica" | "terminos">("resumen");
   const [err, setErr] = useState(false);
-  const x = useI18n().t.adm.consent;
+  const { t, lang } = useI18n();
+  const x = t.adm.consent;
+  const legal = legalFor(lang);
   if (!q.data || q.data.accepted) return null;
   return (
     <Modal open size="doc" onClose={() => { /* no se puede cerrar sin aceptar o salir */ }} icon="lock" title={x.title}
@@ -34,9 +36,9 @@ export function ConsentGate({ onLogout }: { onLogout: () => void }) {
           </ul>
         ) : (
           <>
-            {/* El texto legal completo se traduce en el paso 6; mientras tanto, en inglés y portugués se avisa. */}
+            {/* Paso 6: el texto completo ya está en el idioma y dice al comienzo que rige el español. */}
             {x.fullNote ? <p className="ns-caption" style={{ margin: 0 }}>{x.fullNote}</p> : null}
-            <LegalDocument text={doc === "politica" ? LEGAL.policy : LEGAL.terms} />
+            <LegalDocument text={doc === "politica" ? legal.policy : legal.terms} />
           </>
         )}
       </div>

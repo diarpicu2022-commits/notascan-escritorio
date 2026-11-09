@@ -116,7 +116,7 @@ export function Gradebook({ courses, course, onCourse, period, data, state, onSa
   }
   function startEdit(initial?: string) {
     const row = rows[pos.r], k = cols[pos.c].key;
-    setDraft(initial !== undefined ? initial : isNaN(row[k] as number) ? "" : formatGrade(row[k] as number));
+    setDraft(initial !== undefined ? initial : isNaN(row[k] as number) ? "" : shownGrade(row[k] as number));
     setEdit(pos); setMsg(null);
   }
   function commit(): boolean {

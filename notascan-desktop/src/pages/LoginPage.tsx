@@ -5,7 +5,7 @@ import { Icon, type IconName } from "../components/atoms/Icon";
 import { Logo } from "../components/atoms/Logo";
 import { Toast } from "../components/organisms/Toast";
 import { Modal } from "../components/organisms/Overlays";
-import { LEGAL, LegalDocument } from "../components/organisms/LegalDocument";
+import { LegalDocument, legalFor } from "../components/organisms/LegalDocument";
 import { Button, Dots } from "../components/atoms/Button";
 import type { CodePurpose, LoginError } from "../app/AuthContext";
 import { useI18n } from "../i18n/I18nProvider";
@@ -299,7 +299,7 @@ export function LoginPage({ defaultRole = "teacher", onLogin, onSubmit, onForgot
       </main>
       <Modal open={policyOpen} size="doc" onClose={() => setPolicyOpen(false)} icon="lock" title={t.login.policy}
         actions={<Button variant="secondary" onClick={() => setPolicyOpen(false)} data-autofocus>{t.login.close}</Button>}>
-        <div style={{ maxHeight: 420, overflowY: "auto", paddingRight: 8 }} tabIndex={0} aria-label={t.login.policyText}><LegalDocument text={LEGAL.policy} /></div>
+        <div style={{ maxHeight: 420, overflowY: "auto", paddingRight: 8 }} tabIndex={0} aria-label={t.login.policyText}><LegalDocument text={legalFor(lang).policy} /></div>
       </Modal>
       {sent ? (
         <div className="ns-toast-region">

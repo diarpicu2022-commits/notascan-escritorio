@@ -3,7 +3,7 @@
 //    del área principal y del menú). 2) Flujos con teclado y ratón. 3) Contraste. 4) Consola y anchos.
 import { join } from "node:path";
 import { DS, DS_LITERALS, OUT, URL_BASE, checkOverflow, createReport, findOffSystemValues, startPreview, watchConsole, sampleTextContrast } from "./harness.mjs";
-import { applyAmendments } from "./harness.mjs";
+import { applyAmendments, I5_MASK } from "./harness.mjs";
 
 const report = createReport();
 const offenders = findOffSystemValues();
@@ -34,13 +34,15 @@ async function openReference(ctx, hash) {
 
 const normalize = (loc) => loc.evaluate((root) => {
   const walk = (el) => {
-    if (el.nodeType === 3) return el.textContent.trim() ? `"${el.textContent.trim()}"` : "";
+    // Idiomas, I5: la app escribe la nota con coma decimal («4,5») y el sistema con punto. Se comparan igual.
+    const dec = (s) => s.replace(/(\d),(\d)/g, "$1.$2");
+    if (el.nodeType === 3) return el.textContent.trim() ? `"${dec(el.textContent.trim())}"` : "";
     if (el.nodeType !== 1) return "";
     // Enmienda 11 (idiomas, 2026-11-08): lo agregado al sistema no entra en la comparación.
     if (el.getAttribute("data-enmienda") === "11") return "";
     const attrs = [...el.attributes]
       .filter((a) => !["id", "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant", "for", "name"].includes(a.name))
-      .map((a) => `${a.name}=${a.value}`).sort().join(" ");
+      .map((a) => `${a.name}=${dec(a.value)}`).sort().join(" ");
     return `<${el.tagName.toLowerCase()} ${attrs}>${[...el.childNodes].map(walk).join("")}</${el.tagName.toLowerCase()}>`;
   };
   return walk(root);
@@ -101,8 +103,8 @@ try {
       report.check(`${label} · ${part}: DOM idéntico al sistema`, R === M, R === M ? "" : `…${R.slice(Math.max(0, at - 60), at + 90)}… vs …${M.slice(Math.max(0, at - 60), at + 90)}…`);
       if (part === "contenido") {
         const mask = label === "grades" ? [ref.locator(frozen), mine.locator(frozen)] : [];
-        const a = await ref.locator(sel).screenshot({ animations: "disabled", mask: mask.slice(0, 1) });
-        const b = await mine.locator(sel).screenshot({ animations: "disabled", mask: mask.slice(1), path: join(OUT, `paso5-docente-${label.replace(/[/?=]/g, "-")}.png`) });
+        const a = await ref.locator(sel).screenshot({ animations: "disabled", mask: [...mask.slice(0, 1), ref.locator(I5_MASK)] });
+        const b = await mine.locator(sel).screenshot({ animations: "disabled", mask: [...mask.slice(1), mine.locator(I5_MASK)], path: join(OUT, `paso5-docente-${label.replace(/[/?=]/g, "-")}.png`) });
         const d = await pixelDiff(mine, a, b);
         report.check(`${label} · ${part}: píxeles iguales al sistema (≤ 0.5 %)`, d.pct <= 0.5, `${d.size}, ${d.pct.toFixed(3)} %`);
       }
@@ -148,12 +150,12 @@ try {
   await page.keyboard.press("7");
   await page.keyboard.press("Enter");
   const err = await page.locator(".ns-gb-status").textContent();
-  report.check("Escribir 7 + Enter muestra el error del sistema y no guarda", err.includes("La calificación debe estar entre 1.0 y 5.0."), err);
+  report.check("Escribir 7 + Enter muestra el error del sistema y no guarda", err.includes("La calificación debe estar entre 1,0 y 5,0."), err);
   await page.keyboard.press("Escape");
   await page.keyboard.press("4");
   await page.keyboard.press("Enter");
   const ok = await page.locator(".ns-gb-status").textContent();
-  report.check("Escribir 4 + Enter guarda y baja de fila", /Guardado · .*Actividad 2: 4\.0/.test(ok), ok);
+  report.check("Escribir 4 + Enter guarda y baja de fila", /Guardado · .*Actividad 2: 4,0/.test(ok), ok);
   await page.locator(".ns-conn-pill").click();
   await page.getByRole("switch").click();
   await page.locator(".ns-conn-pill").click();
@@ -179,7 +181,7 @@ try {
   await page.goto(URL_BASE + "#/teacher/recoveries", { waitUntil: "networkidle" });
   const rec = page.locator("tbody tr").nth(2);
   await rec.locator("input").fill("3.4");
-  report.check("Recuperación 3.4 → «Aprobada» conservando la original", (await rec.locator(".ns-badge").first().textContent()) === "Aprobada" && /original \d\.\d conservada/.test(await rec.locator(".ns-col .ns-caption").textContent()));
+  report.check("Recuperación 3.4 → «Aprobada» conservando la original", (await rec.locator(".ns-badge").first().textContent()) === "Aprobada" && /original \d,\d conservada/.test(await rec.locator(".ns-col .ns-caption").textContent()));
   await rec.locator("input").fill("9");
   report.check("Recuperación 9 → «Revisar» y Guardar deshabilitado", (await rec.locator(".ns-badge").first().textContent()) === "Revisar" && await rec.getByRole("button", { name: "Guardar" }).isDisabled());
 

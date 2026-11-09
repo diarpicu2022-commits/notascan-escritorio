@@ -17,7 +17,6 @@ const GRADES: Record<string, string> = { "Primero": "1º ano", "Segundo": "2º a
 export const secretariaPt: typeof secretariaEs = {
   fixed: (v) => FIXED[v] ?? v,
   gradeName: (v) => GRADES[v] ?? v,
-  lastSeen: (v) => v.replace(/^Hoy, /, "Hoje, ").replace(/^Ayer, /, "Ontem, ").replace(/^Hace 1 días$/, "Há 1 dia").replace(/^Hace (\d+) días$/, "Há $1 dias").replace(/^Nunca$/, "Nunca"),
   roles: { teacher: "Docente", guardian: "Responsável", staff: "Administrativo", director: "Direção" },
   userStatus: { active: "Ativo", inactive: "Desativado", invited: "Convite enviado", none: "Sem conta" },
   periodStatus: { closed: "Fechado", open: "Aberto", draft: "Rascunho" },
@@ -580,7 +579,7 @@ export const secretariaPt: typeof secretariaEs = {
       "Sua conta é pessoal: o NotaScan registra quem confere notas, faz a chamada ou decide solicitações.",
       "Os titulares podem conhecer, corrigir, exportar e pedir a exclusão dos seus dados na Secretaria.",
     ],
-    fullNote: "A política e os termos completos aparecem em espanhol, a versão que vale.",
+    fullNote: "",
     check: "Li e aceito a política de tratamento de dados e os termos de uso",
     error: "Não foi possível salvar sua aceitação. Verifique sua conexão e tente de novo.",
   },

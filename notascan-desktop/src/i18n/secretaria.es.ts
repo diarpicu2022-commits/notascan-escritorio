@@ -13,7 +13,6 @@ export const secretariaEs = {
   /** Valores de las listas fijas del sistema: se guardan en español y se traducen solo al mostrarlos. */
   fixed: same,
   gradeName: same,
-  lastSeen: same,
   roles: { teacher: "Docente", guardian: "Acudiente", staff: "Administrativo", director: "Directivo" },
   userStatus: { active: "Activo", inactive: "Desactivado", invited: "Invitación enviada", none: "Sin cuenta" },
   periodStatus: { closed: "Cerrado", open: "Abierto", draft: "Borrador" },
@@ -305,8 +304,8 @@ export const secretariaEs = {
     goalSaved: (g: string) => "Rectoría verá " + g + " como referencia en la analítica.",
     saveGoal: "Guardar meta",
     goalLabel: "Promedio esperado por grado",
-    goalHint: "Entre 1.0 y 5.0. Los grados por debajo se resaltan en la analítica de Rectoría.",
-    goalError: "Escribe un valor entre 1.0 y 5.0.",
+    goalHint: "Entre 1,0 y 5,0. Los grados por debajo se resaltan en la analítica de Rectoría.",
+    goalError: "Escribe un valor entre 1,0 y 5,0.",
     goalOk: "Meta institucional guardada",
     goalFail: "No pudimos guardar la meta",
     photosDeleted: (n: number) => (n ? "Se borraron " + n + plural(n, " foto", " fotos") + " de exámenes. Las notas se conservan." : "No había fotos de exámenes para borrar."),

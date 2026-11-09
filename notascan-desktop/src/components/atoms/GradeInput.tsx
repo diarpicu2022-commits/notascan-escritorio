@@ -26,7 +26,7 @@ export function GradeInput({
   id, label, hideLabel, value, defaultValue, onChange, hint, disabled, readOnly, autoFocus, showError = true, onKeyDown, className,
 }: GradeInputProps) {
   const autoId = useId();
-  const { t } = useI18n();
+  const { t, grade } = useI18n();
   const inputId = id || autoId;
   const controlled = value !== undefined;
   const [own, setOwn] = useState(defaultValue !== undefined ? String(defaultValue) : "");
@@ -47,9 +47,9 @@ export function GradeInput({
         <input
           id={inputId} type="text" inputMode="decimal" autoComplete="off" value={raw} onChange={handleChange}
           onKeyDown={onKeyDown} disabled={disabled} readOnly={readOnly} autoFocus={autoFocus}
-          placeholder="0.0" aria-invalid={invalid || undefined} aria-describedby={inputId + "-msg"}
+          placeholder={grade(0)} aria-invalid={invalid || undefined} aria-describedby={inputId + "-msg"}
         />
-        <span className="ns-grade-input-scale" aria-hidden><span>{t.tch.card.of}</span><span>5.0</span></span>
+        <span className="ns-grade-input-scale" aria-hidden><span>{t.tch.card.of}</span><span>{grade(5)}</span></span>
       </div>
       <span id={inputId + "-msg"} className={invalid ? "ns-field-error" : "ns-field-hint"} role={invalid ? "alert" : undefined}>
         {invalid ? <Icon name="error" size={16} /> : null}

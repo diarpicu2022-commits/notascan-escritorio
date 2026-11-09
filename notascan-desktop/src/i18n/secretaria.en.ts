@@ -17,7 +17,6 @@ const GRADES: Record<string, string> = { "Primero": "1st grade", "Segundo": "2nd
 export const secretariaEn: typeof secretariaEs = {
   fixed: (v) => FIXED[v] ?? v,
   gradeName: (v) => GRADES[v] ?? v,
-  lastSeen: (v) => v.replace(/^Hoy, /, "Today, ").replace(/^Ayer, /, "Yesterday, ").replace(/^Hace 1 días$/, "1 day ago").replace(/^Hace (\d+) días$/, "$1 days ago").replace(/^Nunca$/, "Never"),
   roles: { teacher: "Teacher", guardian: "Guardian", staff: "Staff", director: "Principal's office" },
   userStatus: { active: "Active", inactive: "Deactivated", invited: "Invitation sent", none: "No account" },
   periodStatus: { closed: "Closed", open: "Open", draft: "Draft" },
@@ -580,7 +579,7 @@ export const secretariaEn: typeof secretariaEs = {
       "Your account is personal: NotaScan records who verifies grades, takes attendance or decides requests.",
       "Data subjects can see, correct, export and ask for deletion of their data at the academic office.",
     ],
-    fullNote: "The full policy and terms are shown in Spanish, the version that applies.",
+    fullNote: "",
     check: "I have read and accept the data processing policy and the terms of use",
     error: "We couldn't save your acceptance. Check your connection and try again.",
   },

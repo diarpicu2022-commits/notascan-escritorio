@@ -18,6 +18,8 @@ import { useToast } from "../../components/organisms/Toast";
 import { PageShell } from "../../components/templates/PageShell";
 import { DEMO } from "../../lib/supabase";
 import { lastSeen } from "../../services/admin";
+import { useI18n } from "../../i18n/I18nProvider";
+import { seenText } from "../../i18n/seen";
 import type { Institution, InstitutionStatus } from "../../services/institution";
 import {
   attentionOf, platformMessage, sendInvitation, useAddSecretary, useCreateSchool, useRemoveSecretary, useSaveIdentity, useSaveService, useSchools, useSecretaries,
@@ -30,22 +32,20 @@ import {
  * previa en vivo y servicio. Solo cifras agregadas: ningún dato personal de estudiantes.
  */
 
-const STATUS: Record<InstitutionStatus, [string, BadgeTone, IconName]> = {
-  active: ["Activo", "verified", "check"], implementation: ["Implementación", "pending", "clock"], suspended: ["Suspendido", "review", "lock"],
-};
-const ADOPTION: Record<Adoption, [string, BadgeTone, IconName]> = {
-  grows: ["Crece", "verified", "arrow"], steady: ["Estable", "neutral", "minus"], drops: ["Se cae", "review", "warning"], idle: ["Sin uso", "pending", "clock"],
+/* Tonos e iconos; las palabras salen del diccionario (t.plat.adoption, t.plat.account). */
+const ADOPTION: Record<Adoption, [BadgeTone, IconName]> = {
+  grows: ["verified", "arrow"], steady: ["neutral", "minus"], drops: ["review", "warning"], idle: ["pending", "clock"],
 };
 const ADOPTION_ORDER: Record<Adoption, number> = { drops: 0, idle: 1, steady: 2, grows: 3 };
 const STATUS_TABS: InstitutionStatus[] = ["active", "implementation", "suspended"];
-const TAB_LABEL: Record<InstitutionStatus, string> = { active: "Activos", implementation: "Implementación", suspended: "Suspendidos" };
-const badge = ([l, t, i]: [string, BadgeTone, IconName]) => <Badge tone={t} icon={i}>{l}</Badge>;
+const badge = (l: string, [t, i]: [BadgeTone, IconName]) => <Badge tone={t} icon={i}>{l}</Badge>;
 
 /** Actividad de 8 semanas como barras pequeñas; la semana en curso en dorado. */
 function ActivityBars({ weekly }: { weekly: number[] }) {
   const max = Math.max(1, ...weekly);
+  const t = useI18n().t;
   return (
-    <span className="ns-spark" role="img" aria-label={"Actividad de las últimas 8 semanas: " + weekly.join(", ")}>
+    <span className="ns-spark" role="img" aria-label={t.plat.activityAria(weekly.join(", "))}>
       {weekly.map((n, i) => <i key={i} className={i === weekly.length - 1 ? "is-now" : undefined} style={{ height: Math.max(8, Math.round((n / max) * 100)) + "%" }} />)}
     </span>
   );
@@ -64,14 +64,16 @@ export function PlatformSchoolsPage() {
   const [tried, setTried] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [showToast, toastNode] = useToast();
+  const { t, lang } = useI18n();
+  const p = t.plat;
   const rows = q.data ?? [];
   const list = rows.filter((r) => r.institution.status === tab);
   const count = (s: InstitutionStatus) => rows.filter((r) => r.institution.status === s).length;
   const f = form ?? EMPTY_NEW;
   const e = {
-    name: !f.name.trim() ? "Escribe el nombre del colegio." : undefined,
-    adminName: !f.adminName.trim() ? "Escribe el nombre de la persona de Secretaría." : undefined,
-    adminEmail: !EMAIL.test(f.adminEmail.trim()) ? "Escribe un correo válido." : undefined,
+    name: !f.name.trim() ? t.adm.idn.nameError : undefined,
+    adminName: !f.adminName.trim() ? p.adminNameError : undefined,
+    adminEmail: !EMAIL.test(f.adminEmail.trim()) ? p.emailError : undefined,
   };
   const set = (k: keyof NewSchool) => (ev: { target: { value: string } }) => setForm({ ...f, [k]: ev.target.value });
   function submit() {
@@ -83,56 +85,56 @@ export function PlatformSchoolsPage() {
         setForm(null); setTried(false);
         // La invitación sale enseguida; si falla, el colegio ya existe y se puede reenviar desde su ficha.
         sendInvitation({ institutionId: id }).then(
-          () => showToast({ tone: "success", title: "Colegio dado de alta", message: "Enviamos a " + mail + " un código para activar su cuenta de Secretaría." }),
-          (x) => showToast({ tone: "error", title: "Colegio dado de alta, invitación sin enviar", message: (x instanceof Error ? x.message : "") + " Reenvíala desde la ficha del colegio." }),
+          () => showToast({ tone: "success", title: p.created, message: p.codeSent(mail) }),
+          (x) => showToast({ tone: "error", title: p.createdNoInvite, message: (x instanceof Error && x.message ? x.message : p.inviteFailed) + p.resendFromSchool }),
         );
         if (!DEMO) navigate("school", { id });
       },
-      (x) => setErr(platformMessage(x)),
+      (x) => setErr(platformMessage(x, t)),
     );
   }
   return (
     <PageShell active="dashboard">
-      <Header eyebrow="Plataforma NotaScan" title="Colegios" highlight="Colegios"
-        description="Los colegios que usan NotaScan: su estado, cómo lo están usando y su identidad."
-        actions={<Button size="lg" icon="plus" onClick={() => { setForm(EMPTY_NEW); setTried(false); setErr(null); }}>Dar de alta un colegio</Button>} />
-      <SegmentedTabs label="Estado del colegio" value={tab} onChange={setTab}
-        tabs={STATUS_TABS.map((s) => ({ value: s, label: TAB_LABEL[s], count: count(s) }))} />
+      <Header eyebrow={p.eyebrow} title={p.title} highlight={p.title}
+        description={p.desc}
+        actions={<Button size="lg" icon="plus" onClick={() => { setForm(EMPTY_NEW); setTried(false); setErr(null); }}>{p.add}</Button>} />
+      <SegmentedTabs label={p.tabsAria} value={tab} onChange={setTab}
+        tabs={STATUS_TABS.map((s) => ({ value: s, label: p.tabs[s], count: count(s) }))} />
       <DataGrid<SchoolRow>
-        caption="Colegios de la plataforma" rows={list} rowKey={(r) => r.institution.id} pageSize={15} density="compact" resetKey={tab}
+        caption={p.caption} rows={list} rowKey={(r) => r.institution.id} pageSize={15} density="compact" resetKey={tab}
         initialSort={{ key: "adoption", dir: "asc" }}
-        loading={q.isPending && !q.data} error={q.isError && !q.data ? "No pudimos cargar los colegios." : undefined} onRetry={() => q.refetch()}
-        emptyIcon="building" emptyTitle={rows.length ? "No hay colegios en este estado." : "Aún no hay colegios en la plataforma."}
-        emptyMessage={rows.length ? "Prueba con otra pestaña." : "Da de alta el primer colegio que compró el servicio."}
+        loading={q.isPending && !q.data} error={q.isError && !q.data ? p.loadError : undefined} onRetry={() => q.refetch()}
+        emptyIcon="building" emptyTitle={rows.length ? p.noneInState : p.none}
+        emptyMessage={rows.length ? p.otherTab : p.addFirst}
         columns={[
-          { key: "name", label: "Colegio", header: true, sortable: true, sortValue: (r) => r.institution.name, render: (r) => (
-            <button type="button" className="ns-cell-link" onClick={() => navigate("school", { id: r.institution.id })} aria-label={"Abrir " + r.institution.name}>
+          { key: "name", label: p.cols.school, header: true, sortable: true, sortValue: (r) => r.institution.name, render: (r) => (
+            <button type="button" className="ns-cell-link" onClick={() => navigate("school", { id: r.institution.id })} aria-label={p.open(r.institution.name)}>
               <SchoolCrest institution={r.institution} size="mini" /><span>{r.institution.name}</span>
             </button>
           ) },
-          { key: "city", label: "Ciudad", sortable: true, sortValue: (r) => r.institution.city, render: (r) => r.institution.city || "—" },
-          { key: "students", label: "Estudiantes", numeric: true, sortable: true },
-          { key: "use7", label: "Uso 7 días", numeric: true, sortable: true, sortValue: (r) => r.grades7d + r.attendance7d, render: (r) => String(r.grades7d + r.attendance7d) },
-          { key: "weekly", label: "8 semanas", render: (r) => <ActivityBars weekly={r.weekly} /> },
-          { key: "adoption", label: "Adopción", sortable: true, sortValue: (r) => ADOPTION_ORDER[r.adoption], render: (r) => badge(ADOPTION[r.adoption]) },
-          { key: "attention", label: "Atención", numeric: true, sortable: true, sortValue: (r) => attentionOf(r).length, render: (r) => { const n = attentionOf(r).length; return n ? <Badge tone="pending" icon="warning">{String(n)}</Badge> : <span className="ns-caption">—</span>; } },
-          { key: "lastSeen", label: "Último acceso", sortable: true, sortValue: (r) => r.lastSeen ?? "", render: (r) => lastSeen(r.lastSeen) },
+          { key: "city", label: p.cols.city, sortable: true, sortValue: (r) => r.institution.city, render: (r) => r.institution.city || "—" },
+          { key: "students", label: p.cols.students, numeric: true, sortable: true },
+          { key: "use7", label: p.cols.use7, numeric: true, sortable: true, sortValue: (r) => r.grades7d + r.attendance7d, render: (r) => String(r.grades7d + r.attendance7d) },
+          { key: "weekly", label: p.cols.weekly, render: (r) => <ActivityBars weekly={r.weekly} /> },
+          { key: "adoption", label: p.cols.adoption, sortable: true, sortValue: (r) => ADOPTION_ORDER[r.adoption], render: (r) => badge(p.adoption[r.adoption], ADOPTION[r.adoption]) },
+          { key: "attention", label: p.cols.attention, numeric: true, sortable: true, sortValue: (r) => attentionOf(r).length, render: (r) => { const n = attentionOf(r).length; return n ? <Badge tone="pending" icon="warning">{String(n)}</Badge> : <span className="ns-caption">—</span>; } },
+          { key: "lastSeen", label: p.cols.last, sortable: true, sortValue: (r) => r.lastSeen ?? "", render: (r) => seenText(t, lang, lastSeen(r.lastSeen)) },
         ]}
       />
       <Drawer
-        open={!!form} onClose={() => setForm(null)} eyebrow="Plataforma" title="Dar de alta un colegio"
-        footer={[<Button key="c" variant="secondary" onClick={() => setForm(null)}>Cancelar</Button>, <Button key="s" icon="check" loading={create.isPending} onClick={submit}>Dar de alta</Button>]}
+        open={!!form} onClose={() => setForm(null)} eyebrow={p.drawerEyebrow} title={p.add} closeLabel={t.prefs.close}
+        footer={[<Button key="c" variant="secondary" onClick={() => setForm(null)}>{p.cancel}</Button>, <Button key="s" icon="check" loading={create.isPending} onClick={submit}>{p.create}</Button>]}
       >
         <div className="ns-form-grid">
-          <Input label="Nombre del colegio" required value={f.name} onChange={set("name")} error={tried ? e.name : undefined} className="ns-span-2" />
-          <Input label="Iniciales del escudo" value={f.shortName} onChange={(ev) => setForm({ ...f, shortName: ev.target.value.toUpperCase().slice(0, 3) })} hint="Hasta 3 letras." />
-          <Input label="Ciudad" value={f.city} onChange={set("city")} />
-          <Input label="Departamento" value={f.department} onChange={set("department")} />
-          <Input label="Plan" value={f.plan} onChange={set("plan")} placeholder="Anual" />
-          <Input label="Contrato hasta" type="date" value={f.contractUntil} onChange={set("contractUntil")} className="ns-span-2" />
-          <h3 className="ns-subhead ns-span-2">Primera cuenta de Secretaría</h3>
-          <Input label="Nombre completo" required value={f.adminName} onChange={set("adminName")} error={tried ? e.adminName : undefined} />
-          <Input label="Correo" type="email" required value={f.adminEmail} onChange={set("adminEmail")} error={tried ? e.adminEmail : undefined} hint="Le enviamos un código para activar su cuenta; desde ahí registra al resto del colegio." />
+          <Input label={t.adm.idn.name} required value={f.name} onChange={set("name")} error={tried ? e.name : undefined} className="ns-span-2" />
+          <Input label={t.adm.idn.short} value={f.shortName} onChange={(ev) => setForm({ ...f, shortName: ev.target.value.toUpperCase().slice(0, 3) })} hint={p.shortHint} />
+          <Input label={t.adm.idn.city} value={f.city} onChange={set("city")} />
+          <Input label={t.adm.idn.department} value={f.department} onChange={set("department")} />
+          <Input label={p.plan} value={f.plan} onChange={set("plan")} placeholder={p.planPh} />
+          <Input label={p.contract} type="date" value={f.contractUntil} onChange={set("contractUntil")} className="ns-span-2" />
+          <h3 className="ns-subhead ns-span-2">{p.firstAccount}</h3>
+          <Input label={p.fullName} required value={f.adminName} onChange={set("adminName")} error={tried ? e.adminName : undefined} />
+          <Input label={p.email} type="email" required value={f.adminEmail} onChange={set("adminEmail")} error={tried ? e.adminEmail : undefined} hint={p.emailHint} />
           {err ? <span className="ns-field-error ns-span-2" role="alert"><Icon name="error" size={16} />{err}</span> : null}
         </div>
       </Drawer>
@@ -141,7 +143,6 @@ export function PlatformSchoolsPage() {
   );
 }
 
-const WEEK_LABELS = ["S-7", "S-6", "S-5", "S-4", "S-3", "S-2", "S-1", "Esta semana"];
 /** Tope del eje: un número redondo y par por encima del máximo, para que las marcas sean enteras (0, la mitad, el tope). */
 function niceMax(values: number[]): number {
   const m = Math.max(1, ...values) * 1.15;
@@ -157,6 +158,8 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
   const saveId = useSaveIdentity();
   const saveSvc = useSaveService();
   const [showToast, toastNode] = useToast();
+  const { t, lang } = useI18n();
+  const p = t.plat;
   const school = (q.data ?? []).find((r) => r.institution.id === id);
   const [value, setValue] = useState<Institution | null>(null);
   const [logo, setLogo] = useState<File | null>(null);
@@ -173,80 +176,80 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
   }, [school?.institution.id, q.dataUpdatedAt]);
   useEffect(() => () => { if (value?.logoUrl?.startsWith("blob:")) URL.revokeObjectURL(value.logoUrl); }, [value?.logoUrl]);
 
-  const shell = (body: JSX.Element, title = "Colegio") => (
+  const shell = (body: JSX.Element, title = p.school) => (
     <PageShell active="dashboard">
-      <Header eyebrow="Colegios" title={title} actions={<Button variant="secondary" icon="chevleft" onClick={() => navigate("dashboard")}>Todos los colegios</Button>} />
+      <Header eyebrow={p.schoolsEyebrow} title={title} actions={<Button variant="secondary" icon="chevleft" onClick={() => navigate("dashboard")}>{p.all}</Button>} />
       {body}
     </PageShell>
   );
-  if (q.isPending && !q.data) return shell(<LoadingBlocks rows={6} label="Cargando el colegio" />);
-  if (q.isError && !q.data) return shell(<ErrorState title="No pudimos cargar el colegio." onRetry={() => q.refetch()} />);
-  if (!school || !value || !svc) return shell(<EmptyState icon="building" title="No encontramos este colegio." message="Puede que el enlace sea de un colegio que ya no existe." action={<Button variant="secondary" onClick={() => navigate("dashboard")}>Ver todos los colegios</Button>} />);
+  if (q.isPending && !q.data) return shell(<LoadingBlocks rows={6} label={p.loading} />);
+  if (q.isError && !q.data) return shell(<ErrorState title={p.schoolError} onRetry={() => q.refetch()} />);
+  if (!school || !value || !svc) return shell(<EmptyState icon="building" title={p.notFound} message={p.notFoundText} action={<Button variant="secondary" onClick={() => navigate("dashboard")}>{p.seeAll}</Button>} />);
 
   const i = school.institution;
   const alerts = attentionOf(school);
   const dirty = JSON.stringify({ ...value, logoUrl: null }) !== JSON.stringify({ ...i, logoUrl: null }) || !!logo || removeLogo;
-  const errs = identityErrors(value);
+  const errs = identityErrors(value, t);
   const invalid = !!(errs.name || errs.shortName || errs.dane);
   const go = (t: "identity" | "service" | "usage" | "secretaries") => ({ identity: identityRef, service: serviceRef, usage: usageRef, secretaries: secretariesRef })[t].current?.scrollIntoView({ behavior: "smooth", block: "start" });
   function saveIdentity() {
     setTried(true);
     if (invalid || !value) return;
     saveId.mutateAsync({ value, logo, removeLogo }).then(
-      () => { setLogo(null); setRemoveLogo(false); setTried(false); showToast({ tone: "success", title: "Identidad guardada", message: "Así se verá desde ahora en la app de " + value.name + " y en sus boletines." }); },
-      (x) => showToast({ tone: "error", title: "No pudimos guardar la identidad", message: platformMessage(x) }),
+      () => { setLogo(null); setRemoveLogo(false); setTried(false); showToast({ tone: "success", title: p.identitySaved, message: p.identitySavedText(value.name) }); },
+      (x) => showToast({ tone: "error", title: p.identityError, message: platformMessage(x, t) }),
     );
   }
   function saveService(status = svc!.status) {
     saveSvc.mutateAsync({ id: i.id, status, plan: svc!.plan, contractUntil: svc!.contractUntil || null }).then(
-      () => showToast({ tone: "success", title: status === "suspended" ? "Colegio suspendido" : "Servicio guardado", message: status === "suspended" ? "Nadie de " + i.name + " puede entrar hasta que lo reactives. Sus datos se conservan." : STATUS[status][0] + " · " + (svc!.plan || "sin plan") }),
-      (x) => showToast({ tone: "error", title: "No pudimos guardar el servicio", message: platformMessage(x) }),
+      () => showToast({ tone: "success", title: status === "suspended" ? p.suspended : p.serviceSaved, message: status === "suspended" ? p.suspendedText(i.name) : p.serviceText(p.status[status], svc!.plan) }),
+      (x) => showToast({ tone: "error", title: p.serviceError, message: platformMessage(x, t) }),
     );
   }
 
   return (
     <PageShell active="dashboard">
-      <Header eyebrow={"Colegios · " + (i.city || "Sin ciudad")} title={i.name}
-        description={STATUS[i.status][0] + " · " + school.students + " estudiantes activos · " + school.teachers + " docentes · " + school.accounts + (school.accounts === 1 ? " cuenta activa" : " cuentas activas")}
+      <Header eyebrow={p.eyebrowSchool(i.city)} title={i.name}
+        description={p.summary(p.status[i.status], school.students, school.teachers, school.accounts)}
         actions={<>
-          <Button variant="secondary" icon="chevleft" onClick={() => navigate("dashboard")}>Todos los colegios</Button>
-          <Button size="lg" icon="check" disabled={!dirty} loading={saveId.isPending} onClick={saveIdentity}>Guardar identidad</Button>
+          <Button variant="secondary" icon="chevleft" onClick={() => navigate("dashboard")}>{p.all}</Button>
+          <Button size="lg" icon="check" disabled={!dirty} loading={saveId.isPending} onClick={saveIdentity}>{p.saveIdentity}</Button>
         </>} />
 
-      <Block tone={alerts.length ? "gold" : "sage"} label="Requiere atención">
-        <BlockTitle>{alerts.length ? "Requiere atención" : "Todo en orden"}</BlockTitle>
+      <Block tone={alerts.length ? "gold" : "sage"} label={p.attention}>
+        <BlockTitle>{alerts.length ? p.attention : p.allGood}</BlockTitle>
         {alerts.length ? (
           <ul className="ns-list">
             {alerts.map((a) => (
               <li key={a.key} className="ns-list-item">
                 <span className={"ns-file-icon ns-attn-" + a.tone} aria-hidden><Icon name={a.tone === "burgundy" ? "warning" : "clock"} size={18} /></span>
-                <div className="ns-list-main"><strong>{a.title}</strong><span className="ns-caption">{a.detail}</span></div>
-                <Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go(a.target)}>{a.target === "identity" ? "Ir a identidad" : a.target === "service" ? "Ir a servicio" : a.target === "secretaries" ? "Ir a Secretaría" : "Ver uso"}</Button>
+                <div className="ns-list-main"><strong>{p.attn(a.key, a.days)[0]}</strong><span className="ns-caption">{p.attn(a.key, a.days)[1]}</span></div>
+                <Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go(a.target)}>{a.target === "identity" ? p.goIdentity : a.target === "service" ? p.goService : a.target === "secretaries" ? p.goSecretaries : p.seeUsage}</Button>
               </li>
             ))}
           </ul>
-        ) : <p className="ns-caption" style={{ margin: 0 }}>Tiene identidad completa, cuentas activas y uso en las últimas semanas.</p>}
+        ) : <p className="ns-caption" style={{ margin: 0 }}>{p.allGoodText}</p>}
       </Block>
 
       <div ref={usageRef}>
-        <Block label="Uso">
-          <BlockTitle action={badge(ADOPTION[school.adoption])}>Uso</BlockTitle>
+        <Block label={p.usage}>
+          <BlockTitle action={badge(p.adoption[school.adoption], ADOPTION[school.adoption])}>{p.usage}</BlockTitle>
           <div className="ns-plat-stats">
-            {[[school.grades30d, "notas verificadas · 30 días"], [school.attendance7d, "registros de asistencia · 7 días"], [school.observations30d, "observaciones · 30 días"], [school.accounts, "cuentas activas"]].map(([n, l]) => (
+            {[[school.grades30d, p.stats[0]], [school.attendance7d, p.stats[1]], [school.observations30d, p.stats[2]], [school.accounts, p.stats[3]]].map(([n, l]) => (
               <div key={String(l)} className="ns-plat-stat"><span className="ns-bento-value">{String(n)}</span><span className="ns-bento-label">{String(l)}</span></div>
             ))}
           </div>
           <div className="ns-plat-chart">
-            <BarChart title="Actividad por semana" subtitle="Notas verificadas y asistencia tomada" max={niceMax(school.weekly)} ticks={[0, niceMax(school.weekly) / 2, niceMax(school.weekly)]}
-              format={(n) => String(Math.round(n))} data={school.weekly.map((n, k) => ({ label: WEEK_LABELS[k] ?? "", value: n }))} seriesLabel="Registros" />
+            <BarChart title={p.weekly} subtitle={p.weeklyQ} max={niceMax(school.weekly)} ticks={[0, niceMax(school.weekly) / 2, niceMax(school.weekly)]}
+              format={(n) => String(Math.round(n))} data={school.weekly.map((n, k) => ({ label: p.weeks[k] ?? "", value: n }))} seriesLabel={p.records} />
           </div>
-          <p className="ns-caption" style={{ margin: 0 }}>{"Último acceso: " + lastSeen(school.lastSeen) + ". Solo cifras: la plataforma no ve nombres ni notas de estudiantes."}</p>
+          <p className="ns-caption" style={{ margin: 0 }}>{p.lastAccess(seenText(t, lang, lastSeen(school.lastSeen)))}</p>
         </Block>
       </div>
 
       <div ref={identityRef}>
-        <Block label="Identidad">
-          <BlockTitle>Identidad</BlockTitle>
+        <Block label={p.identity}>
+          <BlockTitle>{p.identity}</BlockTitle>
           <div className="ns-identity-grid">
             <IdentityEditor value={value} tried={tried} onChange={setValue}
               onLogo={(file) => { setLogo(file); setRemoveLogo(!file); setValue((cur) => cur && ({ ...cur, logoUrl: file ? URL.createObjectURL(file) : null })); }} />
@@ -256,16 +259,16 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
       </div>
 
       <div ref={serviceRef}>
-        <Block label="Servicio">
-          <BlockTitle>Servicio</BlockTitle>
+        <Block label={p.service}>
+          <BlockTitle>{p.service}</BlockTitle>
           <div className="ns-form-grid">
-            <Select label="Estado" value={svc.status} onChange={(v) => setSvc({ ...svc, status: v as InstitutionStatus })}
-              options={STATUS_TABS.map((s) => ({ value: s, label: STATUS[s][0] }))} />
-            <Input label="Plan" value={svc.plan} onChange={(ev) => setSvc({ ...svc, plan: ev.target.value })} />
-            <Input label="Contrato hasta" type="date" value={svc.contractUntil} onChange={(ev) => setSvc({ ...svc, contractUntil: ev.target.value })} />
+            <Select label={p.state} value={svc.status} onChange={(v) => setSvc({ ...svc, status: v as InstitutionStatus })}
+              options={STATUS_TABS.map((s) => ({ value: s, label: p.status[s] }))} />
+            <Input label={p.plan} value={svc.plan} onChange={(ev) => setSvc({ ...svc, plan: ev.target.value })} />
+            <Input label={p.contract} type="date" value={svc.contractUntil} onChange={(ev) => setSvc({ ...svc, contractUntil: ev.target.value })} />
             <div className="ns-reg-actions ns-span-2">
               <Button variant="secondary" icon="check" loading={saveSvc.isPending}
-                onClick={() => (svc.status === "suspended" && i.status !== "suspended" ? setConfirmSuspend(true) : saveService())}>Guardar servicio</Button>
+                onClick={() => (svc.status === "suspended" && i.status !== "suspended" ? setConfirmSuspend(true) : saveService())}>{p.saveService}</Button>
             </div>
           </div>
         </Block>
@@ -275,8 +278,8 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
         <SecretariesBlock institutionId={i.id} schoolName={i.name} showToast={showToast} />
       </div>
 
-      <ConfirmAction open={confirmSuspend} danger icon="lock" onCancel={() => setConfirmSuspend(false)} title={"¿Suspender a " + i.name + "?"}
-        description="Nadie del colegio podrá entrar hasta que lo reactives. Sus datos y boletines se conservan." confirmLabel="Suspender"
+      <ConfirmAction open={confirmSuspend} danger icon="lock" onCancel={() => setConfirmSuspend(false)} title={p.suspendTitle(i.name)}
+        description={p.suspendText} confirmLabel={p.suspend}
         onConfirm={() => { setConfirmSuspend(false); saveService("suspended"); }} />
       {toastNode}
     </PageShell>
@@ -288,8 +291,8 @@ export function PlatformSchoolPage({ id }: { id?: string }) {
  * Secretaría (avatar, insignia de estado, acciones con icono, panel lateral): invitar es por persona, nunca a todas
  * de una vez, para no escribir a correos que nadie revisa. */
 
-const ACCOUNT: Record<SecretaryAccount, [string, BadgeTone, IconName]> = {
-  active: ["Activa", "verified", "check"], invited: ["Invitación enviada", "pending", "mail"], none: ["Sin invitar", "neutral", "user"], inactive: ["Desactivada", "neutral", "minus"],
+const ACCOUNT: Record<SecretaryAccount, [BadgeTone, IconName]> = {
+  active: ["verified", "check"], invited: ["pending", "mail"], none: ["neutral", "user"], inactive: ["neutral", "minus"],
 };
 const MAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -302,18 +305,20 @@ function SecretariesBlock({ institutionId, schoolName, showToast }: { institutio
   const [err, setErr] = useState<string | null>(null);
   const [inviting, setInviting] = useState<string | null>(null);
   const [removing, setRemoving] = useState<Secretary | null>(null);
+  const { t, lang } = useI18n();
+  const p = t.plat;
   const rows = q.data ?? [];
 
   function invite(s: Secretary) {
     setInviting(s.email);
     sendInvitation({ institutionId, email: s.email }).then(
-      () => { showToast({ tone: "success", title: s.account === "invited" ? "Invitación reenviada" : "Invitación enviada", message: "Enviamos a " + s.email + " un código para activar su cuenta de Secretaría." }); void q.refetch(); },
-      (x) => showToast({ tone: "error", title: "No enviamos la invitación", message: x instanceof Error ? x.message : "" }),
+      () => { showToast({ tone: "success", title: s.account === "invited" ? p.resent : p.sentOk, message: p.codeSent(s.email) }); void q.refetch(); },
+      (x) => showToast({ tone: "error", title: p.inviteError, message: x instanceof Error && x.message ? x.message : p.inviteFailed }),
     ).finally(() => setInviting(null));
   }
   const fe = {
-    name: form && !form.name.trim() ? "Escribe el nombre de la persona de Secretaría." : undefined,
-    email: form && !MAIL_OK.test(form.email.trim()) ? "Escribe un correo válido." : undefined,
+    name: form && !form.name.trim() ? p.adminNameError : undefined,
+    email: form && !MAIL_OK.test(form.email.trim()) ? p.emailError : undefined,
   };
   function submit() {
     setTried(true); setErr(null);
@@ -325,59 +330,59 @@ function SecretariesBlock({ institutionId, schoolName, showToast }: { institutio
         // Registrada: se le envía su invitación de una vez (es lo que se espera al agregarla).
         invite({ email: v.email, name: v.name, account: "none", lastSeen: null });
       },
-      (x) => setErr(platformMessage(x)),
+      (x) => setErr(platformMessage(x, t)),
     );
   }
 
   return (
-    <Block label="Secretaría">
-      <BlockTitle action={<Button variant="secondary" size="sm" icon="plus" onClick={() => { setForm({ name: "", email: "" }); setTried(false); setErr(null); }}>Agregar cuenta de Secretaría</Button>}>Secretaría</BlockTitle>
-      {q.isPending && !q.data ? <LoadingBlocks rows={2} label="Cargando las cuentas de Secretaría" />
-        : q.isError && !q.data ? <ErrorState title="No pudimos cargar las cuentas de Secretaría." onRetry={() => q.refetch()} />
-        : !rows.length ? <EmptyState icon="user" title="Sin cuenta de Secretaría" message={"Nadie de " + schoolName + " puede configurar la estructura ni matricular. Agrega a la persona encargada y le enviamos su invitación."} />
+    <Block label={p.secretaries}>
+      <BlockTitle action={<Button variant="secondary" size="sm" icon="plus" onClick={() => { setForm({ name: "", email: "" }); setTried(false); setErr(null); }}>{p.addSecretary}</Button>}>{p.secretaries}</BlockTitle>
+      {q.isPending && !q.data ? <LoadingBlocks rows={2} label={p.secLoading} />
+        : q.isError && !q.data ? <ErrorState title={p.secError} onRetry={() => q.refetch()} />
+        : !rows.length ? <EmptyState icon="user" title={p.noSecretary} message={p.noSecretaryText(schoolName)} />
         : (
           <ul className="ns-list">
             {rows.map((s) => (
               <li key={s.email} className="ns-list-item">
                 <Avatar name={s.name} size="sm" />
-                <div className="ns-list-main"><strong>{s.name}</strong><span className="ns-caption">{s.email + (s.account === "active" ? " · último acceso: " + lastSeen(s.lastSeen) : "")}</span></div>
-                {badge(ACCOUNT[s.account])}
+                <div className="ns-list-main"><strong>{s.name}</strong><span className="ns-caption">{s.email + (s.account === "active" ? p.secLast(seenText(t, lang, lastSeen(s.lastSeen))) : "")}</span></div>
+                {badge(p.account[s.account], ACCOUNT[s.account])}
                 {/* Columna de acciones siempre presente (como la de las tablas): así las insignias quedan alineadas. */}
                 <div className="ns-grid-actions ns-sec-actions"><div>
                   {s.account === "none" || s.account === "invited"
-                    ? <IconAction icon="mail" label={(s.account === "invited" ? "Reenviar invitación a " : "Enviar invitación a ") + s.name} disabled={inviting === s.email} onClick={() => invite(s)} />
+                    ? <IconAction icon="mail" label={s.account === "invited" ? p.resend(s.name) : p.send(s.name)} disabled={inviting === s.email} onClick={() => invite(s)} />
                     : null}
                   {s.account === "none"
-                    ? <IconAction icon="trash" tone="danger" label={"Quitar a " + s.name} onClick={() => setRemoving(s)} />
+                    ? <IconAction icon="trash" tone="danger" label={p.removeOf(s.name)} onClick={() => setRemoving(s)} />
                     : null}
                 </div></div>
               </li>
             ))}
           </ul>
         )}
-      <p className="ns-caption" style={{ margin: 0 }}>Solo se quita a quien nunca recibió su invitación. Una cuenta activa la desactiva el propio colegio desde Usuarios.</p>
+      <p className="ns-caption" style={{ margin: 0 }}>{p.removeNote}</p>
 
       <Drawer
-        open={!!form} onClose={() => setForm(null)} eyebrow={schoolName} title="Agregar cuenta de Secretaría"
-        footer={[<Button key="c" variant="secondary" onClick={() => setForm(null)}>Cancelar</Button>, <Button key="s" icon="mail" loading={add.isPending} onClick={submit}>Agregar y enviar invitación</Button>]}
+        open={!!form} onClose={() => setForm(null)} eyebrow={schoolName} title={p.addSecretary} closeLabel={t.prefs.close}
+        footer={[<Button key="c" variant="secondary" onClick={() => setForm(null)}>{p.cancel}</Button>, <Button key="s" icon="mail" loading={add.isPending} onClick={submit}>{p.addAndInvite}</Button>]}
       >
         {form ? (
           <div className="ns-form-grid">
-            <Input label="Nombre completo" required value={form.name} onChange={(ev) => setForm({ ...form, name: ev.target.value })} error={tried ? fe.name : undefined} className="ns-span-2" />
-            <Input label="Correo" type="email" required value={form.email} onChange={(ev) => setForm({ ...form, email: ev.target.value })} error={tried ? fe.email : undefined}
-              hint="Le enviamos un código para activar su cuenta; desde ahí registra al resto del colegio." className="ns-span-2" />
+            <Input label={p.fullName} required value={form.name} onChange={(ev) => setForm({ ...form, name: ev.target.value })} error={tried ? fe.name : undefined} className="ns-span-2" />
+            <Input label={p.email} type="email" required value={form.email} onChange={(ev) => setForm({ ...form, email: ev.target.value })} error={tried ? fe.email : undefined}
+              hint={p.emailHint} className="ns-span-2" />
             {err ? <span className="ns-field-error ns-span-2" role="alert"><Icon name="error" size={16} />{err}</span> : null}
           </div>
         ) : null}
       </Drawer>
 
-      <ConfirmAction open={!!removing} danger icon="trash" onCancel={() => setRemoving(null)} title={removing ? "¿Quitar a " + removing.name + "?" : ""}
-        description={removing ? removing.email + " deja de estar registrada en la Secretaría de " + schoolName + ". Nunca recibió su invitación, así que no pierde nada." : ""} confirmLabel="Quitar"
+      <ConfirmAction open={!!removing} danger icon="trash" onCancel={() => setRemoving(null)} title={removing ? p.removeTitle(removing.name) : ""}
+        description={removing ? p.removeText(removing.email, schoolName) : ""} confirmLabel={p.remove}
         onConfirm={() => {
           const s = removing!; setRemoving(null);
           remove.mutateAsync(s.email).then(
-            () => showToast({ tone: "success", title: "Cuenta quitada", message: s.email + " ya no está en la Secretaría de " + schoolName + "." }),
-            (x) => showToast({ tone: "error", title: "No pudimos quitarla", message: platformMessage(x) }),
+            () => showToast({ tone: "success", title: p.removed, message: p.removedText(s.email, schoolName) }),
+            (x) => showToast({ tone: "error", title: p.removeError, message: platformMessage(x, t) }),
           );
         }} />
     </Block>
