@@ -59,6 +59,7 @@ NotaScan **no** usa estos datos para publicidad, no los vende y no hace perfiles
 | Datos de salud | Base de datos, con acceso solo de Secretaría y Rectoría | Mientras el estudiante esté matriculado o hasta que se revoque la autorización |
 | Registro de autorizaciones y aceptaciones | Base de datos | Mientras dure la relación con el colegio y el término legal para demostrar la autorización |
 | Cola sin conexión de la planilla | En el equipo del docente (almacenamiento local de la aplicación) | Hasta que la nota se envía a la base |
+| Preferencia de tema (claro, oscuro o como el sistema) | Solo en este equipo (almacenamiento local de la aplicación). No identifica a la persona y no se envía a NotaScan ni a terceros | Hasta que se cambia o se borran los datos de la aplicación |
 
 ## 6. Con quién se comparten
 

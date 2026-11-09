@@ -828,4 +828,4 @@ Hay dos pruebas por debajo de la base y no se repitieron, como pidió Diego. `ve
 - **Mac real.** La prueba en un Mac real de los botones nativos con `setTheme` (paso 3).
 - **`verify:teacher`.** Sus comparaciones de píxeles contra el sistema siguen variando entre corridas (sección 15).
 - **Textos en inglés y portugués.** Falta su revisión nativa.
-- **Política de datos.** La línea de la sección 10 todavía no está en `docs/legal/`.
+- **Política de datos.** Hecho el 2026-11-09: la fila de la preferencia de tema está en la sección 5 de las tres políticas.

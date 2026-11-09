@@ -62,6 +62,7 @@ O NotaScan **não** usa esses dados para publicidade, não os vende e não faz p
 | Dados de saúde | Banco de dados, com acesso só da Secretaria e da Direção | Enquanto o estudante estiver matriculado ou até a autorização ser revogada |
 | Registro de autorizações e aceitações | Banco de dados | Enquanto durar a relação com a escola e o prazo legal para comprovar a autorização |
 | Fila offline do diário de classe | No computador do docente (armazenamento local do aplicativo) | Até a nota ser enviada ao banco |
+| Preferência de tema (claro, escuro ou como o sistema) | Só neste computador (armazenamento local do aplicativo). Não identifica a pessoa e não é enviada à NotaScan nem a terceiros | Até ser alterada ou até os dados do aplicativo serem apagados |
 
 ## 6. Com quem são compartilhados
 

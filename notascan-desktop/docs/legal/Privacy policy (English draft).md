@@ -61,6 +61,7 @@ NotaScan does **not** use this data for advertising, does not sell it and does n
 | Health data | Database, accessible only to the academic office and the principal's office | While the student is enrolled or until the authorization is revoked |
 | Record of authorizations and acceptances | Database | While the relationship with the school lasts and for the legal term needed to prove the authorization |
 | Offline gradebook queue | On the teacher's computer (local app storage) | Until the grade is sent to the database |
+| Theme preference (light, dark or system) | Only on this computer (local app storage). It does not identify the person and is not sent to NotaScan or to third parties | Until it is changed or the app's data is cleared |
 
 ## 6. Who it is shared with
 
