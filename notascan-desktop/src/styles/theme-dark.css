@@ -21,7 +21,7 @@
     --sage: #83a889;
     --sage-ink: #aed0b2;
     --sage-soft: #1e2a21;
-    --burgundy: #e38a80;
+    --burgundy: #eea49a;
     --burgundy-soft: #36211e;
     --glass: rgba(31, 30, 27, 0.78);
     --glass-edge: rgba(236, 228, 212, 0.10);
@@ -78,6 +78,8 @@
   :root[data-theme="dark"] .ns-auth-wave { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
   /* Nº de la tarjeta que requiere revisión: el burdeos de oscuro es claro y lleva tinta oscura. */
   :root[data-theme="dark"] .ns-card--needs-review .ns-card-index { background-color: var(--burgundy); color: #161513; --ivory: #161513; }
+  /* CONTROLES EN CAMPO (9 reglas, enmienda 2026-11-08): borde en la tinta #ece4d4 para que el estado se vea. */
+  :root[data-theme="dark"] .ns-nav-item[aria-current="page"], :root[data-theme="dark"] .ns-chip[aria-pressed="true"], :root[data-theme="dark"] .ns-period-item[aria-selected="true"], :root[data-theme="dark"] .ns-period-item[aria-checked="true"], :root[data-theme="dark"] .ns-weight-seg--examen, :root[data-theme="dark"] .ns-weight-seg--t0, :root[data-theme="dark"] .ns-checkbox input:checked + .ns-checkbox-box, :root[data-theme="dark"] .ns-checkbox input:indeterminate + .ns-checkbox-box, :root[data-theme="dark"] .ns-inbox-item.is-on { border-color: #ece4d4; }
   /* DORADOS (55 reglas, O4): en claro el dorado lleva tinta navy. Con la tinta marfil el texto de
      «Calificar», «Confirmar» o la cabecera de tablas caería a 1.9:1, así que todo relleno dorado lleva #161513. */
   :root[data-theme="dark"] .ns-btn--primary { --btn-fg: #161513; }

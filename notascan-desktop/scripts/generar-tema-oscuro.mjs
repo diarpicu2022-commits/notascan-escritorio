@@ -19,7 +19,7 @@ export const DARK_TOKENS = {
   "--navy": "#ece4d4", "--navy-soft": "#bdb5a6", "--gold": "#c9a35e", "--gold-ink": "#dcbf86", "--gold-soft": "#342c1e",
   "--ivory": "#161513", "--ivory-deep": "#2a2824", "--paper": "#1f1e1b", "--charcoal": "#d6cfc2", "--muted": "#a8a194",
   "--hairline": "rgba(236, 228, 212, 0.16)", "--sage": "#83a889", "--sage-ink": "#aed0b2", "--sage-soft": "#1e2a21",
-  "--burgundy": "#e38a80", "--burgundy-soft": "#36211e", "--glass": "rgba(31, 30, 27, 0.78)", "--glass-edge": "rgba(236, 228, 212, 0.10)",
+  "--burgundy": "#eea49a", "--burgundy-soft": "#36211e", "--glass": "rgba(31, 30, 27, 0.78)", "--glass-edge": "rgba(236, 228, 212, 0.10)",
   "--scrim": "rgba(8, 8, 7, 0.62)", "--focus": "#dcbf86",
   "--shadow-sm": "2px 2px 0 #34497a", "--shadow-md": "4px 4px 0 #34497a", "--shadow-lg": "6px 6px 0 #34497a",
   "--shadow-gold": "3px 3px 0 #c9a35e", "--shadow-pressed": "0 0 0 #34497a", "--shadow-glass": "0 10px 30px rgba(0, 0, 0, 0.4)",
@@ -153,6 +153,14 @@ export function buildThemeDark() {
   out.push(`  :root[data-theme="dark"] .ns-auth-wave { ${FIELD_SCOPE} }`);
   out.push(`  /* Nº de la tarjeta que requiere revisión: el burdeos de oscuro es claro y lleva tinta oscura. */`);
   out.push(`  :root[data-theme="dark"] .ns-card--needs-review .ns-card-index { background-color: var(--burgundy); color: ${ON_GOLD}; --ivory: ${ON_GOLD}; }`);
+
+  // Enmienda del 2026-11-08 (decisión 2 del paso 4, aprobada por Diego): los controles con estado que son campo navy
+  // llevan borde de 2 px en la tinta, porque el campo #22345c no se separa del carbón (1.36 a 1.49:1). Los bloques
+  // grandes (hero, panel del login, KPI) no cambian.
+  const FIELD_CONTROLS = ['.ns-nav-item[aria-current="page"]', '.ns-chip[aria-pressed="true"]', '.ns-period-item[aria-selected="true"]', '.ns-period-item[aria-checked="true"]',
+    ".ns-weight-seg--examen", ".ns-weight-seg--t0", ".ns-checkbox input:checked + .ns-checkbox-box", ".ns-checkbox input:indeterminate + .ns-checkbox-box", ".ns-inbox-item.is-on"];
+  out.push(`  /* CONTROLES EN CAMPO (${FIELD_CONTROLS.length} reglas, enmienda 2026-11-08): borde en la tinta ${DARK_TOKENS["--navy"]} para que el estado se vea. */`);
+  out.push(`  ${scoped(FIELD_CONTROLS.join(", "))} { border-color: ${DARK_TOKENS["--navy"]}; }`);
 
   out.push(`  /* DORADOS (${golds.length + 2} reglas, O4): en claro el dorado lleva tinta navy. Con la tinta marfil el texto de
      «Calificar», «Confirmar» o la cabecera de tablas caería a 1.9:1, así que todo relleno dorado lleva ${ON_GOLD}. */`);

@@ -379,6 +379,10 @@ Enmiendas del contrato:
 - **2026-11-08 · Forma del segmentado de Tema, aprobada por Diego.** Tres columnas iguales con el icono arriba y la palabra abajo, que puede partirse en dos líneas, y 56 px de alto. El contenedor usa `--radius-lg` y las opciones y el indicador `--radius-md`, en vez de la píldora de `.ns-seg` (decisión 1 de la sección 13).
 - **2026-11-08 · Iconos sol, luna y pantalla, aprobada por Diego.** Se suman a `icons.ts` con la retícula de 24 y el trazo 2 del set (decisión 2 de la sección 13).
 - **2026-11-08 · Lienzo previo en `index.html`, aprobada por Diego.** `#161513` escrito en `index.html` para el primer pintado en oscuro, antes de que carguen los tokens (decisión 3 de la sección 13).
+- **2026-11-08 · `--burgundy` oscuro pasa a `#eea49a`, aprobada por Diego (decisión 1 del paso 4).** Con `#e38a80` las notas bajas de la Planilla daban 6.52:1 sobre papel y 5.75:1 en la fila marcada, por debajo de O6. Con `#eea49a` dan 8.27:1 sobre papel, 7.29:1 en la fila marcada, 9.05:1 sobre la página y 7.47:1 sobre `--burgundy-soft`. Los rellenos burdeos con tinta oscura ganan contraste.
+- **2026-11-08 · Borde de los controles con estado sobre campo navy, aprobada por Diego (decisión 2 del paso 4).** El ítem activo del menú, los chips marcados, el periodo elegido, los pesos de evaluación, la casilla marcada y la bandeja de rectoría llevan borde de 2 px en la tinta `#ece4d4`. Los bloques grandes (hero, panel del login, KPI y paneles principales, marca, sellos, barra invertida y escudo) no cambian, porque los separan la repisa y el texto y no son controles.
+- **2026-11-08 · Separación entre series de las gráficas, se queda como está (decisión 3 del paso 4).** En oscuro la serie navy pasa a marfil y la separación entre series baja (de 4.91:1 a 1.87:1 entre barras, de 2.37:1 a 1.40:1 entre líneas). Las series se distinguen por el tono, la línea de meta, el trazo punteado de 2025 y la leyenda, y en claro ya pasa lo mismo entre salvia y dorado (1.25:1).
+- **2026-11-08 · La ilustración del login pasa al paso 5 (decisión 4 del paso 4).**
 
 Plan de implementación una vez elegida la dirección, un paso por vez y con visto bueno en cada uno:
 
@@ -752,3 +756,12 @@ Corrida completa sobre `npm run build:demo`, con `NS_PORT=4193`.
 - La prueba en un Mac real del paso 3.
 
 El siguiente paso, cuando Diego decida, es aplicar lo que elija y volver a medir con `verify:dark-screens`.
+
+### Cierre del paso 4 (2026-11-09)
+
+Diego aceptó las decisiones 1 y 2, dejó la 3 como está y pasó la 4 al paso 5. Las cuatro quedaron como enmiendas fechadas en la sección 11.
+
+- El generador pone `--burgundy` `#eea49a` y un borde en la tinta `#ece4d4` a los nueve selectores de controles con estado sobre campo navy. `tokens.json` lleva el mismo valor.
+- En `verify:dark-screens` las cifras de decisión quedan en 7:1 o más, y la más baja es la nota baja de la Planilla en la fila marcada (7.29:1). Ningún control falla ya el borde. Los bordes que quedan bajo 3:1 son los bloques aceptados por la decisión 2, y la comprobación los anota sin fallar. La separación entre series se registra como decisión 3 y solo fallaría si apareciera un par nuevo por debajo de 1.10:1.
+- La barra de título con el cerrar en el burdeos nuevo pasa 89 de 89.
+- La auditoría de la página pasó a `scripts/dark-audit.mjs`, para compartirla con el paso 5.

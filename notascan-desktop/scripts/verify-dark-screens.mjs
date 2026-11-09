@@ -17,6 +17,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { OUT, URL_BASE, createReport, startPreview, watchConsole, contrast } from "./harness.mjs";
+import { audit } from "./dark-audit.mjs";
 
 const SHOTS = join(OUT, "p4");
 mkdirSync(SHOTS, { recursive: true });
@@ -43,110 +44,6 @@ const DIALOGS = [
 const DECISION = ".ns-card-grade, .ns-bento-value, .ns-kpi strong, .ns-change-big strong, .ns-donut-value, .ns-gcell, .ns-gb-avg, .ns-grade-big";
 
 const slug = (h) => h.replace(/^#\//, "").replace(/[/?=]+/g, "-").replace(/-+$/, "");
-
-/** Auditoría dentro de la página: devuelve hallazgos crudos. */
-function audit(decisionSel) {
-  const parse = (s) => { const m = (s || "").match(/[\d.]+/g); if (!m) return null; const v = m.map(Number); return [v[0], v[1], v[2], v.length > 3 ? v[3] : 1]; };
-  const L = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
-  const ratio = (a, b) => { const x = L(a), y = L(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-  const over = (top, base) => { const a = top[3]; return [0, 1, 2].map((i) => top[i] * a + base[i] * (1 - a)).concat(1); };
-  const rootBg = parse(getComputedStyle(document.documentElement).backgroundColor);
-  const canvas = rootBg && rootBg[3] > 0 ? rootBg : (document.documentElement.getAttribute("data-theme") === "dark" ? [22, 21, 19, 1] : [255, 255, 255, 1]);
-  /** Fondo real detrás de `el` (incluido): compone capas semitransparentes. null si hay degradado o imagen en medio. */
-  const bgOf = (el) => {
-    const layers = [];
-    for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
-      const cs = getComputedStyle(n);
-      if (cs.backgroundImage !== "none" && !n.matches("html, body, .ns-canvas, .ns-select-input")) return null;
-      const c = parse(cs.backgroundColor);
-      if (c && c[3] > 0) { layers.push(c); if (c[3] >= 0.99) break; }
-    }
-    let base = layers.length && layers[layers.length - 1][3] >= 0.99 ? layers.pop() : canvas;
-    while (layers.length) base = over(layers.pop(), base);
-    return base;
-  };
-  const visible = (el) => {
-    if (!el.checkVisibility || !el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return false;
-    const r = el.getBoundingClientRect();
-    return r.width > 1 && r.height > 1;
-  };
-  const translucent = (el) => { for (let n = el; n && n.nodeType === 1; n = n.parentElement) if (parseFloat(getComputedStyle(n).opacity) < 0.99) return true; return false; };
-  const desc = (el) => {
-    const c = el.getAttribute("class");
-    return (el.tagName.toLowerCase() + (c ? "." + String(c).trim().split(/\s+/).slice(0, 2).join(".") : ""));
-  };
-  const inPaper = (el) => !!el.closest(".ns-paper, .ns-photo");
-
-  // ---- texto
-  const texts = [], unmeasured = [];
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  const seen = new Set();
-  for (let t = walker.nextNode(); t; t = walker.nextNode()) {
-    if (!t.textContent.trim()) continue;
-    const el = t.parentElement;
-    if (!el || seen.has(el) || el.closest("script, style, .ns-sr, [hidden]") || !visible(el)) continue;
-    seen.add(el);
-    if (el.closest(":disabled, [aria-disabled='true']")) continue;
-    const cs = getComputedStyle(el);
-    const isSvg = el instanceof SVGElement;
-    const fgRaw = parse(isSvg ? cs.fill : cs.color);
-    if (!fgRaw) continue;
-    const bg = bgOf(isSvg ? el.closest("svg").parentElement : el);
-    const txt = t.textContent.trim().slice(0, 30);
-    if (!bg) { unmeasured.push({ el: desc(el), txt }); continue; }
-    const fg = fgRaw[3] < 1 ? over(fgRaw, bg) : fgRaw;
-    const size = parseFloat(cs.fontSize), weight = parseInt(cs.fontWeight, 10) || 400;
-    const large = size >= 24 || (size >= 18.66 && weight >= 700);
-    texts.push({ el: desc(el), txt, r: ratio(fg, bg), min: large ? 3 : 4.5, fg, bg, paper: inPaper(el), dim: translucent(el) });
-  }
-  // ---- cifras de decisión
-  const decision = [...document.querySelectorAll(decisionSel)].filter((e) => visible(e) && /\d/.test(e.textContent)).map((e) => {
-    const cs = getComputedStyle(e); const bg = bgOf(e); const fg = parse(e instanceof SVGElement ? cs.fill : cs.color);
-    return bg ? { el: desc(e), txt: e.textContent.trim().slice(0, 12), r: ratio(fg[3] < 1 ? over(fg, bg) : fg, bg) } : null;
-  }).filter(Boolean);
-  // ---- O4: relleno dorado
-  const probe = document.createElement("i"); probe.style.color = "var(--gold)"; document.body.appendChild(probe);
-  const gold = parse(getComputedStyle(probe).color); probe.remove();
-  const golds = texts.filter((t) => !t.paper && t.bg.slice(0, 3).every((v, i) => Math.abs(v - gold[i]) <= 2)).map((t) => ({ ...t, dark: L(t.fg) < L(t.bg) }));
-  // ---- bordes de 2 px, superficies claras
-  const borders = [], bright = [];
-  for (const el of document.querySelectorAll("body *")) {
-    if (el instanceof SVGElement || !visible(el) || inPaper(el)) continue;
-    const cs = getComputedStyle(el);
-    const r = el.getBoundingClientRect();
-    const own = parse(cs.backgroundColor);
-    // Una línea de 4 px o menos (separador fuerte, barra de progreso) es tinta, no superficie.
-    if (own && own[3] >= 0.99 && L(own) > 0.5 && Math.min(r.width, r.height) > 4) bright.push({ el: desc(el), area: Math.round(r.width * r.height), bg: own, txt: (el.textContent || "").trim().slice(0, 24) });
-    const w = parseFloat(cs.borderTopWidth);
-    if (w >= 2 && cs.borderTopStyle !== "none") {
-      const bc = parse(cs.borderTopColor);
-      if (!bc || bc[3] < 0.5) continue;
-      const behind = bgOf(el.parentElement);
-      if (!behind) continue;
-      const ownBg = own && own[3] >= 0.99 ? own : null;
-      const rb = ratio(over(bc, behind), behind);
-      const rFill = ownBg ? ratio(ownBg, behind) : 0;
-      borders.push({ el: desc(el), r: rb, fill: rFill, ok: rb >= 3 || rFill >= 3 });
-    }
-  }
-  // ---- gráficas
-  const charts = [...document.querySelectorAll(".ns-chart")].filter(visible).map((fig) => {
-    const bg = bgOf(fig);
-    const series = [];
-    const add = (name, sel, prop) => { const e = fig.querySelector(sel); if (e) { const c = parse(getComputedStyle(e)[prop]); if (c) series.push({ name, c }); } };
-    add("barra", ".ns-bar:not(.ns-bar--low)", "fill");
-    add("barra baja", ".ns-bar--low", "fill");
-    fig.querySelectorAll(".ns-line-g").forEach((g, i) => { const e = g.querySelector(".ns-line"); if (e) series.push({ name: "línea " + (g.getAttribute("class").match(/--(\w+)/) || [, i])[1], c: parse(getComputedStyle(e).stroke) }); });
-    fig.querySelectorAll(".ns-donut-seg").forEach((e) => series.push({ name: "anillo " + (e.getAttribute("class").match(/--(\w+)/) || [, "?"])[1], c: parse(getComputedStyle(e).stroke) }));
-    add("meta", ".ns-target-line", "stroke");
-    const title = fig.querySelector(".ns-chart-head strong")?.textContent.trim() || "?";
-    const vsBg = series.map((s) => ({ name: s.name, r: ratio(s.c, bg) }));
-    const pairs = [];
-    for (let i = 0; i < series.length; i++) for (let j = i + 1; j < series.length; j++) if (series[i].name !== "meta" && series[j].name !== "meta") pairs.push({ a: series[i].name, b: series[j].name, r: ratio(series[i].c, series[j].c), dashed: !!fig.querySelector(".ns-line.is-dashed") });
-    return { title, vsBg, pairs };
-  });
-  return { texts, unmeasured, decision, golds, borders, bright, charts };
-}
 
 const consoleLog = [];
 const results = []; // por carga
@@ -261,8 +158,15 @@ report.check(`O6 · ${decisionAll.length} cifras de decisión a 7:1 o más (la m
 const gBad = goldAll.filter((g) => g.r < 4.5 || !g.dark);
 report.check(`O4 · ${uniq(goldAll, (g) => g.el + g.txt).length} textos sobre dorado con tinta oscura ≥ 4.5:1`, gBad.length === 0,
   uniq(gBad, (g) => g.el + g.txt).map((g) => `${g.where} ${g.el} «${g.txt}» ${fmt(g.r)}:1`).join("; "));
-const bf = uniq(borderFails, (b) => b.el + "|" + b.where.split(" ")[1]);
-report.check(`Bordes · ${borderCount} bordes de 2 px a 3:1 contra lo que tienen detrás (o el relleno a 3:1)`, bf.length === 0,
+// Enmienda del 2026-11-08 (decisión 2 del paso 4): los bloques grandes y adornos de campo navy (hero, KPI y panel
+// principales, marca, sellos, barra invertida, escudo) se separan del carbón por la repisa y el texto, y no son
+// controles. Se aceptan y se anotan. Los controles con estado sí tienen que llegar a 3:1.
+const ACCEPTED_BLOCKS = /ns-block--navy|ns-report|ns-bento-tile--lead|ns-kpi--lead|ns-brand-b--navy|ns-sticker--navy|ns-progress--inverse|ns-paper-crest|ns-auth-panel|ns-summary-cell--lead|ns-hsw--navy/;
+const bfAll = uniq(borderFails, (b) => b.el + "|" + b.where.split(" ")[1]);
+const bf = bfAll.filter((b) => !ACCEPTED_BLOCKS.test(b.el));
+const accepted = uniq(bfAll.filter((b) => ACCEPTED_BLOCKS.test(b.el)), (b) => b.el);
+console.log(`NOTA  Bordes · bloques de campo aceptados (decisión 2): ${accepted.map((b) => `${b.el} ${fmt(b.r)}:1`).join(", ")}`);
+report.check(`Bordes · ${borderCount} bordes de 2 px a 3:1 (o el relleno a 3:1), salvo los bloques de campo aceptados`, bf.length === 0,
   bf.slice(0, 25).map((b) => `${b.where} ${b.el} ${fmt(b.r)}:1`).join("; "));
 // Superficies claras sueltas: más de 1500 px² (más que un chip) fuera del papel.
 const big = uniq(brightAll.filter((b) => b.area >= 1500), (b) => b.el + "|" + b.where.split(" ")[1]);
@@ -289,8 +193,13 @@ const axis = uniq(results.flatMap((r) => r.a.texts.filter((t) => /^text\.ns-axis
 const axisMin = axis.length ? Math.min(...results.flatMap((r) => r.a.texts.filter((t) => /^text\./.test(t.el)).map((t) => t.r))) : null;
 report.check(`Gráficas · ejes y rótulos legibles (AA), el más bajo ${axisMin == null ? "n/a" : fmt(axisMin)}:1`, axisMin != null && axisMin >= 4.5);
 const pairWorse = uniq(chartRows.filter((c) => c.pair && c.light != null && c.r < Math.min(c.light, 3) - 0.01), (c) => c.title + c.what);
-report.check(`Gráficas · separación entre series al menos como en claro (o 3:1)`, pairWorse.length === 0,
-  pairWorse.map((c) => `«${c.title}» ${c.what}: oscuro ${fmt(c.r)}:1, claro ${fmt(c.light)}:1`).join("; "));
+// Decisión 3 del paso 4 (Diego, 2026-11-08): la separación entre series baja en oscuro y se acepta. Las series se
+// distinguen por tono, línea de meta, 2025 punteada y leyenda, como en claro entre salvia y dorado (1.25:1). La
+// comprobación registra cada par y solo falla si aparece uno nuevo por debajo de 1.10:1, que ya no se distinguiría.
+const pairNew = pairWorse.filter((c) => c.r < 1.1 && !/sage.*gold|gold.*sage/.test(c.what));
+console.log(`NOTA  Gráficas · separación entre series aceptada por Diego el 2026-11-08: ${pairWorse.map((c) => `«${c.title}» ${c.what} ${fmt(c.r)}:1 (claro ${fmt(c.light)}:1)`).join("; ")}`);
+report.check(`Gráficas · separación entre series registrada (decisión 3, aceptada) y ningún par nuevo bajo 1.10:1`, pairNew.length === 0,
+  pairNew.map((c) => `«${c.title}» ${c.what}: ${fmt(c.r)}:1`).join("; "));
 const noisy = consoleLog.filter((c) => c.cons.length);
 report.check(`Consola sin errores ni avisos en ${consoleLog.length} cargas`, noisy.length === 0, noisy.slice(0, 6).map((c) => `${c.label}: ${c.cons.slice(0, 2).join(" | ")}`).join("; "));
 
