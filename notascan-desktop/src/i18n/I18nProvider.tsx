@@ -59,7 +59,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     number: (n, digits) => formatNumber(lang, n, digits),
     date: (d) => formatDate(lang, d),
     time: (d) => formatTime(lang, d),
-    shownGrade: (n) => (isNaN(n) ? "—" : formatGrade(lang, n)),
+    // Se redondea antes, como `formatGrade` de lib/grade: Intl redondea el flotante tal cual (3,349999 da 3,3).
+    shownGrade: (n) => (isNaN(n) ? "—" : formatGrade(lang, Math.round(n * 10) / 10)),
   }), [lang, pref, system, setPref]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

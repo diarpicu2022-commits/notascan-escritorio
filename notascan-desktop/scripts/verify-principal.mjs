@@ -29,7 +29,7 @@ try {
 
   // Aprobar #244.
   await page.getByRole("option", { name: /Solicitud #244/ }).click();
-  report.check("Elegir #244 muestra su detalle con el cambio 2.8 → 3.2", (await page.locator(".ns-inbox-detail .ns-block-h").textContent()) === "Solicitud #244" && (await page.locator(".ns-change-big").getAttribute("aria-label")) === "Cambio solicitado de 2.8 a 3.2");
+  report.check("Elegir #244 muestra su detalle con el cambio 2.8 → 3.2", (await page.locator(".ns-inbox-detail .ns-block-h").textContent()) === "Solicitud #244" && (await page.locator(".ns-change-big").getAttribute("aria-label")) === "Cambio solicitado de 2,8 a 3,2");
   await page.locator(".ns-inbox-detail").getByRole("button", { name: "Aprobar" }).click();
   report.check("Aprobar pide confirmación y recuerda que la original queda en el historial", (await page.locator("[role=alertdialog] .ns-dialog-text").textContent()).includes("La nota original queda en el historial."));
   await page.locator("[role=alertdialog]").getByRole("button", { name: "Aprobar" }).click();
@@ -67,7 +67,7 @@ try {
   await go("analytics");
   report.check("Cada gráfico tiene su tabla para lectores de pantalla (4)", (await page.locator("figure.ns-chart table.ns-sr").count()) === 4);
   await page.locator(".ns-bar-g").nth(2).hover();
-  report.check("Pasar sobre «Octavo» muestra 3.4", (await page.locator(".ns-chart-tip").first().textContent()) === "Octavo · 3.4");
+  report.check("Pasar sobre «Octavo» muestra 3.4", (await page.locator(".ns-chart-tip").first().textContent()) === "Octavo · 3,4");
 
   // Observador.
   await go("observer");
