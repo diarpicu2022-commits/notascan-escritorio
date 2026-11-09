@@ -213,6 +213,9 @@ export function buildThemeDark() {
 
   out.push(`  /* PAPEL (O5): el boletín en pantalla y la foto del examen son documentos, no interfaz. Siguen en claro. */`);
   out.push(`  :root[data-theme="dark"] .ns-paper, :root[data-theme="dark"] .ns-photo { ${LIGHT_SCOPE} }`);
+  out.push(`  /* Paso 5 (pendiente 4 del paso 4): la hoja del examen dibujada en el login también es papel. Sigue en claro, igual que
+     la foto del examen, con su sombra navy y la nota a mano en burdeos. El teléfono sí pasa a oscuro: es una pantalla. */`);
+  out.push(`  :root[data-theme="dark"] .ns-auth-illus .a-paper { ${LIGHT_SCOPE} }`);
   out.push(`  /* Dentro del papel, los campos del sistema (el escudo del boletín) también resuelven los tokens claros. */`);
   out.push(`  :root[data-theme="dark"] :is(.ns-paper, .ns-photo) :is(${fieldParts.join(", ")}) { ${LIGHT_SCOPE} }`);
   out.push("}");

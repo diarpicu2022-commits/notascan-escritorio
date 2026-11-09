@@ -45,6 +45,8 @@ export function audit(decisionSel) {
     if (el.closest(":disabled, [aria-disabled='true']")) continue;
     const cs = getComputedStyle(el);
     const isSvg = el instanceof SVGElement;
+    // La ilustración del login se mide aparte (la nota a mano contra su hoja): aquí su fondo saldría el del panel.
+    if (isSvg && el.closest(".ns-auth-illus")) continue;
     const fgRaw = parse(isSvg ? cs.fill : cs.color);
     if (!fgRaw) continue;
     const bg = bgOf(isSvg ? el.closest("svg").parentElement : el);

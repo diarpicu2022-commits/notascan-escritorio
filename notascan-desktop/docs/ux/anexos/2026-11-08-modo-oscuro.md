@@ -1,6 +1,6 @@
 # Anexo de diseño · Modo oscuro de NotaScan escritorio
 
-Fecha: 2026-11-08 · Fase: contrato firmado, pasos 1, 2 y 3 hechos y paso 4 parado en cuatro decisiones. Diego eligió la dirección B · Campo marino el 2026-11-08. El contrato está en la sección 11 y lo hecho en los pasos 1 a 4, con sus mediciones, en las secciones 12 a 15. Las secciones 3 a 10 son la investigación que llevó a esa elección y no se reescriben.
+Fecha: 2026-11-08 · Fase: contrato firmado y pasos 1 a 5 hechos. Diego eligió la dirección B · Campo marino el 2026-11-08. El contrato está en la sección 11 y lo hecho en los pasos 1 a 5, con sus mediciones, en las secciones 12 a 16. Las secciones 3 a 10 son la investigación que llevó a esa elección y no se reescriben.
 
 Origen del pedido. El profesor pidió el 2026-10-07 modo claro y oscuro a elección de la persona (Claro, Oscuro, Como el sistema), guardado en el dispositivo. Diego decidió el 2026-10-08 que el oscuro se deriva del sistema NotaScan, que no es otra marca, que se mide el contraste y que se ven capturas antes de aplicarlo en todo.
 
@@ -765,3 +765,67 @@ Diego aceptó las decisiones 1 y 2, dejó la 3 como está y pasó la 4 al paso 5
 - En `verify:dark-screens` las cifras de decisión quedan en 7:1 o más, y la más baja es la nota baja de la Planilla en la fila marcada (7.29:1). Ningún control falla ya el borde. Los bordes que quedan bajo 3:1 son los bloques aceptados por la decisión 2, y la comprobación los anota sin fallar. La separación entre series se registra como decisión 3 y solo fallaría si apareciera un par nuevo por debajo de 1.10:1.
 - La barra de título con el cerrar en el burdeos nuevo pasa 89 de 89.
 - La auditoría de la página pasó a `scripts/dark-audit.mjs`, para compartirla con el paso 5.
+
+## 16. Paso 5 · Estados e ilustración del login
+
+Hecho el 2026-11-09 en la rama `feature/modo-oscuro`. Lo respaldan las cláusulas O1 a O6, y en la ilustración la O5 (el papel no se oscurece). Desde el 2026-11-09 Diego pidió una sola parada por proyecto, así que el paso 4 se cerró y el 5 se hizo seguido.
+
+### Qué se hizo
+
+- **Ilustración del login.** La hoja del examen dibujada (`.ns-auth-illus .a-paper`) resuelve los tokens claros, igual que la foto del examen. Queda en papel `#fffdf8` con su sombra navy y la nota «4,5» a mano en burdeos claro, que da 9.15:1 sobre la hoja. El teléfono sigue en oscuro porque es una pantalla, y su pantalla es `#161513`. Lo genera el generador como el resto del papel.
+- **Estados.** No hizo falta ningún parche nuevo. Las capas de los pasos 1 a 4 ya cubren la carga (`.ns-skel` y las tarjetas esqueleto), el vacío y el error (`EmptyState` con su sello) y el modo sin conexión.
+- **`scripts/verify-dark-states.mjs`** (`npm run verify:dark-states`). Recorre las 24 pantallas de `verify-states.mjs` con los tres estados forzados de la demostración, a 1440 y en oscuro, que son 72 cargas. Además mide el dato viejo y el login a 1024 y 1440. Usa la auditoría compartida de `scripts/dark-audit.mjs`.
+
+### Mediciones
+
+`verify:dark-states` pasa 17 de 17.
+
+| Comprobación | Resultado |
+|---|---|
+| Texto con AA en carga, vacío y error | 3260 textos en 72 cargas, todos pasan |
+| Cifras de decisión, O4 y superficies claras | sin fallas |
+| Esqueletos de carga | 72, oscuros (luminancia 0.2 o menos) y distintos de su fondo |
+| Sellos del vacío y del error | 48, el icono a 9.05:1 o más |
+| Dato viejo, píldora «Modo offline» | 10.89:1, y el panel con «Última sincronización» con AA |
+| Login, hoja del examen | papel `#fffdf8` a 1024 y 1440 |
+| Login, nota a mano sobre la hoja | 9.15:1 |
+| Consola | limpia |
+
+### Regresión
+
+Una sola corrida de cada prueba, de una en una, con `NS_PORT=4193`.
+
+| Verificación | Base | Ahora |
+|---|---|---|
+| `verify:dark-screens` | 7/10 | 10/10 |
+| `verify:dark` | 138/138 | 138/138 |
+| `verify:theme` | 49/49 | 49/49 |
+| `verify:titlebar` | 89/89 | 89/89 |
+| `verify:shell` | 61/62 | 60/62 |
+| `verify:components` | 120/121 | 120/121 |
+| `verify:card` | 50/51 | 50/51 |
+| `verify:teacher` | 122/123 | 121/123 |
+| `verify:admin` | 104/105 | 104/105 |
+| `verify:principal` | 75/76 | 75/76 |
+| `verify:print` | 5/5 | 5/5 |
+| `verify:states` | 98/98 | 98/98 |
+| `verify:i18n` | 965/965 | 965/965 |
+| `verify:tokens` | 25/26 | 25/26 |
+
+`verify:dark-screens` queda en 10 de 10 después del cierre del paso 4. Las cifras de decisión dan 7.29:1 o más, ningún control falla el borde, y los bloques de campo y la separación entre series quedan anotados como decisiones.
+
+Hay dos pruebas por debajo de la base y no se repitieron, como pidió Diego. `verify:shell` dio 60 de 62 por la comparación del login contra el sistema (la misma de los pasos 1 a 3, que pasa en la segunda corrida). `verify:teacher` dio 121 de 123 por una comparación de píxeles del claro, la misma inestabilidad de la sección 15. Las dos son comparaciones del modo claro, y las capas del tema solo actúan con `data-theme="dark"`.
+
+### Fallos propios
+
+- La primera corrida de `verify:dark-states` marcó la nota «4,5» a 1.96:1. Era el comprobador, que medía el texto de un SVG contra el panel y no contra la hoja en la que está dibujado. La ilustración se mide ahora aparte, contra su propia hoja.
+- En el cierre del paso 4 `verify:dark` dio 137 de 138, porque el generador se había editado después de escribir `theme-dark.css`. Se regeneró, y la tabla de regresión de arriba es la de después.
+
+### Pendiente
+
+- **Sin permiso.** La vista usa el mismo `EmptyState` de error que se midió aquí, pero la ruta solo aparece con una sesión real (`verify:auth`, compilación sin demostración). No se recorrió en oscuro.
+- **Error de sincronización.** El panel de conexión se midió en modo sin conexión. El estado de error de sincronización no se puede forzar en la demostración.
+- **Mac real.** La prueba en un Mac real de los botones nativos con `setTheme` (paso 3).
+- **`verify:teacher`.** Sus comparaciones de píxeles contra el sistema siguen variando entre corridas (sección 15).
+- **Textos en inglés y portugués.** Falta su revisión nativa.
+- **Política de datos.** La línea de la sección 10 todavía no está en `docs/legal/`.
