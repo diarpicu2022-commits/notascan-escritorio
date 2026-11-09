@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { useCountUp } from "../../hooks/useCountUp";
 import { cx } from "../../lib/cx";
-import { confidenceLevel, formatGrade, validateGrade } from "../../lib/grade";
+import { confidenceLevel, validateGrade } from "../../lib/grade";
 import type { ReviewStatus as Status } from "../../types/domain";
 import { Avatar } from "../atoms/Avatar";
 import { Badge } from "../atoms/Badge";
@@ -44,7 +44,8 @@ export function StudentGradeCard(props: StudentGradeCardProps) {
   const [ownStatus, setOwnStatus] = useState<Status>(props.status || (confidenceLevel(confidence) === "low" ? "needs-review" : "pending"));
   const status = props.status !== undefined && props.onStatusChange ? props.status : ownStatus;
   const [editing, setEditing] = useState(!!props.editing);
-  const [draft, setDraft] = useState(formatGrade(grade));
+  const { t, shownGrade } = useI18n();
+  const [draft, setDraft] = useState(shownGrade(grade));
   const [stamping, setStamping] = useState(false);
   const shown = useCountUp(isNaN(grade) ? 0 : grade, animate);
   const check = validateGrade(draft);
@@ -52,7 +53,6 @@ export function StudentGradeCard(props: StudentGradeCardProps) {
   const failed = noDetection && isNaN(grade);
   const headingId = useId();
   const stampTimer = useRef<number>();
-  const { t, shownGrade } = useI18n();
   const c = t.tch.card;
 
   useEffect(() => () => window.clearTimeout(stampTimer.current), []);
@@ -73,11 +73,11 @@ export function StudentGradeCard(props: StudentGradeCardProps) {
     stampTimer.current = window.setTimeout(() => setStamping(false), 700);
   }
   function startEdit() {
-    setDraft(failed ? "" : formatGrade(grade));
+    setDraft(failed ? "" : shownGrade(grade));
     setEditing(true);
     if (status === "verified") setStatus("pending");
   }
-  function cancelEdit() { setEditing(false); setDraft(formatGrade(grade)); }
+  function cancelEdit() { setEditing(false); setDraft(shownGrade(grade)); }
 
   const edited = !noDetection && Math.abs(grade - detected) > 0.001;
 

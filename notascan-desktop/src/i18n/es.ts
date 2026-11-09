@@ -25,7 +25,7 @@ export const es = {
     close: "Cerrar panel",
   },
   login: {
-    illustration: "Un teléfono escanea la hoja de un examen y detecta la nota 4.5",
+    illustration: "Un teléfono escanea la hoja de un examen y detecta la nota 4,5",
     steps: ["La IA detecta", "tú verificas", "el sistema guarda"] as [string, string, string],
     hello: "¡Hola",
     welcome: "Bienvenido de nuevo a NotaScan.",

@@ -34,13 +34,15 @@ async function openReference(ctx, hash) {
 
 const normalize = (loc) => loc.evaluate((root) => {
   const walk = (el) => {
-    if (el.nodeType === 3) return el.textContent.trim() ? `"${el.textContent.trim()}"` : "";
+    // Idiomas, I5: la app escribe la nota con coma decimal («4,5») y el sistema con punto. Se comparan igual.
+    const dec = (s) => s.replace(/(\d),(\d)/g, "$1.$2");
+    if (el.nodeType === 3) return el.textContent.trim() ? `"${dec(el.textContent.trim())}"` : "";
     if (el.nodeType !== 1) return "";
     // Enmienda 11 (idiomas, 2026-11-08): lo agregado al sistema no entra en la comparación.
     if (el.getAttribute("data-enmienda") === "11") return "";
     const attrs = [...el.attributes]
       .filter((a) => !["id", "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant", "for", "name"].includes(a.name))
-      .map((a) => `${a.name}=${a.value}`).sort().join(" ");
+      .map((a) => `${a.name}=${dec(a.value)}`).sort().join(" ");
     return `<${el.tagName.toLowerCase()} ${attrs}>${[...el.childNodes].map(walk).join("")}</${el.tagName.toLowerCase()}>`;
   };
   return walk(root);

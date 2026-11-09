@@ -1,6 +1,7 @@
-// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común), paso 3 (Docente), paso 4 (Secretaría), paso 5 (Rectoría y plataforma) y paso 6 (textos legales y aviso de impresos).
+// Idiomas (anexo 2026-11-08-idiomas): paso 1 (infraestructura, Preferencias y login), paso 2 (marco común), paso 3 (Docente), paso 4 (Secretaría), paso 5 (Rectoría y plataforma) paso 6 (textos legales y aviso de impresos) y paso 7 (barrido final y notas con coma).
 // Requiere `npm run build:demo` antes.
-import { createReport, startPreview, watchConsole, URL_BASE, OUT, sampleTextContrast, checkOverflow } from "./harness.mjs";
+import { createReport, startPreview, watchConsole, URL_BASE, OUT, ROOT, sampleTextContrast, checkOverflow } from "./harness.mjs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const report = createReport();
@@ -632,19 +633,24 @@ for (const lang of ["en", "pt"]) {
   }
 }
 
-// 10. Paso 6 · Textos legales en el idioma y aviso de impresos (I7).
-{
+// 10. Paso 6 · Textos legales en el idioma y aviso de impresos (I7). Un error aquí se anota y la corrida sigue.
+try {
   const LEGAL6 = {
     es: { open: "Política de tratamiento de datos", head: "Política de tratamiento de datos personales", governs: null },
     en: { open: "Data processing policy", head: "Personal data processing policy", governs: "The Spanish version is the one that governs" },
     pt: { open: "Política de tratamento de dados", head: "Política de tratamento de dados pessoais", governs: "A versão em espanhol é a que vale" },
   };
+  // Los documentos que la app importa al compilar. En la demostración el login no muestra el enlace de la política y
+  // la aceptación (ConsentGate) no aparece: solo con sesión real. Se revisan los archivos y, si el enlace está, el diálogo.
+  const FILES = { es: "politica-de-tratamiento-de-datos.md", en: "Privacy policy (English draft).md", pt: "Politica de privacidade (rascunho em portugues).md" };
+  const legalSrc = readFileSync(join(ROOT, "src/components/organisms/LegalDocument.tsx"), "utf8");
   for (const lang of ["es", "en", "pt"]) {
     const L = LEGAL6[lang];
     const { ctx, page, cons } = await open(lang, "es-CO", "#/login");
-    await page.getByRole("button", { name: L.open, exact: true }).first().click();
-    await page.waitForTimeout(300);
-    const text = await page.getByRole("dialog").innerText();
+    report.check(`Paso 6 ${lang}: la app importa el documento`, legalSrc.includes(FILES[lang]));
+    let text = readFileSync(join(ROOT, "docs/legal", FILES[lang]), "utf8").replace(/\*\*/g, "");
+    const link = page.getByRole("link", { name: L.open, exact: true });
+    if (await link.count()) { await link.first().click(); await page.waitForTimeout(300); text = await page.getByRole("dialog").innerText(); }
     report.check(`Paso 6 ${lang}: la política del login está en el idioma`, text.includes(L.head), text.slice(0, 120).replace(/\n/g, " · "));
     if (L.governs) {
       report.check(`Paso 6 ${lang}: la política dice que rige el español`, text.includes(L.governs));
@@ -681,7 +687,32 @@ for (const lang of ["en", "pt"]) {
     report.check(`Paso 6 ${lang}: consola limpia (boletines)`, cons.length === 0, cons.join(" | "));
     await ctx.close();
   }
-}
+} catch (e) { report.check("Paso 6: la sección corre completa", false, String(e).slice(0, 160)); }
+
+// 11. Paso 7 · Barrido final: en español las notas van con coma («4,5») y ninguna queda con punto.
+try {
+  const ROUTES7 = ["#/teacher/dashboard", "#/teacher/review", "#/teacher/gradebook", "#/teacher/students", "#/teacher/recoveries", "#/teacher/concepts",
+    "#/admin/reportcards", "#/admin/ranking", "#/principal/dashboard", "#/principal/requests", "#/teacher/profile/20261175?tab=grades"];
+  for (const hash of ROUTES7) {
+    const { ctx, page, cons } = await open("es", "es-CO", hash);
+    await page.waitForTimeout(900);
+    // Notas visibles: una cifra, coma o punto, una cifra, sin más dígitos alrededor. Se excluye lo impreso (D2 sigue igual).
+    const text = await page.evaluate(() => {
+      const root = document.querySelector(".ns-app-main").cloneNode(true);
+      root.querySelectorAll(".ns-paper-scroll, [aria-hidden=true]").forEach((n) => n.remove());
+      // Cada nodo de texto por separado: las celdas de una tabla no se pegan entre sí.
+      const out = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) out.push(w.currentNode.textContent);
+      return out.join(" ") + " " + [...root.querySelectorAll("[aria-label]")].map((n) => n.getAttribute("aria-label")).join(" ");
+    });
+    const dot = text.match(/(?<![\d.,])[1-5]\.\d(?![\d.,%])/);
+    const comma = /(?<![\d.,])[1-5],\d(?![\d.,])/.test(text);
+    report.check(`Paso 7 es · ${hash}: notas con coma decimal`, comma && !dot, dot ? `queda «${dot[0]}»` : comma ? "" : "no se encontró ninguna nota");
+    report.check(`Paso 7 es · ${hash}: consola limpia`, cons.length === 0, cons.join(" | "));
+    if (hash === "#/teacher/gradebook") await page.screenshot({ path: join(OUT, "i18n-notas-con-coma-es.png") });
+    await ctx.close();
+  }
+} catch (e) { report.check("Paso 7: la sección corre completa", false, String(e).slice(0, 160)); }
 
 // 5. Formatos (I5). Node 24 carga el .ts quitando los tipos.
 const { formatGrade, formatDate, formatTime } = await import("../src/i18n/format.ts").catch((e) => { report.check("Se carga src/i18n/format.ts", false, String(e)); return {}; });

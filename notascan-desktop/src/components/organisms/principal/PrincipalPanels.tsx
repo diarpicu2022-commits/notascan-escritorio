@@ -38,10 +38,10 @@ export function TeacherStatus({ status }: { status: TeacherState }) {
   return <StatusDot status={s[1]} label={useI18n().t.pri.status[status]} />;
 }
 
-/** Diferencia con signo: en español como siempre («+0.1», «−2»); en inglés y portugués, con el separador del idioma. */
+/** Diferencia con signo y el separador del idioma («+0,1», «−2»). */
 function useSigned() {
-  const { lang, number } = useI18n();
-  return (v: number) => (v > 0 ? "+" : "−") + (lang === "es" ? String(Math.abs(v)) : number(Math.abs(v), Math.abs(v) % 1 ? 1 : 0));
+  const { number } = useI18n();
+  return (v: number) => (v > 0 ? "+" : "−") + number(Math.abs(v), Math.abs(v) % 1 ? 1 : 0);
 }
 
 /** Indicadores y cuatro gráficos; cada uno responde una pregunta. Sin `data`, las cifras del sistema. */

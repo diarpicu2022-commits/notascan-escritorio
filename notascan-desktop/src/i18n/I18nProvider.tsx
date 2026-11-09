@@ -33,10 +33,7 @@ interface I18n {
   number: (n: number, digits?: number) => string;
   date: (d: Date) => string;
   time: (d: Date) => string;
-  /**
-   * Nota tal como la muestran las pantallas (paso 3). En español sigue con punto, como el sistema («4.5»), y queda
-   * pendiente para el paso 7. En inglés y portugués, con el separador del idioma. Sin nota, «—».
-   */
+  /** Nota tal como la muestran las pantallas, con el separador del idioma («4,5» en español y portugués, «4.5» en inglés). Sin nota, «—». */
   shownGrade: (n: number) => string;
 }
 
@@ -62,7 +59,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     number: (n, digits) => formatNumber(lang, n, digits),
     date: (d) => formatDate(lang, d),
     time: (d) => formatTime(lang, d),
-    shownGrade: (n) => (isNaN(n) ? "—" : lang === "es" ? (Math.round(n * 10) / 10).toFixed(1) : formatGrade(lang, n)),
+    shownGrade: (n) => (isNaN(n) ? "—" : formatGrade(lang, n)),
   }), [lang, pref, system, setPref]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
