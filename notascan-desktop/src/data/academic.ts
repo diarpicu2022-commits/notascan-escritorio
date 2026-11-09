@@ -1,6 +1,7 @@
 import { formatGrade } from "../lib/grade";
 import type { IconName } from "../components/atoms/Icon";
 import type { ReviewStatus } from "../types/domain";
+import type { Seen } from "../i18n/seen";
 import { COURSES, seeded, type StudentRecord } from "./students";
 
 /* Datos y reglas académicas simuladas de notascan-ui (sin backend en esta fase).
@@ -17,17 +18,19 @@ export const SUBJECTS = [
   { id: "tec", name: "Tecnología", code: "TEC-06", category: "Tecnología e informática" },
 ];
 
+/** `last`: último acceso como dato; la pantalla lo escribe en el idioma (idiomas, paso 5). */
 export const TEACHERS = [
-  { id: "t1", name: "Ana Lucía Rosero", subjects: ["Matemáticas"], courses: ["6A", "7A", "7B"], pending: 0, pct: 100, last: "Hoy, 08:42", status: "ok" },
-  { id: "t2", name: "Carlos Pérez", subjects: ["Física"], courses: ["7A", "8A", "8B"], pending: 2, pct: 82, last: "Ayer, 17:10", status: "warn" },
-  { id: "t3", name: "Laura Benavides", subjects: ["Lengua Castellana"], courses: ["6A", "6B"], pending: 0, pct: 100, last: "Hoy, 07:55", status: "ok" },
-  { id: "t4", name: "Jorge Insuasty", subjects: ["Inglés"], courses: ["6B", "7B", "8B"], pending: 5, pct: 48, last: "Hace 9 días", status: "late" },
-  { id: "t5", name: "Diana Cabrera", subjects: ["Ciencias Naturales"], courses: ["6A", "6B", "7A"], pending: 1, pct: 91, last: "Hoy, 09:20", status: "warn" },
-  { id: "t6", name: "Mauricio Ordóñez", subjects: ["Tecnología"], courses: ["8A", "8B"], pending: 0, pct: 100, last: "Ayer, 15:02", status: "ok" },
+  { id: "t1", name: "Ana Lucía Rosero", subjects: ["Matemáticas"], courses: ["6A", "7A", "7B"], pending: 0, pct: 100, last: { k: "today", time: "08:42" } as Seen, status: "ok" },
+  { id: "t2", name: "Carlos Pérez", subjects: ["Física"], courses: ["7A", "8A", "8B"], pending: 2, pct: 82, last: { k: "yesterday", time: "17:10" } as Seen, status: "warn" },
+  { id: "t3", name: "Laura Benavides", subjects: ["Lengua Castellana"], courses: ["6A", "6B"], pending: 0, pct: 100, last: { k: "today", time: "07:55" } as Seen, status: "ok" },
+  { id: "t4", name: "Jorge Insuasty", subjects: ["Inglés"], courses: ["6B", "7B", "8B"], pending: 5, pct: 48, last: { k: "days", n: 9 } as Seen, status: "late" },
+  { id: "t5", name: "Diana Cabrera", subjects: ["Ciencias Naturales"], courses: ["6A", "6B", "7A"], pending: 1, pct: 91, last: { k: "today", time: "09:20" } as Seen, status: "warn" },
+  { id: "t6", name: "Mauricio Ordóñez", subjects: ["Tecnología"], courses: ["8A", "8B"], pending: 0, pct: 100, last: { k: "yesterday", time: "15:02" } as Seen, status: "ok" },
 ] as const;
 
 /* ---------- Docente: lista corta y evaluaciones del periodo ---------- */
-export interface TeacherStudent { name: string; id: string; course: string; avg: number; status: ReviewStatus; last: string }
+/** `last`: nombre de la última evaluación; null si aún no tiene calificaciones (la pantalla pone el texto). */
+export interface TeacherStudent { name: string; id: string; course: string; avg: number; status: ReviewStatus; last: string | null }
 
 export const STUDENTS: TeacherStudent[] = ([
   ["María Fernanda López", "20261045", "7A", 4.5, "verified", "Parcial 2"],
@@ -44,16 +47,17 @@ export const STUDENTS: TeacherStudent[] = ([
 
 export type EvalKind = "examen" | "taller" | "actividad";
 export type EvalStatus = "en-revision" | "cerrada" | "borrador";
-export interface EvaluationItem { id: string; name: string; subject: string; kind: EvalKind; weight: number; status: EvalStatus; reviewed: number; total: number; date: string }
+export interface EvaluationItem { id: string; name: string; subject: string; kind: EvalKind; weight: number; status: EvalStatus; reviewed: number; total: number; /** Fecha de entrega ISO; la pantalla la escribe en el idioma. */ due: string | null }
 
 export const EVALUATIONS: EvaluationItem[] = [
-  { id: "e1", name: "Parcial 2", subject: "Matemáticas", kind: "examen", weight: 25, status: "en-revision", reviewed: 18, total: 24, date: "28 sep" },
-  { id: "e2", name: "Taller 3 · Ecuaciones", subject: "Matemáticas", kind: "taller", weight: 15, status: "cerrada", reviewed: 24, total: 24, date: "21 sep" },
-  { id: "e3", name: "Quiz 4", subject: "Matemáticas", kind: "actividad", weight: 10, status: "en-revision", reviewed: 9, total: 24, date: "30 sep" },
-  { id: "e4", name: "Parcial 1", subject: "Matemáticas", kind: "examen", weight: 25, status: "cerrada", reviewed: 24, total: 24, date: "31 ago" },
-  { id: "e5", name: "Proyecto final", subject: "Matemáticas", kind: "taller", weight: 15, status: "borrador", reviewed: 0, total: 24, date: "25 nov" },
-  { id: "e6", name: "Examen final", subject: "Matemáticas", kind: "examen", weight: 10, status: "borrador", reviewed: 0, total: 24, date: "2 dic" },
+  { id: "e1", name: "Parcial 2", subject: "Matemáticas", kind: "examen", weight: 25, status: "en-revision", reviewed: 18, total: 24, due: "2026-09-28" },
+  { id: "e2", name: "Taller 3 · Ecuaciones", subject: "Matemáticas", kind: "taller", weight: 15, status: "cerrada", reviewed: 24, total: 24, due: "2026-09-21" },
+  { id: "e3", name: "Quiz 4", subject: "Matemáticas", kind: "actividad", weight: 10, status: "en-revision", reviewed: 9, total: 24, due: "2026-09-30" },
+  { id: "e4", name: "Parcial 1", subject: "Matemáticas", kind: "examen", weight: 25, status: "cerrada", reviewed: 24, total: 24, due: "2026-08-31" },
+  { id: "e5", name: "Proyecto final", subject: "Matemáticas", kind: "taller", weight: 15, status: "borrador", reviewed: 0, total: 24, due: "2026-11-25" },
+  { id: "e6", name: "Examen final", subject: "Matemáticas", kind: "examen", weight: 10, status: "borrador", reviewed: 0, total: 24, due: "2026-12-02" },
 ];
+/** Tono de cada estado y tipo; la palabra sale del diccionario (t.tch.evalStatus, t.tch.kind, t.tch.obsType). */
 export const EVAL_STATUS: Record<EvalStatus, [string, "pending" | "verified" | "neutral"]> = { "en-revision": ["En revisión", "pending"], cerrada: ["Cerrada", "verified"], borrador: ["Borrador", "neutral"] };
 export const KIND: Record<EvalKind, [string, "navy" | "gold" | "sage"]> = { examen: ["Examen", "navy"], taller: ["Taller", "gold"], actividad: ["Actividad", "sage"] };
 
@@ -144,15 +148,16 @@ export function directorOf(s: StudentRecord): string {
 }
 
 /* ---------- Observador ---------- */
+/* `date`: fecha ISO (o con hora) de la anotación; el observador la escribe en el idioma de la app (idiomas, paso 3). */
 export type ObsType = "positive" | "neutral" | "attention";
 export interface ObservationItem { date: string; type: ObsType; title: string; context: string; by: string; student: string; course: string }
 
 export const OBS: ObservationItem[] = [
-  { date: "28 de septiembre", type: "positive", title: "Participación destacada", context: "Matemáticas", by: "Ana Lucía Rosero", student: "María Fernanda López Rosero", course: "7A" },
-  { date: "24 de septiembre", type: "neutral", title: "Inasistencia justificada", context: "Cita médica · excusa entregada", by: "Coordinación", student: "María Fernanda López Rosero", course: "7A" },
-  { date: "22 de septiembre", type: "attention", title: "Llamado de atención", context: "Llegó tarde a clase", by: "Carlos Pérez", student: "María Fernanda López Rosero", course: "7A" },
-  { date: "18 de septiembre", type: "positive", title: "Excelente trabajo grupal", context: "Proyecto de ciencias", by: "Diana Cabrera", student: "María Fernanda López Rosero", course: "7A" },
-  { date: "11 de septiembre", type: "attention", title: "Tarea sin entregar", context: "Inglés · taller 3", by: "Jorge Insuasty", student: "Juan Sebastián Martínez Paz", course: "7A" },
-  { date: "5 de septiembre", type: "positive", title: "Representó al colegio", context: "Olimpiadas de matemáticas", by: "Rectoría", student: "Juan Sebastián Martínez Paz", course: "7A" },
+  { date: "2026-09-28", type: "positive", title: "Participación destacada", context: "Matemáticas", by: "Ana Lucía Rosero", student: "María Fernanda López Rosero", course: "7A" },
+  { date: "2026-09-24", type: "neutral", title: "Inasistencia justificada", context: "Cita médica · excusa entregada", by: "Coordinación", student: "María Fernanda López Rosero", course: "7A" },
+  { date: "2026-09-22", type: "attention", title: "Llamado de atención", context: "Llegó tarde a clase", by: "Carlos Pérez", student: "María Fernanda López Rosero", course: "7A" },
+  { date: "2026-09-18", type: "positive", title: "Excelente trabajo grupal", context: "Proyecto de ciencias", by: "Diana Cabrera", student: "María Fernanda López Rosero", course: "7A" },
+  { date: "2026-09-11", type: "attention", title: "Tarea sin entregar", context: "Inglés · taller 3", by: "Jorge Insuasty", student: "Juan Sebastián Martínez Paz", course: "7A" },
+  { date: "2026-09-05", type: "positive", title: "Representó al colegio", context: "Olimpiadas de matemáticas", by: "Rectoría", student: "Juan Sebastián Martínez Paz", course: "7A" },
 ];
 export const OBS_TYPE: Record<ObsType, [string, IconName, string]> = { positive: ["Positiva", "check", "sage"], neutral: ["Informativa", "file", "navy"], attention: ["Atención", "warning", "burgundy"] };

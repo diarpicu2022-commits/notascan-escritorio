@@ -18,12 +18,16 @@ export function parseGrade(v: unknown): number {
 export function validateGrade(v: unknown): GradeCheck {
   const n = parseGrade(v);
   if (String(v).trim() === "") return { valid: false, value: NaN, message: "Escribe una calificación." };
-  if (isNaN(n) || n < GRADE_MIN || n > GRADE_MAX) return { valid: false, value: n, message: "La calificación debe estar entre 1.0 y 5.0." };
+  if (isNaN(n) || n < GRADE_MIN || n > GRADE_MAX) return { valid: false, value: n, message: "La calificación debe estar entre 1,0 y 5,0." };
   return { valid: true, value: Math.round(n * 10) / 10, message: "" };
 }
 
+/**
+ * Nota con una cifra decimal y coma, como se escribe en Colombia (I5, idiomas paso 7). La usan los documentos en
+ * español (boletines, reportes, conceptos). En pantalla, las notas pasan por `shownGrade` del proveedor de idioma.
+ */
 export function formatGrade(n: number): string {
-  return isNaN(n) ? "—" : (Math.round(n * 10) / 10).toFixed(1);
+  return isNaN(n) ? "—" : (Math.round(n * 10) / 10).toFixed(1).replace(".", ",");
 }
 
 /** ≥90 alta · 75–89 media · <75 baja. */
@@ -32,4 +36,8 @@ export function confidenceLevel(pct: number): ConfidenceLevel {
 }
 
 export const LEVEL_LABEL: Record<ConfidenceLevel, string> = { high: "Alta confianza", medium: "Confianza media", low: "Baja confianza" };
+/** Texto del error de validación en el idioma de la app (idiomas, paso 3). */
+export function gradeCheckText(m: { empty: string; range: string }, raw: unknown): string {
+  return String(raw ?? "").trim() === "" ? m.empty : m.range;
+}
 export const STATUS_LABEL: Record<ReviewStatus, string> = { pending: "Pendiente de revisión", verified: "Verificada", "needs-review": "Requiere revisión" };

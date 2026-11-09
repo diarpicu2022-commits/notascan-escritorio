@@ -1034,8 +1034,8 @@ button.ns-cell-link:hover span { text-decoration: underline; text-decoration-col
 .ns-period-list { display: grid; gap: 8px; }
 .ns-period-item { display: grid; justify-items: start; gap: 4px; padding: 14px; border: var(--border-width) solid var(--navy); border-radius: var(--radius-lg); background: var(--paper); text-align: left; cursor: pointer; color: var(--navy); font: inherit; }
 .ns-period-item strong { font: 800 18px/22px var(--font-display); }
-.ns-period-item[aria-selected="true"] { background: var(--navy); color: var(--ivory); box-shadow: 3px 3px 0 var(--gold); }
-.ns-period-item[aria-selected="true"] .ns-caption { color: #d9cfbd; }
+.ns-period-item[aria-selected="true"], .ns-period-item[aria-checked="true"] { background: var(--navy); color: var(--ivory); box-shadow: 3px 3px 0 var(--gold); }
+.ns-period-item[aria-selected="true"] .ns-caption, .ns-period-item[aria-checked="true"] .ns-caption { color: #d9cfbd; }
 @media (max-width: 900px) { .ns-period { grid-template-columns: 1fr; } }
 .ns-weights { display: grid; gap: 16px; }
 .ns-weight-bar--edit .ns-weight-seg { height: 46px; font-size: 12px; padding: 0 6px; white-space: nowrap; }

@@ -15,6 +15,7 @@ import { Block, BlockTitle } from "../Layout";
 import { ErrorState, LoadingBlocks } from "../QueryState";
 import { ConfirmAction } from "../Overlays";
 import { useToast } from "../Toast";
+import { useI18n } from "../../../i18n/I18nProvider";
 
 type AssignForm = Omit<Assignment, "id">;
 interface Options { teachers: string[]; subjects: string[]; courses: string[]; periods: string[] }
@@ -22,17 +23,19 @@ interface Options { teachers: string[]; subjects: string[]; courses: string[]; p
 /** Docente + Materia + Curso + Periodo en una sola línea. */
 export function AcademicAssignmentSelector({ value: v, onChange, onSubmit, error, editing, options: o, busy }: { value: AssignForm; onChange: (v: AssignForm) => void; onSubmit: () => void; error?: string | null; editing?: boolean; options: Options; busy?: boolean }) {
   const set = (k: keyof AssignForm) => (x: string) => onChange({ ...v, [k]: x });
+  const { t } = useI18n();
+  const c = t.adm.cur, f = t.adm.f;
   return (
     <div className="ns-assign">
       <div className="ns-assign-fields">
-        <Select label="Docente" required value={v.teacher} onChange={set("teacher")} placeholder="Selecciona" options={o.teachers} />
+        <Select label={c.teacher} required value={v.teacher} onChange={set("teacher")} placeholder={f.choose} options={o.teachers} />
         <span className="ns-assign-plus" aria-hidden>+</span>
-        <Select label="Materia" required value={v.subject} onChange={set("subject")} placeholder="Selecciona" options={o.subjects} />
+        <Select label={f.subject} required value={v.subject} onChange={set("subject")} placeholder={f.choose} options={o.subjects} />
         <span className="ns-assign-plus" aria-hidden>+</span>
-        <Select label="Curso" required value={v.course} onChange={set("course")} placeholder="Selecciona" options={o.courses} />
+        <Select label={f.course} required value={v.course} onChange={set("course")} placeholder={f.choose} options={o.courses} />
         <span className="ns-assign-plus" aria-hidden>+</span>
-        <Select label="Periodo" required value={v.period} onChange={set("period")} options={o.periods} />
-        <Button icon={editing ? "check" : "link"} loading={busy} onClick={onSubmit} className="ns-assign-btn">{editing ? "Guardar cambios" : "Asignar"}</Button>
+        <Select label={f.period} required value={v.period} onChange={set("period")} options={o.periods.map((p) => ({ value: p, label: t.tch.periodName(p) }))} />
+        <Button icon={editing ? "check" : "link"} loading={busy} onClick={onSubmit} className="ns-assign-btn">{editing ? c.saveChanges : c.assign}</Button>
       </div>
       {error ? <span className="ns-field-error" role="alert"><Icon name="error" size={16} />{error}</span> : null}
     </div>
@@ -57,20 +60,22 @@ export function CurriculumManager() {
   const [view, setView] = useState("matrix");
   const [courseF, setCourseF] = useState("all");
   const [showToast, toastNode] = useToast();
+  const { t } = useI18n();
+  const c = t.adm.cur, pn = t.tch.periodName;
   const opts: Options = { teachers: (d?.teachers ?? []).map((t) => t.name), subjects: (d?.subjects ?? []).map((s) => s.name), courses: d?.courses ?? [], periods: (d?.periods ?? []).map((p) => p.name) };
 
   function submit() {
     const v = form;
-    if (!v.teacher || !v.subject || !v.course) { setErr("Completa docente, materia y curso."); return; }
+    if (!v.teacher || !v.subject || !v.course) { setErr(c.complete); return; }
     const clash = list.find((a) => a.course === v.course && a.subject === v.subject && a.period === v.period && a.id !== editing);
-    if (clash) { setErr("Ya existe una asignación de " + v.subject + " en " + v.course + " (" + clash.teacher + "). Edítala o elimínala primero."); return; }
+    if (clash) { setErr(c.clash(v.subject, v.course, clash.teacher)); return; }
     saveMut.mutateAsync({ id: editing, v, data: d as CurriculumData }).then(
       () => {
         if (DEMO) { if (editing) setList(list.map((a) => (a.id === editing ? { ...a, ...v } : a))); else setList(list.concat([{ id: "a" + Date.now(), ...v }])); }
-        showToast({ tone: "success", title: editing ? "Asignación actualizada" : "Docente asignado", message: v.teacher + " · " + v.subject + " · " + v.course });
+        showToast({ tone: "success", title: editing ? c.updated : c.assigned, message: v.teacher + " · " + v.subject + " · " + v.course });
         setErr(null); setEditing(null); setForm({ teacher: "", subject: "", course: "", period: v.period });
       },
-      (e) => setErr(adminMessage(e)),
+      (e) => setErr(adminMessage(e, t)),
     );
   }
   function edit(a: Assignment) {
@@ -80,42 +85,42 @@ export function CurriculumManager() {
   const cellFor = (c: string, s: string) => list.find((a) => a.course === c && a.subject === s && a.period === form.period);
   const courses = courseF === "all" ? opts.courses : [courseF];
 
-  if (q.isPending && !d) return <LoadingBlocks label="Cargando la malla curricular" />;
-  if (q.isError && !d) return <ErrorState title="No pudimos cargar la malla curricular." onRetry={() => q.refetch()} />;
+  if (q.isPending && !d) return <LoadingBlocks label={c.loading} />;
+  if (q.isError && !d) return <ErrorState title={c.loadError} onRetry={() => q.refetch()} />;
   const empty = !opts.courses.length || !opts.subjects.length;
 
   return (
     <>
-      <Block tone="gold" label={editing ? "Editar asignación" : "Nueva asignación"}>
-        <BlockTitle action={editing ? <Button variant="ghost" size="sm" onClick={() => { setEditing(null); setForm({ teacher: "", subject: "", course: "", period: form.period }); }}>Cancelar edición</Button> : null}>
-          {editing ? "Editar asignación" : "Asignar docente"}
+      <Block tone="gold" label={editing ? c.editLabel : c.newLabel}>
+        <BlockTitle action={editing ? <Button variant="ghost" size="sm" onClick={() => { setEditing(null); setForm({ teacher: "", subject: "", course: "", period: form.period }); }}>{c.cancelEdit}</Button> : null}>
+          {editing ? c.editLabel : c.assignTitle}
         </BlockTitle>
         <AcademicAssignmentSelector value={form} onChange={(v) => { setForm(v); setErr(null); }} onSubmit={submit} error={err} editing={!!editing} options={opts} busy={saveMut.isPending} />
       </Block>
       <div className="ns-row" style={{ justifyContent: "space-between" }}>
-        <SegmentedTabs label="Vista de la malla" value={view} onChange={setView} tabs={[{ value: "matrix", label: "Malla por curso", icon: "layers" }, { value: "list", label: "Lista de asignaciones", icon: "menu" }]} />
-        <FilterGroup as="select" label="Curso" value={courseF} onChange={setCourseF} options={[{ value: "all", label: "Todos" }, ...opts.courses.map((c) => ({ value: c, label: c }))]} />
+        <SegmentedTabs label={c.view} value={view} onChange={setView} tabs={[{ value: "matrix", label: c.matrix, icon: "layers" }, { value: "list", label: c.list, icon: "menu" }]} />
+        <FilterGroup as="select" label={t.adm.f.course} value={courseF} onChange={setCourseF} options={[{ value: "all", label: t.adm.f.all }, ...opts.courses.map((y) => ({ value: y, label: y }))]} />
       </div>
-      {empty ? <EmptyState icon="layers" title="Aún no hay cursos o materias activas." message="Créalos en Estructura Académica para armar la malla." /> : view === "matrix" ? (
-        <div className="ns-table-wrap ns-matrix-wrap" role="region" aria-label="Malla curricular por curso y materia" tabIndex={0}>
+      {empty ? <EmptyState icon="layers" title={c.emptyTitle} message={c.emptyText} /> : view === "matrix" ? (
+        <div className="ns-table-wrap ns-matrix-wrap" role="region" aria-label={c.region} tabIndex={0}>
           <table className="ns-table ns-matrix">
-            <caption className="ns-sr">{"¿Qué docente dicta qué materia en qué curso? " + form.period}</caption>
-            <thead><tr><th scope="col">{"Curso · " + form.period}</th>{(d?.subjects ?? []).map((s) => <th key={s.id} scope="col">{s.name}</th>)}</tr></thead>
+            <caption className="ns-sr">{c.caption(pn(form.period))}</caption>
+            <thead><tr><th scope="col">{c.coursePeriod(pn(form.period))}</th>{(d?.subjects ?? []).map((s) => <th key={s.id} scope="col">{s.name}</th>)}</tr></thead>
             <tbody>
-              {courses.map((c) => (
-                <tr key={c}>
-                  <th scope="row"><span className="ns-course-tag">{c}</span></th>
+              {courses.map((co) => (
+                <tr key={co}>
+                  <th scope="row"><span className="ns-course-tag">{co}</span></th>
                   {(d?.subjects ?? []).map((s) => {
-                    const a = cellFor(c, s.name);
+                    const a = cellFor(co, s.name);
                     return (
                       <td key={s.id}>
                         {a ? (
-                          <button type="button" className="ns-assign-chip" onClick={() => edit(a)} aria-label={"Editar: " + a.teacher + " dicta " + s.name + " en " + c}>
+                          <button type="button" className="ns-assign-chip" onClick={() => edit(a)} aria-label={c.editChip(a.teacher, s.name, co)}>
                             <Avatar name={a.teacher} size="sm" /><span>{a.teacher.split(" ").slice(0, 2).join(" ")}</span>
                           </button>
                         ) : (
-                          <button type="button" className="ns-assign-empty" onClick={() => { setForm({ ...form, course: c, subject: s.name, teacher: "" }); setEditing(null); }} aria-label={"Asignar docente a " + s.name + " en " + c}>
-                            <Icon name="plus" size={14} />Sin docente
+                          <button type="button" className="ns-assign-empty" onClick={() => { setForm({ ...form, course: co, subject: s.name, teacher: "" }); setEditing(null); }} aria-label={c.assignChip(s.name, co)}>
+                            <Icon name="plus" size={14} />{c.noTeacher}
                           </button>
                         )}
                       </td>
@@ -128,28 +133,28 @@ export function CurriculumManager() {
         </div>
       ) : (
         <DataGrid<Assignment>
-          caption="Asignaciones" rows={list.filter((a) => courseF === "all" || a.course === courseF)} pageSize={12} density="compact" initialSort={{ key: "course", dir: "asc" }}
+          caption={c.listCaption} rows={list.filter((a) => courseF === "all" || a.course === courseF)} pageSize={12} density="compact" initialSort={{ key: "course", dir: "asc" }}
           columns={[
-            { key: "teacher", label: "Docente", sortable: true, header: true, render: (a) => <div className="ns-cell-link ns-cell-link--static"><Avatar name={a.teacher} size="sm" />{a.teacher}</div> },
-            { key: "subject", label: "Materia", sortable: true },
-            { key: "course", label: "Curso", sortable: true, render: (a) => <span className="ns-course-tag">{a.course}</span> },
-            { key: "period", label: "Periodo" },
+            { key: "teacher", label: c.teacher, sortable: true, header: true, render: (a) => <div className="ns-cell-link ns-cell-link--static"><Avatar name={a.teacher} size="sm" />{a.teacher}</div> },
+            { key: "subject", label: t.adm.f.subject, sortable: true },
+            { key: "course", label: t.adm.f.course, sortable: true, render: (a) => <span className="ns-course-tag">{a.course}</span> },
+            { key: "period", label: t.adm.f.period, render: (a) => pn(a.period) },
           ]}
           rowActions={(a) => [
-            <IconAction key="e" icon="edit" label="Editar asignación" onClick={() => edit(a)} />,
-            <IconAction key="d" icon="trash" tone="danger" label="Eliminar asignación" onClick={() => setDel(a)} />,
+            <IconAction key="e" icon="edit" label={c.editAssign} onClick={() => edit(a)} />,
+            <IconAction key="d" icon="trash" tone="danger" label={c.deleteAssign} onClick={() => setDel(a)} />,
           ]}
         />
       )}
       <ConfirmAction
-        open={!!del} danger icon="trash" onCancel={() => setDel(null)} title="¿Eliminar asignación?" loading={delMut.isPending}
-        description={del ? del.teacher + " dejará de dictar " + del.subject + " en " + del.course + ". Si ya tiene evaluaciones no se puede eliminar: cambia el docente." : ""}
-        confirmLabel="Eliminar asignación"
+        open={!!del} danger icon="trash" onCancel={() => setDel(null)} title={c.deleteTitle} loading={delMut.isPending}
+        description={del ? c.deleteText(del.teacher, del.subject, del.course) : ""}
+        confirmLabel={c.deleteAssign}
         onConfirm={() => {
           const a = del!;
           delMut.mutateAsync(a.id).then(
-            () => { if (DEMO) setList(list.filter((x) => x.id !== a.id)); setDel(null); showToast({ tone: "success", title: "Asignación eliminada" }); },
-            (e) => { setDel(null); showToast({ tone: "error", title: "No se eliminó la asignación", message: adminMessage(e) }); },
+            () => { if (DEMO) setList(list.filter((x) => x.id !== a.id)); setDel(null); showToast({ tone: "success", title: c.deleted }); },
+            (e) => { setDel(null); showToast({ tone: "error", title: c.deleteError, message: adminMessage(e, t) }); },
           );
         }}
       />

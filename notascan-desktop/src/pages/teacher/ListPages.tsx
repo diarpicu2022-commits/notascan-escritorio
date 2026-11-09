@@ -22,16 +22,20 @@ import { Header } from "../../components/organisms/Header";
 import { Block, BlockTitle } from "../../components/organisms/Layout";
 import { Toast, type ToastData } from "../../components/organisms/Toast";
 import { PageShell } from "../../components/templates/PageShell";
+import { useI18n } from "../../i18n/I18nProvider";
+import { usePrintNotice } from "../../components/organisms/PrintNotice";
+import { shortDayYear } from "../../i18n/dates";
 
 /** 05 · ¿Qué puedo consultar o exportar? Solo calificaciones verificadas. */
 export function ReportsPage() {
   return DEMO ? <DemoReportsPage /> : <RealReportsPage />;
 }
 
-const REPORT_TYPES: Array<{ kind: "course" | "student" | "evaluation"; t: string; d: string; tone: "navy" | "sage" | "gold"; icon: IconName }> = [
-  { kind: "course", t: "Consolidado por curso", d: "Notas definitivas y promedio ponderado de cada estudiante.", tone: "navy", icon: "reports" },
-  { kind: "student", t: "Por estudiante", d: "Historial de calificaciones y observaciones de un estudiante.", tone: "sage", icon: "user" },
-  { kind: "evaluation", t: "Por evaluación", d: "Distribución de notas, confianza de IA y correcciones manuales.", tone: "gold", icon: "evaluations" },
+/** Tipos de reporte: el título y la descripción salen del diccionario (t.tch.rep.types). El documento sale en español (I7). */
+const REPORT_TYPES: Array<{ kind: "course" | "student" | "evaluation"; tone: "navy" | "sage" | "gold"; icon: IconName }> = [
+  { kind: "course", tone: "navy", icon: "reports" },
+  { kind: "student", tone: "sage", icon: "user" },
+  { kind: "evaluation", tone: "gold", icon: "evaluations" },
 ];
 
 /** Reportes con datos de la base (paso 6c): PDF por impresión, Excel y CSV; el historial guarda qué se generó. */
@@ -49,6 +53,8 @@ function RealReportsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [printing, setPrinting] = useState<ReportData | null>(null);
   const [showToast, toastNode] = useToast();
+  const { t, lang, date, time } = useI18n();
+  const x = t.tch.rep;
   const periods = scope.data?.periods ?? [];
   const courses = scope.data?.courses ?? [];
   const curCourse = course ?? courses[0];
@@ -57,9 +63,12 @@ function RealReportsPage() {
   const evals = useCourseEvaluations(pick === "evaluation" ? curCourse : undefined, curPeriod?.id);
   const teacherOnly = profile?.role === "teacher" ? profile.email : null;
 
-  async function run(kind: ReportKind, format: ReportFormat, params: Record<string, unknown>, save = true) {
+  const [askPrint, printNotice] = usePrintNotice();
+  // I7: en inglés y portugués se avisa antes de generar o descargar que el reporte sale en español.
+  const run = (kind: ReportKind, format: ReportFormat, params: Record<string, unknown>, save = true) => askPrint(() => { void runNow(kind, format, params, save); });
+  async function runNow(kind: ReportKind, format: ReportFormat, params: Record<string, unknown>, save = true) {
     if (!school || !profile) {
-      showToast({ tone: "error", title: "No pudimos generar el reporte", message: "Faltan los datos del colegio. Recarga la página e inténtalo de nuevo." });
+      showToast({ tone: "error", title: x.error, message: x.noSchool });
       return;
     }
     const ctx = { school, me: profile.fullName };
@@ -74,9 +83,9 @@ function RealReportsPage() {
       else if (format === "xlsx") await downloadXlsx(d);
       else downloadCsv(d);
       if (save) saveHistory.mutate({ kind, format, title: d.title, params });
-      showToast({ tone: "success", title: "Reporte listo", message: d.title + " · " + FORMAT_LABEL[format] + (format === "pdf" ? ". Elige «Guardar como PDF» en el diálogo de impresión." : ".") });
+      showToast({ tone: "success", title: x.ready, message: x.readyText(d.title, FORMAT_LABEL[format], format === "pdf") });
     } catch (e) {
-      showToast({ tone: "error", title: "No pudimos generar el reporte", message: e instanceof Error && /No encontramos/.test(e.message) ? e.message : "Revisa tu conexión e inténtalo de nuevo." });
+      showToast({ tone: "error", title: x.error, message: e instanceof Error && /No encontramos/.test(e.message) ? x.notFound(e.message) : t.common.retryHint });
     } finally {
       setBusy(null);
     }
@@ -89,43 +98,44 @@ function RealReportsPage() {
   }
 
   let content: ReactNode;
-  if (scope.isPending && !scope.data) content = <LoadingBlocks rows={3} height={120} label="Cargando cursos y periodos" />;
-  else if (scope.isError && !scope.data) content = <ErrorState title="No pudimos cargar los cursos y periodos." onRetry={() => scope.refetch()} />;
-  else if (!courses.length || !curPeriod) content = <EmptyState icon="reports" title={courses.length ? "Aún no hay periodos en el año lectivo." : "No tienes cursos asignados."} message="Los reportes usan los cursos de la malla curricular y los periodos que configura Secretaría." />;
+  if (scope.isPending && !scope.data) content = <LoadingBlocks rows={3} height={120} label={x.loading} />;
+  else if (scope.isError && !scope.data) content = <ErrorState title={x.loadError} onRetry={() => scope.refetch()} />;
+  else if (!courses.length || !curPeriod) content = <EmptyState icon="reports" title={courses.length ? x.noPeriods : x.noCourses} message={x.noneText} />;
   else content = (
     <>
       <div className="ns-row" style={{ justifyContent: "space-between" }}>
-        <FilterGroup label="Formato" value={fmt} onChange={(v) => setFmt(v as ReportFormat)} options={[{ value: "pdf", label: "PDF" }, { value: "xlsx", label: "Excel" }, { value: "csv", label: "CSV" }]} />
+        <FilterGroup label={t.tch.f.format} value={fmt} onChange={(v) => setFmt(v as ReportFormat)} options={[{ value: "pdf", label: "PDF" }, { value: "xlsx", label: "Excel" }, { value: "csv", label: "CSV" }]} />
         <div className="ns-row">
-          <FilterGroup as="select" label="Curso" value={curCourse} onChange={setCourse} options={courses.map((c) => ({ value: c, label: c }))} />
-          <FilterGroup as="select" label="Periodo" value={curPeriod.id} onChange={setPeriodId} options={periods.map((p) => ({ value: p.id, label: p.name + " · " + p.year }))} />
+          <FilterGroup as="select" label={t.tch.f.course} value={curCourse} onChange={setCourse} options={courses.map((c) => ({ value: c, label: c }))} />
+          <FilterGroup as="select" label={t.tch.f.period} value={curPeriod.id} onChange={setPeriodId} options={periods.map((p) => ({ value: p.id, label: t.tch.periodName(p.name) + " · " + p.year }))} />
         </div>
       </div>
       <div className="ns-report-grid">
         {REPORT_TYPES.map((r) => (
-          <article key={r.t} className={cx("ns-block ns-report", "ns-block--" + r.tone)}>
+          <article key={r.kind} className={cx("ns-block ns-report", "ns-block--" + r.tone)}>
             <span className="ns-bento-icon" aria-hidden><Icon name={r.icon} size={18} strokeWidth={2.5} /></span>
-            <h3 className="ns-report-title">{r.t}</h3>
-            <p className="ns-report-text">{r.d}</p>
-            <Button variant={r.tone === "navy" ? "primary" : "secondary"} icon="download" loading={r.kind === "course" && !!busy?.startsWith("course")} loadingText="Generando…" onClick={() => generate(r.kind)}>Generar</Button>
+            <h3 className="ns-report-title">{x.types[r.kind][0]}</h3>
+            <p className="ns-report-text">{x.types[r.kind][1]}</p>
+            <Button variant={r.tone === "navy" ? "primary" : "secondary"} icon="download" loading={r.kind === "course" && !!busy?.startsWith("course")} loadingText={x.generating} onClick={() => generate(r.kind)}>{x.generate}</Button>
           </article>
         ))}
       </div>
-      <Block label="Reportes recientes">
-        <BlockTitle>Recientes</BlockTitle>
-        {history.isPending && !history.data ? <LoadingBlocks rows={3} height={40} label="Cargando el historial" />
-          : history.isError && !history.data ? <ErrorState title="No pudimos cargar el historial." onRetry={() => history.refetch()} />
-            : !history.data?.length ? <EmptyState icon="file" title="Aún no has generado reportes." message="Cada reporte que generes quedará aquí para volver a descargarlo con los datos del momento." />
+      <Block label={x.recentLabel}>
+        <BlockTitle>{x.recent}</BlockTitle>
+        {history.isPending && !history.data ? <LoadingBlocks rows={3} height={40} label={x.historyLoading} />
+          : history.isError && !history.data ? <ErrorState title={x.historyError} onRetry={() => history.refetch()} />
+            : !history.data?.length ? <EmptyState icon="file" title={x.historyEmptyTitle} message={x.historyEmptyText} />
               : (
                 <DataTable
-                  caption="Reportes generados recientemente"
+                  caption={x.caption}
                   rows={history.data}
                   columns={[
-                    { key: "title", label: "Reporte", render: (r) => <strong style={{ color: "var(--navy)" }}>{r.title}</strong> },
-                    { key: "at", label: "Fecha" },
-                    { key: "format", label: "Formato", render: (r) => <Badge tone="neutral" icon="file">{FORMAT_LABEL[r.format]}</Badge> },
-                    { key: "by", label: "Generado por", render: () => profile?.fullName ?? "" },
-                    { key: "a", label: "Acción", render: (r) => <Button variant="ghost" size="sm" icon="download" aria-label={"Descargar " + r.title} loading={busy === r.kind + JSON.stringify(r.params) + r.format} loadingText="Generando…" onClick={() => run(r.kind, r.format, r.params, false)}>Descargar</Button> },
+                    { key: "title", label: x.cols.report, render: (r) => <strong style={{ color: "var(--navy)" }}>{r.title}</strong> },
+                    // En español, la fecha como la escribe el servicio; en inglés y portugués, con Intl.
+                    { key: "at", label: x.cols.date, render: (r) => (lang === "es" || !r.created ? r.at : date(new Date(r.created)) + ", " + time(new Date(r.created))) },
+                    { key: "format", label: x.cols.format, render: (r) => <Badge tone="neutral" icon="file">{FORMAT_LABEL[r.format]}</Badge> },
+                    { key: "by", label: x.cols.by, render: () => profile?.fullName ?? "" },
+                    { key: "a", label: x.cols.action, render: (r) => <Button variant="ghost" size="sm" icon="download" aria-label={x.downloadAria(r.title)} loading={busy === r.kind + JSON.stringify(r.params) + r.format} loadingText={x.generating} onClick={() => run(r.kind, r.format, r.params, false)}>{x.download}</Button> },
                   ]}
                 />
               )}
@@ -137,27 +147,28 @@ function RealReportsPage() {
   const loadingOptions = pick === "student" ? students.isPending : evals.isPending;
   return (
     <PageShell active="reports">
-      <Header eyebrow="Consultar · exportar · revisar" title="Reportes" highlight="Reportes"
-        description={teacherOnly ? "Genera reportes solo con calificaciones verificadas por ti." : "Genera reportes con las calificaciones verificadas de la institución."} />
+      <Header eyebrow={x.eyebrow} title={x.title} highlight={x.title}
+        description={teacherOnly ? x.descTeacher : x.descAll} />
       {content}
       <Modal
         open={!!pick} onClose={() => setPick(null)} icon={pick === "student" ? "user" : "evaluations"}
-        title={pick === "student" ? "Reporte por estudiante" : "Reporte por evaluación"}
-        description={pick === "student" ? "Historial del año " + (curPeriod?.year ?? "") + " y observaciones de un estudiante de " + curCourse + "." : "Evaluaciones de " + curCourse + " en " + (curPeriod?.name ?? "") + "."}
+        title={pick === "student" ? x.byStudent : x.byEvaluation}
+        description={pick === "student" ? x.studentDesc(String(curPeriod?.year ?? ""), curCourse ?? "") : x.evaluationDesc(curCourse ?? "", t.tch.periodName(curPeriod?.name ?? ""))}
         actions={[
-          <Button key="c" variant="secondary" onClick={() => setPick(null)}>Cancelar</Button>,
-          <Button key="g" icon="download" disabled={!choice} loading={!!busy} loadingText="Generando…" onClick={() => {
+          <Button key="c" variant="secondary" onClick={() => setPick(null)}>{t.common.cancel}</Button>,
+          <Button key="g" icon="download" disabled={!choice} loading={!!busy} loadingText={x.generating} onClick={() => {
             const kind = pick!;
             setPick(null);
             run(kind, fmt, kind === "student" ? { studentId: choice, year: curPeriod?.year } : { evaluationId: Number(choice) });
-          }}>{"Generar " + FORMAT_LABEL[fmt]}</Button>,
+          }}>{x.generateFmt(FORMAT_LABEL[fmt])}</Button>,
         ]}
       >
-        {loadingOptions ? <LoadingBlocks rows={1} height={44} label="Cargando opciones" />
-          : options.length ? <Select label={pick === "student" ? "Estudiante" : "Evaluación"} required value={choice} placeholder="Selecciona" onChange={setChoice} options={options} />
-            : <EmptyState icon="file" title={pick === "student" ? "El curso no tiene estudiantes activos." : "No hay evaluaciones en este curso y periodo."} message="Elige otro curso o periodo." />}
+        {loadingOptions ? <LoadingBlocks rows={1} height={44} label={x.loadingOptions} />
+          : options.length ? <Select label={pick === "student" ? t.tch.f.student : t.tch.f.evaluation} required value={choice} placeholder={t.tch.f.choose} onChange={setChoice} options={options} />
+            : <EmptyState icon="file" title={pick === "student" ? x.noStudents : x.noEvaluations} message={x.otherCourse} />}
       </Modal>
       {printing ? <PrintReport data={printing} onDone={() => setPrinting(null)} /> : null}
+      {printNotice}
       {toastNode}
     </PageShell>
   );
@@ -168,25 +179,25 @@ function DemoReportsPage() {
   const [fmt, setFmt] = useState("pdf");
   const [toast, setToast] = useState<ToastData | null>(null);
   const timer = useRef<number>();
+  const { t, lang } = useI18n();
+  const x = t.tch.rep;
   useEffect(() => () => window.clearTimeout(timer.current), []);
-  function gen(name: string) {
-    setToast({ tone: "success", title: "Reporte listo", message: name + " · " + fmt.toUpperCase() });
+  const [askPrint, printNotice] = usePrintNotice();
+  const gen = (name: string) => askPrint(() => genNow(name));
+  function genNow(name: string) {
+    setToast({ tone: "success", title: x.ready, message: name + " · " + fmt.toUpperCase() });
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setToast(null), 3500);
   }
-  const types: Array<{ t: string; d: string; tone: "navy" | "sage" | "gold"; icon: IconName }> = [
-    { t: "Consolidado por curso", d: "Notas definitivas y promedio ponderado de cada estudiante.", tone: "navy", icon: "reports" },
-    { t: "Por estudiante", d: "Historial de calificaciones y observaciones de un estudiante.", tone: "sage", icon: "user" },
-    { t: "Por evaluación", d: "Distribución de notas, confianza de IA y correcciones manuales.", tone: "gold", icon: "evaluations" },
-  ];
+  const types = REPORT_TYPES.map((r) => ({ ...r, t: x.types[r.kind][0], d: x.types[r.kind][1] }));
   return (
-    <PageShell active="reports" overlay={toast ? <div className="ns-toast-region"><Toast {...toast} /></div> : null}>
-      <Header eyebrow="Consultar · exportar · revisar" title="Reportes" highlight="Reportes" description="Genera reportes solo con calificaciones verificadas por ti." />
+    <PageShell active="reports" overlay={<>{toast ? <div className="ns-toast-region"><Toast {...toast} /></div> : null}{printNotice}</>}>
+      <Header eyebrow={x.eyebrow} title={x.title} highlight={x.title} description={x.descTeacher} />
       <div className="ns-row" style={{ justifyContent: "space-between" }}>
-        <FilterGroup label="Formato" value={fmt} onChange={setFmt} options={[{ value: "pdf", label: "PDF" }, { value: "xlsx", label: "Excel" }, { value: "csv", label: "CSV" }]} />
+        <FilterGroup label={t.tch.f.format} value={fmt} onChange={setFmt} options={[{ value: "pdf", label: "PDF" }, { value: "xlsx", label: "Excel" }, { value: "csv", label: "CSV" }]} />
         <div className="ns-row">
-          <FilterGroup as="select" label="Curso" options={[{ value: "5a", label: "7A" }, { value: "5b", label: "7B" }]} />
-          <FilterGroup as="select" label="Periodo" options={[{ value: "2026-2", label: "2026-2" }, { value: "2026-1", label: "2026-1" }]} />
+          <FilterGroup as="select" label={t.tch.f.course} options={[{ value: "5a", label: "7A" }, { value: "5b", label: "7B" }]} />
+          <FilterGroup as="select" label={t.tch.f.period} options={[{ value: "2026-2", label: "2026-2" }, { value: "2026-1", label: "2026-1" }]} />
         </div>
       </div>
       <div className="ns-report-grid">
@@ -195,25 +206,26 @@ function DemoReportsPage() {
             <span className="ns-bento-icon" aria-hidden><Icon name={r.icon} size={18} strokeWidth={2.5} /></span>
             <h3 className="ns-report-title">{r.t}</h3>
             <p className="ns-report-text">{r.d}</p>
-            <Button variant={r.tone === "navy" ? "primary" : "secondary"} icon="download" onClick={() => gen(r.t)}>Generar</Button>
+            <Button variant={r.tone === "navy" ? "primary" : "secondary"} icon="download" onClick={() => gen(r.t)}>{x.generate}</Button>
           </article>
         ))}
       </div>
-      <Block label="Reportes recientes">
-        <BlockTitle>Recientes</BlockTitle>
+      <Block label={x.recentLabel}>
+        <BlockTitle>{x.recent}</BlockTitle>
+        {/* Los nombres son títulos de documentos, que salen en español (I7); la fecha va en el idioma. */}
         <DataTable
-          caption="Reportes generados recientemente"
+          caption={x.caption}
           rows={[
-            { id: 1, name: "Consolidado 7A · corte 2", date: "29 sep 2026", f: "PDF", by: "Ana Lucía Rosero" },
-            { id: 2, name: "Parcial 1 · Matemáticas", date: "2 sep 2026", f: "Excel", by: "Ana Lucía Rosero" },
-            { id: 3, name: "María Fernanda López", date: "30 ago 2026", f: "PDF", by: "Ana Lucía Rosero" },
+            { id: 1, name: "Consolidado 7A · corte 2", date: "2026-09-29", f: "PDF", by: "Ana Lucía Rosero" },
+            { id: 2, name: "Parcial 1 · Matemáticas", date: "2026-09-02", f: "Excel", by: "Ana Lucía Rosero" },
+            { id: 3, name: "María Fernanda López", date: "2026-08-30", f: "PDF", by: "Ana Lucía Rosero" },
           ]}
           columns={[
-            { key: "name", label: "Reporte", render: (r) => <strong style={{ color: "var(--navy)" }}>{r.name}</strong> },
-            { key: "date", label: "Fecha" },
-            { key: "f", label: "Formato", render: (r) => <Badge tone="neutral" icon="file">{r.f}</Badge> },
-            { key: "by", label: "Generado por" },
-            { key: "a", label: "Acción", render: (r) => <Button variant="ghost" size="sm" icon="download" aria-label={"Descargar " + r.name}>Descargar</Button> },
+            { key: "name", label: x.cols.report, render: (r) => <strong style={{ color: "var(--navy)" }}>{r.name}</strong> },
+            { key: "date", label: x.cols.date, render: (r) => shortDayYear(lang, r.date) },
+            { key: "f", label: x.cols.format, render: (r) => <Badge tone="neutral" icon="file">{r.f}</Badge> },
+            { key: "by", label: x.cols.by },
+            { key: "a", label: x.cols.action, render: (r) => <Button variant="ghost" size="sm" icon="download" aria-label={x.downloadAria(r.name)}>{x.download}</Button> },
           ]}
         />
       </Block>

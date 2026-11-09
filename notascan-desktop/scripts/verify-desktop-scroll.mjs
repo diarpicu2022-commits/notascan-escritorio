@@ -4,11 +4,11 @@
 import { spawn, spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { ROOT, OUT, URL_BASE, createReport } from "./harness.mjs";
+import { ROOT, OUT, PORT, URL_BASE, createReport } from "./harness.mjs";
 
 const report = createReport();
-const server = spawn(process.execPath, [join(ROOT, "node_modules/vite/bin/vite.js"), "preview", "--port", "4173", "--strictPort"], { cwd: ROOT });
-await new Promise((res) => server.stdout.on("data", (d) => { if (String(d).includes("4173")) res(); }));
+const server = spawn(process.execPath, [join(ROOT, "node_modules/vite/bin/vite.js"), "preview", "--port", PORT, "--strictPort"], { cwd: ROOT });
+await new Promise((res) => server.stdout.on("data", (d) => { if (String(d).includes(PORT)) res(); }));
 // Sin --hide-scrollbars (Playwright las oculta por defecto): aquí se mide justo la barra.
 const browser = await chromium.launch({ channel: "msedge", ignoreDefaultArgs: ["--hide-scrollbars"] });
 try {

@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { cx } from "../../lib/cx";
+import { useI18n } from "../../i18n/I18nProvider";
 
 /* Gráficos SVG accesibles del sistema. Paleta: navy (serie principal) + gold (comparación o meta,
    con borde y etiqueta). Cada gráfico lleva la pregunta que responde y una tabla oculta para
@@ -48,13 +49,14 @@ interface BarChartProps {
 
 export function BarChart({ title, subtitle, data, width: W = 560, height: H = 240, max: maxProp, ticks: ticksProp, format: fmt = id, target, targetLabel, seriesLabel, lowBelow }: BarChartProps) {
   const [tip, setTip] = useState<number | null>(null);
+  const tc = useI18n().t.tch.chart;
   const pad = { l: 36, r: 12, t: 28, b: 34 };
   const max = maxProp || Math.max(...data.map((d) => d.value)) * 1.15;
   const bw = (W - pad.l - pad.r) / data.length;
   const y = (v: number) => pad.t + (H - pad.t - pad.b) * (1 - v / max);
   const ticks = ticksProp || [0, max / 2, max];
   return (
-    <ChartFrame title={title} subtitle={subtitle} legend={target !== undefined ? [{ label: seriesLabel || "Valor", tone: "navy" }, { label: (targetLabel || "Meta") + " " + fmt(target), tone: "gold" }] : null}>
+    <ChartFrame title={title} subtitle={subtitle} legend={target !== undefined ? [{ label: seriesLabel || tc.value, tone: "navy" }, { label: (targetLabel || tc.target) + " " + fmt(target), tone: "gold" }] : null}>
       <div className="ns-chart-body">
         <svg viewBox={"0 0 " + W + " " + H} role="img" aria-label={title + ". " + data.map((d) => d.label + ": " + fmt(d.value)).join(", ")}>
           {ticks.map((t) => (
@@ -85,7 +87,7 @@ export function BarChart({ title, subtitle, data, width: W = 560, height: H = 24
           </div>
         ) : null}
       </div>
-      <ChartTable caption={title} head={["Categoría", "Valor"]} rows={data.map((d) => [d.label, fmt(d.value)])} />
+      <ChartTable caption={title} head={[tc.category, tc.value]} rows={data.map((d) => [d.label, fmt(d.value)])} />
     </ChartFrame>
   );
 }
@@ -109,6 +111,7 @@ interface LineChartProps {
 
 export function LineChart({ title, subtitle, labels, series, width, height: H = 240, min = 0, max = 5, ticks: ticksProp, format: fmt = id, threshold, thresholdLabel }: LineChartProps) {
   const [tip, setTip] = useState<number | null>(null);
+  const tc = useI18n().t.tch.chart;
   const W = width || 560;
   const pad = { l: 36, r: width && width < 400 ? 40 : 64, t: 20, b: 34 };
   const x = (i: number) => pad.l + (W - pad.l - pad.r) * (labels.length === 1 ? 0.5 : i / (labels.length - 1));
@@ -156,7 +159,7 @@ export function LineChart({ title, subtitle, labels, series, width, height: H = 
           </div>
         ) : null}
       </div>
-      <ChartTable caption={title} head={["Serie", ...labels]} rows={series.map((s) => [s.name, ...s.points.map(fmt)])} />
+      <ChartTable caption={title} head={[tc.series, ...labels]} rows={series.map((s) => [s.name, ...s.points.map(fmt)])} />
     </ChartFrame>
   );
 }
@@ -164,6 +167,7 @@ export function LineChart({ title, subtitle, labels, series, width, height: H = 
 export interface DonutDatum { label: string; value: number; tone: ChartTone }
 
 export function DonutChart({ title, subtitle, data, centerValue, centerLabel }: { title: string; subtitle?: string; data: DonutDatum[]; centerValue?: ReactNode; centerLabel?: ReactNode }) {
+  const tc = useI18n().t.tch.chart;
   const total = data.reduce((a, d) => a + d.value, 0), R = 70, C = 2 * Math.PI * R;
   let acc = 0;
   return (
@@ -181,7 +185,7 @@ export function DonutChart({ title, subtitle, data, centerValue, centerLabel }: 
           <text className="ns-donut-label" x={100} y={126} textAnchor="middle">{centerLabel}</text>
         </svg>
       </div>
-      <ChartTable caption={title} head={["Categoría", "Cantidad"]} rows={data.map((d) => [d.label, d.value])} />
+      <ChartTable caption={title} head={[tc.category, tc.amount]} rows={data.map((d) => [d.label, d.value])} />
     </ChartFrame>
   );
 }

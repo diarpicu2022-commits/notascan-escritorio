@@ -17,7 +17,8 @@ const check = (name, ok, detail = "") => { results.push({ name, ok, detail }); }
 
 // ---------- 1. Valores fuera del sistema en el código propio ----------
 const OWN_EXT = new Set([".ts", ".tsx", ".css"]);
-const SYSTEM_FILES = new Set(["tokens.css", "notascan.css"]);
+// theme-dark.css es la contraparte oscura de tokens.css (generada, solo valores del contrato): sus literales son del sistema.
+const SYSTEM_FILES = new Set(["tokens.css", "notascan.css", "theme-dark.css"]);
 function walk(dir) {
   return readdirSync(dir).flatMap((f) => {
     const p = join(dir, f);

@@ -30,10 +30,10 @@ try {
   const goalSave = goalBlock.getByRole("button", { name: "Guardar meta" });
   report.check("Meta institucional: 3.5 por defecto y «Guardar meta» deshabilitado sin cambios", (await goalInput.inputValue()) === "3.5" && (await goalSave.isDisabled()));
   await goalInput.fill("6");
-  report.check("Meta fuera de 1.0–5.0: error en el campo y sin guardar", (await goalBlock.locator(".ns-field-error").textContent()) === "Escribe un valor entre 1.0 y 5.0." && (await goalSave.isDisabled()));
+  report.check("Meta fuera de 1.0–5.0: error en el campo y sin guardar", (await goalBlock.locator(".ns-field-error").textContent()) === "Escribe un valor entre 1,0 y 5,0." && (await goalSave.isDisabled()));
   await goalInput.fill("3.8");
   await goalSave.click();
-  report.check("Guardar la meta avisa qué verá Rectoría", (await toast()) === "Meta institucional guardada" && (await page.locator(".ns-toast-text").last().textContent()) === "Rectoría verá 3.8 como referencia en la analítica.");
+  report.check("Guardar la meta avisa qué verá Rectoría", (await toast()) === "Meta institucional guardada" && (await page.locator(".ns-toast-text").last().textContent()) === "Rectoría verá 3,8 como referencia en la analítica.");
 
   // Estudiantes: búsqueda, lote, archivar, vista rápida y perfil.
   await go("students");

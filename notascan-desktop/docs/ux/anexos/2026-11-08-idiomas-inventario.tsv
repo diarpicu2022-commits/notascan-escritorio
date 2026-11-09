@@ -1,0 +1,1636 @@
+archivo	línea	tipo	texto
+app/App.tsx	87	jsx	: route.view === "identity" ?
+app/App.tsx	87	jsx	: route.view === "components" ?
+app/AuthContext.tsx	88	cadena	Correo o contraseña incorrectos.
+app/AuthContext.tsx	89	cadena	Confirma tu correo antes de entrar.
+app/AuthContext.tsx	90	cadena	No pudimos conectar con NotaScan. Revisa tu conexión e inténtalo de nuevo.
+app/AuthContext.tsx	95	cadena	Tu cuenta no tiene acceso a la app de escritorio. Solicita acceso a tu coordinación.
+app/AuthContext.tsx	100	cadena	Tu cuenta está registrada como
+app/AuthContext.tsx	117	cadena	No pudimos enviar el correo. Inténtalo de nuevo en unos minutos.
+app/AuthContext.tsx	135	cadena	El código no es válido o ya venció. Pide uno nuevo.
+app/AuthContext.tsx	136	cadena	No pudimos conectar con NotaScan. Revisa tu conexión e inténtalo de nuevo.
+app/AuthContext.tsx	144	cadena	Elige una contraseña más segura: al menos 8 caracteres con letras y números.
+app/AuthContext.tsx	145	cadena	No pudimos guardar la contraseña. Revisa tu conexión e inténtalo de nuevo.
+app/AuthContext.tsx	151	cadena	Tu contraseña quedó guardada, pero tu cuenta aún no tiene acceso. Habla con tu coordinación.
+app/AuthContext.tsx	165	cadena	useAuth fuera de AuthProvider
+app/router.ts	3	jsx	][?tab=]. Las vistas de verificación viven en #/dev/
+app/ShellContext.ts	15	cadena	useShell fuera de ShellContext
+app/SyncContext.ts	20	cadena	useSync fuera de SyncContext
+components/atoms/ConfidenceIndicator.tsx	23	cadena	Confianza de IA
+components/atoms/ConfidenceIndicator.tsx	29	cadena	Confianza de IA
+components/atoms/GradeInput.tsx	48	atributo	0.0
+components/atoms/GradeInput.tsx	50	jsx	DE
+components/atoms/GradeInput.tsx	54	cadena	Escala de 1.0 a 5.0
+components/atoms/Logo.tsx	13	atributo	NotaScan
+components/atoms/Logo.tsx	32	cadena	La IA detecta. Tú verificas.
+components/molecules/ConnectivityStatus.tsx	13	cadena	Error de sincronización
+components/molecules/ConnectivityStatus.tsx	39	cadena	Estado de sincronización
+components/molecules/ConnectivityStatus.tsx	41	jsx	Tus cambios quedarán pendientes de sincronización.
+components/molecules/ConnectivityStatus.tsx	42	jsx	No pudimos sincronizar. Tus cambios siguen guardados en este equipo.
+components/molecules/ConnectivityStatus.tsx	43	jsx	Última sincronización:
+components/molecules/ConnectivityStatus.tsx	46	jsx	Sincronizar ahora
+components/molecules/ConnectivityStatus.tsx	47	cadena	Trabajar sin conexión (demostración)
+components/molecules/DropZones.tsx	20	cadena	Subir fotografías de la evaluación
+components/molecules/DropZones.tsx	27	cadena	Subir fotografía
+components/molecules/DropZones.tsx	28	cadena	Arrastra las fotos del examen o haz clic. JPG o PNG, una hoja por foto.
+components/molecules/DropZones.tsx	46	cadena	Solo se aceptan archivos Excel (.xlsx) o CSV.
+components/molecules/DropZones.tsx	51	cadena	Seleccionar archivo Excel o CSV de estudiantes
+components/molecules/DropZones.tsx	58	jsx	Arrastra tu archivo aquí
+components/molecules/DropZones.tsx	59	jsx	o haz clic para seleccionarlo
+components/molecules/DropZones.tsx	60	jsx	Excel .xlsx
+components/molecules/Filters.tsx	21	cadena	Buscar estudiante o ID
+components/molecules/Filters.tsx	23	atributo	Limpiar búsqueda
+components/molecules/GlobalSearch.tsx	10	cadena	Historial académico
+components/molecules/GlobalSearch.tsx	23	cadena	María Fernanda López
+components/molecules/GlobalSearch.tsx	50	cadena	Buscar estudiante (Ctrl + K)
+components/molecules/GlobalSearch.tsx	51	jsx	Ctrl K
+components/molecules/GlobalSearch.tsx	51	jsx	Buscar estudiante…
+components/molecules/GlobalSearch.tsx	55	cadena	Búsqueda global de estudiantes
+components/molecules/GlobalSearch.tsx	59	atributo	Buscar estudiante
+components/molecules/GlobalSearch.tsx	59	atributo	Nombre, ID estudiantil, documento o curso
+components/molecules/GlobalSearch.tsx	74	jsx	Búsquedas recientes
+components/molecules/GlobalSearch.tsx	78	jsx	Por curso
+components/molecules/GlobalSearch.tsx	85	cadena	Estudiantes ·
+components/molecules/GlobalSearch.tsx	96	jsx	No hay resultados para esta búsqueda.
+components/molecules/GlobalSearch.tsx	113	jsx	abrir perfil
+components/molecules/GlobalSearch.tsx	114	jsx	cerrar
+components/molecules/GradeInputGroup.tsx	29	cadena	Escala de 1.0 a 5.0
+components/molecules/GradeInputGroup.tsx	29	cadena	Calificación detectada
+components/molecules/GradeInputGroup.tsx	32	cadena	Corregida por el docente · la IA detectó
+components/molecules/GradeInputGroup.tsx	32	cadena	La IA no detectó una nota: ingreso manual
+components/molecules/GradeInputGroup.tsx	32	cadena	La IA detectó esta calificación
+components/organisms/admin/AdminTables.tsx	31	cadena	Periodo 3
+components/organisms/admin/AdminTables.tsx	58	cadena	boletín generado
+components/organisms/admin/AdminTables.tsx	58	cadena	PDF listos para descargar ·
+components/organisms/admin/AdminTables.tsx	61	cadena	Nada que generar
+components/organisms/admin/AdminTables.tsx	61	cadena	Los estudiantes seleccionados tienen el paz y salvo bloqueado.
+components/organisms/admin/AdminTables.tsx	68	cadena	boletín generado
+components/organisms/admin/AdminTables.tsx	68	cadena	Si elegiste «Guardar como PDF», el archivo quedó donde lo guardaste ·
+components/organisms/admin/AdminTables.tsx	69	cadena	La impresión se hizo; vuelve a intentarlo para registrar el estado.
+components/organisms/admin/AdminTables.tsx	69	cadena	No pudimos marcar los boletines como generados
+components/organisms/admin/AdminTables.tsx	75	cadena	Boletines por estudiante
+components/organisms/admin/AdminTables.tsx	76	cadena	No pudimos cargar los boletines.
+components/organisms/admin/AdminTables.tsx	77	cadena	No hay boletines con este estado.
+components/organisms/admin/AdminTables.tsx	77	cadena	No hay estudiantes activos en este curso.
+components/organisms/admin/AdminTables.tsx	79	atributo	Grado
+components/organisms/admin/AdminTables.tsx	80	atributo	Curso
+components/organisms/admin/AdminTables.tsx	81	atributo	Periodo
+components/organisms/admin/AdminTables.tsx	82	atributo	Estado
+components/organisms/admin/AdminTables.tsx	84	jsx	Generar selección
+components/organisms/admin/AdminTables.tsx	93	atributo	Generar PDF de
+components/organisms/admin/AdminTables.tsx	96	cadena	¿Generar todos los boletines de
+components/organisms/admin/AdminTables.tsx	97	cadena	Los estudiantes con paz y salvo bloqueado se omiten automáticamente.
+components/organisms/admin/AdminTables.tsx	97	cadena	Se abrirá la impresión con un boletín por página: elige «Guardar como PDF». Los estudiantes con paz y salvo bloqueado se omiten.
+components/organisms/admin/AdminTables.tsx	98	atributo	Generar todos
+components/organisms/admin/AdminTables.tsx	100	cadena	Vista previa del boletín
+components/organisms/admin/AdminTables.tsx	102	jsx	Cerrar
+components/organisms/admin/AdminTables.tsx	104	jsx	Generar PDF
+components/organisms/admin/AdminTables.tsx	105	jsx	Bloqueado por paz y salvo
+components/organisms/admin/AdminTables.tsx	110	jsx	Generar todos
+components/organisms/admin/AdminTables.tsx	140	cadena	No pudimos guardar el paz y salvo
+components/organisms/admin/AdminTables.tsx	140	cadena	Revisa tu conexión e inténtalo de nuevo. No se modificó ningún registro.
+components/organisms/admin/AdminTables.tsx	145	cadena	Al día
+components/organisms/admin/AdminTables.tsx	149	cadena	Paz y salvos por estudiante
+components/organisms/admin/AdminTables.tsx	150	cadena	No pudimos cargar los paz y salvos.
+components/organisms/admin/AdminTables.tsx	151	cadena	No hay estudiantes activos.
+components/organisms/admin/AdminTables.tsx	151	cadena	No hay estudiantes con este filtro.
+components/organisms/admin/AdminTables.tsx	153	atributo	Curso
+components/organisms/admin/AdminTables.tsx	154	atributo	Acceso
+components/organisms/admin/AdminTables.tsx	158	cadena	estudiantes actualizados.
+components/organisms/admin/AdminTables.tsx	158	cadena	Documentos al día
+components/organisms/admin/AdminTables.tsx	160	jsx	Marcar documentos al día
+components/organisms/admin/AdminTables.tsx	167	cadena	de 3 al día
+components/organisms/admin/AdminTables.tsx	184	cadena	Periodo 3
+components/organisms/admin/AdminTables.tsx	193	cadena	En riesgo
+components/organisms/admin/AdminTables.tsx	198	cadena	Ranking académico
+components/organisms/admin/AdminTables.tsx	199	cadena	No pudimos cargar el ranking.
+components/organisms/admin/AdminTables.tsx	200	cadena	Aún no hay notas verificadas para este filtro.
+components/organisms/admin/AdminTables.tsx	200	cadena	El ranking usa solo notas que un docente verificó.
+components/organisms/admin/AdminTables.tsx	202	atributo	Año
+components/organisms/admin/AdminTables.tsx	203	atributo	Periodo
+components/organisms/admin/AdminTables.tsx	204	atributo	Grado
+components/organisms/admin/AdminTables.tsx	205	atributo	Curso
+components/organisms/admin/AdminTables.tsx	206	atributo	Materia
+components/organisms/admin/AdminTables.tsx	209	cadena	estudiantes ·
+components/organisms/admin/AdminTables.tsx	210	jsx	Exportar a Excel
+components/organisms/admin/AdminTables.tsx	213	atributo	Puesto
+components/organisms/admin/AdminTables.tsx	216	cadena	Nota en
+components/organisms/admin/Curriculum.tsx	28	atributo	Selecciona
+components/organisms/admin/Curriculum.tsx	28	atributo	Docente
+components/organisms/admin/Curriculum.tsx	30	atributo	Materia
+components/organisms/admin/Curriculum.tsx	30	atributo	Selecciona
+components/organisms/admin/Curriculum.tsx	32	atributo	Curso
+components/organisms/admin/Curriculum.tsx	32	atributo	Selecciona
+components/organisms/admin/Curriculum.tsx	34	atributo	Periodo
+components/organisms/admin/Curriculum.tsx	35	cadena	Guardar cambios
+components/organisms/admin/Curriculum.tsx	64	cadena	Completa docente, materia y curso.
+components/organisms/admin/Curriculum.tsx	66	cadena	Ya existe una asignación de
+components/organisms/admin/Curriculum.tsx	70	cadena	Asignación actualizada
+components/organisms/admin/Curriculum.tsx	70	cadena	Docente asignado
+components/organisms/admin/Curriculum.tsx	83	atributo	Cargando la malla curricular
+components/organisms/admin/Curriculum.tsx	84	cadena	No pudimos cargar la malla curricular.
+components/organisms/admin/Curriculum.tsx	89	cadena	Editar asignación
+components/organisms/admin/Curriculum.tsx	89	cadena	Nueva asignación
+components/organisms/admin/Curriculum.tsx	90	jsx	Cancelar edición
+components/organisms/admin/Curriculum.tsx	91	cadena	Asignar docente
+components/organisms/admin/Curriculum.tsx	91	cadena	Editar asignación
+components/organisms/admin/Curriculum.tsx	96	cadena	Malla por curso
+components/organisms/admin/Curriculum.tsx	96	cadena	Lista de asignaciones
+components/organisms/admin/Curriculum.tsx	96	cadena	Vista de la malla
+components/organisms/admin/Curriculum.tsx	97	atributo	Curso
+components/organisms/admin/Curriculum.tsx	99	atributo	Créalos en Estructura Académica para armar la malla.
+components/organisms/admin/Curriculum.tsx	99	atributo	Aún no hay cursos o materias activas.
+components/organisms/admin/Curriculum.tsx	100	cadena	Malla curricular por curso y materia
+components/organisms/admin/Curriculum.tsx	102	cadena	¿Qué docente dicta qué materia en qué curso?
+components/organisms/admin/Curriculum.tsx	113	atributo	Editar:
+components/organisms/admin/Curriculum.tsx	117	atributo	Asignar docente a
+components/organisms/admin/Curriculum.tsx	139	atributo	Editar asignación
+components/organisms/admin/Curriculum.tsx	140	atributo	Eliminar asignación
+components/organisms/admin/Curriculum.tsx	145	atributo	¿Eliminar asignación?
+components/organisms/admin/Curriculum.tsx	146	cadena	dejará de dictar
+components/organisms/admin/Curriculum.tsx	147	atributo	Eliminar asignación
+components/organisms/admin/Curriculum.tsx	151	cadena	Asignación eliminada
+components/organisms/admin/Curriculum.tsx	152	cadena	No se eliminó la asignación
+components/organisms/admin/Enrollment.tsx	23	cadena	Información académica
+components/organisms/admin/Enrollment.tsx	23	cadena	Información médica
+components/organisms/admin/Enrollment.tsx	52	cadena	Escribe solo números, entre 8 y 12 dígitos.
+components/organisms/admin/Enrollment.tsx	53	cadena	Este campo es obligatorio.
+components/organisms/admin/Enrollment.tsx	54	cadena	Escribe un correo válido.
+components/organisms/admin/Enrollment.tsx	69	jsx	Matrícula registrada
+components/organisms/admin/Enrollment.tsx	72	jsx	Registrar otro estudiante
+components/organisms/admin/Enrollment.tsx	73	jsx	Ver estudiantes
+components/organisms/admin/Enrollment.tsx	83	atributo	Nombres
+components/organisms/admin/Enrollment.tsx	84	atributo	Apellidos
+components/organisms/admin/Enrollment.tsx	85	cadena	Cédula de ciudadanía
+components/organisms/admin/Enrollment.tsx	85	atributo	Tipo de documento
+components/organisms/admin/Enrollment.tsx	85	cadena	Tarjeta de identidad
+components/organisms/admin/Enrollment.tsx	85	cadena	Cédula de extranjería
+components/organisms/admin/Enrollment.tsx	86	cadena	Número de documento
+components/organisms/admin/Enrollment.tsx	86	cadena	Sin puntos ni espacios.
+components/organisms/admin/Enrollment.tsx	87	cadena	Fecha de nacimiento
+components/organisms/admin/Enrollment.tsx	88	cadena	Teléfono de contacto
+components/organisms/admin/Enrollment.tsx	89	cadena	Correo electrónico
+components/organisms/admin/Enrollment.tsx	95	jsx	Información sensible. Solo la ven Secretaría y Rectoría. Todos los campos son opcionales.
+components/organisms/admin/Enrollment.tsx	97	cadena	El acudiente autorizó expresamente el tratamiento de los datos de salud (dato sensible: puede no autorizarlo)
+components/organisms/admin/Enrollment.tsx	99	jsx	Sin esta autorización, los datos de salud no se guardan.
+components/organisms/admin/Enrollment.tsx	101	atributo	Alergias
+components/organisms/admin/Enrollment.tsx	101	atributo	Ninguna conocida
+components/organisms/admin/Enrollment.tsx	102	atributo	Condiciones relevantes
+components/organisms/admin/Enrollment.tsx	103	atributo	Observaciones médicas
+components/organisms/admin/Enrollment.tsx	104	cadena	Contacto de emergencia
+components/organisms/admin/Enrollment.tsx	105	cadena	Teléfono de emergencia
+components/organisms/admin/Enrollment.tsx	112	atributo	Nombre completo
+components/organisms/admin/Enrollment.tsx	113	atributo	Selecciona
+components/organisms/admin/Enrollment.tsx	113	atributo	Parentesco
+components/organisms/admin/Enrollment.tsx	114	atributo	Documento
+components/organisms/admin/Enrollment.tsx	115	atributo	Teléfono
+components/organisms/admin/Enrollment.tsx	116	cadena	Correo electrónico
+components/organisms/admin/Enrollment.tsx	116	cadena	Recibirá el acceso de acudiente.
+components/organisms/admin/Enrollment.tsx	122	cadena	Año lectivo
+components/organisms/admin/Enrollment.tsx	123	atributo	Grado
+components/organisms/admin/Enrollment.tsx	124	atributo	Curso
+components/organisms/admin/Enrollment.tsx	125	cadena	Estado de matrícula
+components/organisms/admin/Enrollment.tsx	133	cadena	Recibí la autorización firmada del acudiente para el tratamiento de los datos del estudiante (política 2026.1)
+components/organisms/admin/Enrollment.tsx	134	jsx	Sin la autorización firmada del acudiente no se puede matricular.
+components/organisms/admin/Enrollment.tsx	143	cadena	Secciones del formulario
+components/organisms/admin/Enrollment.tsx	159	cadena	de 4 ·
+components/organisms/admin/Enrollment.tsx	165	cadena	Guardar matrícula
+components/organisms/admin/Enrollment.tsx	202	cadena	Pasos de la importación
+components/organisms/admin/Enrollment.tsx	221	cadena	No pudimos leer el archivo. Revisa tu conexión e inténtalo de nuevo.
+components/organisms/admin/Enrollment.tsx	225	jsx	Antes de importar
+components/organisms/admin/Enrollment.tsx	227	cadena	Columnas: nombres, apellidos, tipo y número de documento, fecha de nacimiento, curso, acudiente, teléfono.
+components/organisms/admin/Enrollment.tsx	227	cadena	Los cursos deben existir en Estructura Académica.
+components/organisms/admin/Enrollment.tsx	227	cadena	Nada se guarda hasta que confirmes la importación.
+components/organisms/admin/Enrollment.tsx	227	cadena	Una fila por estudiante, con encabezados en la primera fila.
+components/organisms/admin/Enrollment.tsx	230	cadena	María José
+components/organisms/admin/Enrollment.tsx	230	cadena	Tarjeta de identidad
+components/organisms/admin/Enrollment.tsx	230	jsx	Descargar plantilla
+components/organisms/admin/Enrollment.tsx	232	jsx	Usar archivo de ejemplo
+components/organisms/admin/Enrollment.tsx	234	jsx	Leyendo y validando el archivo…
+components/organisms/admin/Enrollment.tsx	243	jsx	Así leímos las primeras filas. Revisa que cada columna corresponda.
+components/organisms/admin/Enrollment.tsx	245	cadena	Vista previa del archivo
+components/organisms/admin/Enrollment.tsx	252	jsx	Cambiar archivo
+components/organisms/admin/Enrollment.tsx	258	jsx	Validar archivo
+components/organisms/admin/Enrollment.tsx	267	jsx	registros encontrados
+components/organisms/admin/Enrollment.tsx	268	jsx	registros válidos
+components/organisms/admin/Enrollment.tsx	269	jsx	requieren revisión
+components/organisms/admin/Enrollment.tsx	272	atributo	Mostrar
+components/organisms/admin/Enrollment.tsx	273	cadena	Validación por fila
+components/organisms/admin/Enrollment.tsx	276	cadena	No hay filas con este estado.
+components/organisms/admin/Enrollment.tsx	276	cadena	Validación de filas importadas
+components/organisms/admin/Enrollment.tsx	282	atributo	Corregir documento de
+components/organisms/admin/Enrollment.tsx	288	cadena	Corregir curso de
+components/organisms/admin/Enrollment.tsx	299	jsx	Omitir fila
+components/organisms/admin/Enrollment.tsx	300	jsx	Se importa
+components/organisms/admin/Enrollment.tsx	305	jsx	Corregir errores
+components/organisms/admin/Enrollment.tsx	314	jsx	Confirmar importación
+components/organisms/admin/Enrollment.tsx	315	jsx	Se registrarán
+components/organisms/admin/Enrollment.tsx	317	jsx	Revisar de nuevo
+components/organisms/admin/Enrollment.tsx	318	jsx	Confirmar importación
+components/organisms/admin/Enrollment.tsx	326	jsx	Importación completada
+components/organisms/admin/Enrollment.tsx	327	cadena	estudiantes fueron registrados correctamente.
+components/organisms/admin/Enrollment.tsx	329	jsx	Descargar informe
+components/organisms/admin/Enrollment.tsx	330	jsx	Ver estudiantes
+components/organisms/admin/Enrollment.tsx	331	jsx	Importar otro archivo
+components/organisms/admin/Enrollment.tsx	341	atributo	¿Importar
+components/organisms/admin/Enrollment.tsx	342	atributo	Los registros quedarán activos en la matrícula
+components/organisms/admin/Enrollment.tsx	342	cadena	Confirmar importación
+components/organisms/admin/Enrollment.tsx	352	cadena	estudiantes (política 2026.1)
+components/organisms/admin/Enrollment.tsx	352	cadena	Tengo la autorización firmada del acudiente de cada uno de estos
+components/organisms/admin/Enrollment.tsx	353	jsx	Sin las autorizaciones firmadas no se puede importar.
+components/organisms/admin/Enrollment.tsx	354	jsx	Los datos de salud no se importan: se registran uno a uno, con su autorización expresa.
+components/organisms/admin/Enrollment.tsx	358	cadena	No se importó ningún estudiante.
+components/organisms/admin/Periods.tsx	26	atributo	Distribución:
+components/organisms/admin/Periods.tsx	34	atributo	Nombre del componente
+components/organisms/admin/Periods.tsx	34	atributo	Componente
+components/organisms/admin/Periods.tsx	35	cadena	Porcentaje de
+components/organisms/admin/Periods.tsx	37	cadena	Porcentaje de
+components/organisms/admin/Periods.tsx	37	cadena	en números
+components/organisms/admin/Periods.tsx	40	atributo	Quitar
+components/organisms/admin/Periods.tsx	47	jsx	Total configurado
+components/organisms/admin/Periods.tsx	49	cadena	La distribución de porcentajes debe sumar 100%.
+components/organisms/admin/Periods.tsx	49	cadena	Distribución completa
+components/organisms/admin/Periods.tsx	79	atributo	Meta institucional
+components/organisms/admin/Periods.tsx	83	cadena	como referencia en la analítica.
+components/organisms/admin/Periods.tsx	83	cadena	Rectoría verá
+components/organisms/admin/Periods.tsx	84	jsx	Guardar meta
+components/organisms/admin/Periods.tsx	85	jsx	Meta institucional
+components/organisms/admin/Periods.tsx	87	atributo	Promedio esperado por grado
+components/organisms/admin/Periods.tsx	88	cadena	Entre 1.0 y 5.0. Los grados por debajo se resaltan en la analítica de Rectoría.
+components/organisms/admin/Periods.tsx	88	cadena	Escribe un valor entre 1.0 y 5.0.
+components/organisms/admin/Periods.tsx	118	cadena	Periodo cerrado
+components/organisms/admin/Periods.tsx	118	cadena	Se borraron
+components/organisms/admin/Periods.tsx	118	cadena	de exámenes. Las notas se conservan.
+components/organisms/admin/Periods.tsx	118	cadena	No había fotos de exámenes para borrar.
+components/organisms/admin/Periods.tsx	120	cadena	Periodo cerrado, pero las fotos no se borraron
+components/organisms/admin/Periods.tsx	120	cadena	No se borraron las fotos
+components/organisms/admin/Periods.tsx	126	atributo	Cargando los periodos
+components/organisms/admin/Periods.tsx	127	cadena	No pudimos cargar los periodos.
+components/organisms/admin/Periods.tsx	128	atributo	Usa «Crear periodo» para preparar el primero.
+components/organisms/admin/Periods.tsx	128	cadena	Aún no hay periodos en el año lectivo.
+components/organisms/admin/Periods.tsx	139	cadena	Peso de cada periodo en la nota final
+components/organisms/admin/Periods.tsx	143	cadena	Pesos de los periodos guardados
+components/organisms/admin/Periods.tsx	143	cadena	Los boletines calcularán el acumulado con
+components/organisms/admin/Periods.tsx	144	cadena	No pudimos guardar los pesos
+components/organisms/admin/Periods.tsx	146	jsx	Guardar pesos
+components/organisms/admin/Periods.tsx	147	jsx	Periodos del año y su peso en la nota final
+components/organisms/admin/Periods.tsx	148	jsx	Cada boletín muestra la nota del periodo, las notas de los periodos anteriores y el acumulado ponderado con estos pesos.
+components/organisms/admin/Periods.tsx	149	cadena	Agregar periodo
+components/organisms/admin/Periods.tsx	152	cadena	Periodos del año lectivo
+components/organisms/admin/Periods.tsx	166	jsx	Este periodo está cerrado. Sus porcentajes se conservan como parte del historial.
+components/organisms/admin/Periods.tsx	168	jsx	Borrar fotos de exámenes del periodo
+components/organisms/admin/Periods.tsx	171	cadena	Año lectivo
+components/organisms/admin/Periods.tsx	172	atributo	Estado
+components/organisms/admin/Periods.tsx	173	cadena	Fecha de apertura
+components/organisms/admin/Periods.tsx	174	cadena	La fecha de cierre debe ser posterior a la apertura.
+components/organisms/admin/Periods.tsx	174	cadena	Fecha de cierre
+components/organisms/admin/Periods.tsx	176	jsx	Distribución de la nota
+components/organisms/admin/Periods.tsx	186	cadena	Periodo guardado
+components/organisms/admin/Periods.tsx	189	cadena	No pudimos guardar el periodo
+components/organisms/admin/Periods.tsx	191	jsx	Guardar periodo
+components/organisms/admin/Periods.tsx	196	cadena	No pudimos guardar la meta
+components/organisms/admin/Structure.tsx	17	cadena	Sin cursos
+components/organisms/admin/Structure.tsx	38	cadena	Director de grupo
+components/organisms/admin/Structure.tsx	51	cadena	No pudimos guardar
+components/organisms/admin/Structure.tsx	58	cadena	Elemento de la estructura
+components/organisms/admin/Structure.tsx	63	cadena	Estructura académica ·
+components/organisms/admin/Structure.tsx	64	cadena	No pudimos cargar la estructura académica.
+components/organisms/admin/Structure.tsx	66	atributo	Editar
+components/organisms/admin/Structure.tsx	67	atributo	Archivar
+components/organisms/admin/Structure.tsx	73	cadena	Dejará de aparecer al crear asignaciones y matrículas. El historial se conserva.
+components/organisms/admin/Structure.tsx	73	atributo	Archivar
+components/organisms/admin/Structure.tsx	82	cadena	No pudimos archivar
+components/organisms/admin/Structure.tsx	91	jsx	void; onSave: (f: Partial
+components/organisms/admin/Structure.tsx	103	atributo	Nombre del grado
+components/organisms/admin/Structure.tsx	103	atributo	Noveno
+components/organisms/admin/Structure.tsx	104	cadena	Básica secundaria
+components/organisms/admin/Structure.tsx	104	atributo	Nivel
+components/organisms/admin/Structure.tsx	104	cadena	Básica primaria
+components/organisms/admin/Structure.tsx	108	atributo	Grado
+components/organisms/admin/Structure.tsx	109	atributo	9A
+components/organisms/admin/Structure.tsx	109	cadena	Nombre del curso
+components/organisms/admin/Structure.tsx	110	atributo	Director de grupo
+components/organisms/admin/Structure.tsx	110	atributo	Sin asignar
+components/organisms/admin/Structure.tsx	111	cadena	Cupo máximo
+components/organisms/admin/Structure.tsx	115	cadena	Nombre de la materia
+components/organisms/admin/Structure.tsx	116	atributo	MAT-01
+components/organisms/admin/Structure.tsx	116	atributo	Código
+components/organisms/admin/Structure.tsx	117	cadena	Educación física
+components/organisms/admin/Structure.tsx	117	atributo	Categoría
+components/organisms/admin/Structure.tsx	117	cadena	Tecnología e informática
+components/organisms/admin/Structure.tsx	122	cadena	Estructura académica
+components/organisms/admin/Structure.tsx	124	jsx	Cancelar
+components/organisms/admin/Structure.tsx	130	cadena	Guardar cambios
+components/organisms/admin/StudentTable.tsx	36	cadena	Mostramos lo último que cargamos a las
+components/organisms/admin/StudentTable.tsx	36	cadena	No pudimos actualizar los estudiantes
+components/organisms/admin/StudentTable.tsx	38	cadena	No pudimos guardar los cambios
+components/organisms/admin/StudentTable.tsx	38	cadena	Revisa tu conexión e inténtalo de nuevo. No se modificó ningún registro.
+components/organisms/admin/StudentTable.tsx	48	cadena	El estudiante deja de aparecer en listas de clase. Su historial académico se conserva.
+components/organisms/admin/StudentTable.tsx	48	cadena	Los registros archivados se ocultan de la gestión diaria y pueden restaurarse.
+components/organisms/admin/StudentTable.tsx	57	cadena	Estudiantes y matrículas
+components/organisms/admin/StudentTable.tsx	59	cadena	No pudimos cargar los estudiantes.
+components/organisms/admin/StudentTable.tsx	60	cadena	Prueba con otro nombre, documento o curso.
+components/organisms/admin/StudentTable.tsx	60	cadena	No hay resultados para esta búsqueda.
+components/organisms/admin/StudentTable.tsx	60	cadena	No hay estudiantes registrados.
+components/organisms/admin/StudentTable.tsx	62	atributo	Nombre, documento o ID
+components/organisms/admin/StudentTable.tsx	62	cadena	Buscar estudiante
+components/organisms/admin/StudentTable.tsx	63	atributo	Curso
+components/organisms/admin/StudentTable.tsx	64	atributo	Estado
+components/organisms/admin/StudentTable.tsx	70	jsx	Generar boletines
+components/organisms/admin/StudentTable.tsx	81	cadena	Fecha de matrícula
+components/organisms/admin/StudentTable.tsx	84	atributo	Ver perfil de
+components/organisms/admin/StudentTable.tsx	85	atributo	Editar
+components/organisms/admin/StudentTable.tsx	86	atributo	Archivar
+components/organisms/admin/StudentTable.tsx	87	atributo	Retirar
+components/organisms/admin/StudentTable.tsx	109	cadena	Estudiante retirado
+components/organisms/admin/StudentTable.tsx	136	cadena	Editar estudiante
+components/organisms/admin/StudentTable.tsx	136	cadena	Vista rápida
+components/organisms/admin/StudentTable.tsx	138	jsx	Cancelar
+components/organisms/admin/StudentTable.tsx	139	jsx	Guardar cambios
+components/organisms/admin/StudentTable.tsx	140	jsx	Abrir perfil completo
+components/organisms/admin/StudentTable.tsx	144	atributo	Nombres
+components/organisms/admin/StudentTable.tsx	145	atributo	Apellidos
+components/organisms/admin/StudentTable.tsx	146	cadena	El documento solo se corrige desde Matrículas.
+components/organisms/admin/StudentTable.tsx	146	atributo	Documento
+components/organisms/admin/StudentTable.tsx	147	atributo	Curso
+components/organisms/admin/StudentTable.tsx	148	atributo	Acudiente
+components/organisms/admin/StudentTable.tsx	149	cadena	Teléfono del acudiente
+components/organisms/admin/StudentTable.tsx	163	cadena	Paz y salvo al día
+components/organisms/admin/StudentTable.tsx	163	cadena	Paz y salvo con pendientes
+components/organisms/admin/UserDirectory.tsx	44	cadena	Invitación enviada
+components/organisms/admin/UserDirectory.tsx	44	cadena	recibirá un código en
+components/organisms/admin/UserDirectory.tsx	44	cadena	para activar su cuenta.
+components/organisms/admin/UserDirectory.tsx	46	cadena	No enviamos la invitación
+components/organisms/admin/UserDirectory.tsx	57	cadena	Escribe el nombre completo.
+components/organisms/admin/UserDirectory.tsx	58	cadena	Escribe un correo válido.
+components/organisms/admin/UserDirectory.tsx	72	cadena	No pudimos guardar
+components/organisms/admin/UserDirectory.tsx	78	cadena	Tipo de usuario
+components/organisms/admin/UserDirectory.tsx	81	cadena	Directorio de usuarios
+components/organisms/admin/UserDirectory.tsx	82	cadena	No pudimos cargar el directorio de usuarios.
+components/organisms/admin/UserDirectory.tsx	83	cadena	Aún no hay usuarios registrados.
+components/organisms/admin/UserDirectory.tsx	83	cadena	No hay resultados para esta búsqueda.
+components/organisms/admin/UserDirectory.tsx	84	atributo	Nombre o correo
+components/organisms/admin/UserDirectory.tsx	84	cadena	Buscar usuario
+components/organisms/admin/UserDirectory.tsx	90	cadena	Último acceso
+components/organisms/admin/UserDirectory.tsx	93	atributo	Editar
+components/organisms/admin/UserDirectory.tsx	94	atributo	Ver perfil de
+components/organisms/admin/UserDirectory.tsx	97	atributo	Restablecer contraseña de
+components/organisms/admin/UserDirectory.tsx	98	atributo	Desactivar a
+components/organisms/admin/UserDirectory.tsx	103	cadena	¿Desactivar a
+components/organisms/admin/UserDirectory.tsx	104	cadena	No podrá iniciar sesión hasta que se reactive su cuenta. Sus registros se conservan.
+components/organisms/admin/UserDirectory.tsx	104	atributo	Desactivar
+components/organisms/admin/UserDirectory.tsx	111	cadena	ya no tiene acceso.
+components/organisms/admin/UserDirectory.tsx	113	cadena	No pudimos desactivar
+components/organisms/admin/UserDirectory.tsx	118	cadena	Perfil de usuario
+components/organisms/admin/UserDirectory.tsx	120	jsx	Cancelar
+components/organisms/admin/UserDirectory.tsx	126	cadena	Sin correo
+components/organisms/admin/UserDirectory.tsx	126	cadena	Último acceso
+components/organisms/admin/UserDirectory.tsx	130	atributo	Nombre completo
+components/organisms/admin/UserDirectory.tsx	131	atributo	Correo
+components/organisms/admin/UserDirectory.tsx	132	cadena	Con este correo creará su acceso. Solo entra quien está registrado aquí.
+components/organisms/admin/UserDirectory.tsx	132	cadena	Ya tiene cuenta: su correo de acceso no se cambia desde aquí.
+components/organisms/admin/UserDirectory.tsx	134	atributo	Rol
+components/organisms/Charts.tsx	17	jsx	(j ?
+components/organisms/ConceptEditor.tsx	15	cadena	Borrador de IA · revisar
+components/organisms/ConceptEditor.tsx	15	cadena	Sin concepto
+components/organisms/ConceptEditor.tsx	16	cadena	Escrito por el docente
+components/organisms/ConceptEditor.tsx	63	cadena	El texto sigue en pantalla.
+components/organisms/ConceptEditor.tsx	63	cadena	No pudimos guardar el
+components/organisms/ConceptEditor.tsx	67	cadena	estudiantes sin notas verificadas
+components/organisms/ConceptEditor.tsx	67	cadena	Sin nota del periodo no hay borrador. Escribe su
+components/organisms/ConceptEditor.tsx	67	cadena	estudiante sin notas verificadas
+components/organisms/ConceptEditor.tsx	81	cadena	conceptos de
+components/organisms/ConceptEditor.tsx	81	cadena	quedaron en los boletines.
+components/organisms/ConceptEditor.tsx	82	cadena	Los textos siguen en pantalla.
+components/organisms/ConceptEditor.tsx	82	cadena	No pudimos enviar los
+components/organisms/ConceptEditor.tsx	94	jsx	La IA te propone un borrador; tú decides el texto final.
+components/organisms/ConceptEditor.tsx	95	cadena	Lo redacta a partir de la nota del periodo, su evolución y las faltas. Ningún concepto llega al boletín sin tu revisión.
+components/organisms/ConceptEditor.tsx	98	cadena	Sugerir los
+components/organisms/ConceptEditor.tsx	112	cadena	Sin nota
+components/organisms/ConceptEditor.tsx	115	cadena	Concepto de
+components/organisms/ConceptEditor.tsx	115	cadena	Mensaje del director para
+components/organisms/ConceptEditor.tsx	118	cadena	La IA está redactando un borrador…
+components/organisms/ConceptEditor.tsx	118	cadena	Escribe el concepto o pide una sugerencia.
+components/organisms/ConceptEditor.tsx	124	jsx	Aprobar borrador
+components/organisms/ConceptEditor.tsx	130	jsx	Enviar a boletines
+components/organisms/ConceptEditor.tsx	134	cadena	Aparecerán en el boletín del
+components/organisms/ConceptEditor.tsx	134	cadena	junto a la nota de
+components/organisms/ConceptEditor.tsx	135	cadena	Enviar los
+components/organisms/ConsentGate.tsx	20	atributo	Política de tratamiento de datos
+components/organisms/ConsentGate.tsx	21	cadena	Antes de usar NotaScan, lee y acepta la política de datos (versión
+components/organisms/ConsentGate.tsx	21	cadena	) y los términos de uso.
+components/organisms/ConsentGate.tsx	23	jsx	Cerrar sesión
+components/organisms/ConsentGate.tsx	24	jsx	Aceptar y continuar
+components/organisms/ConsentGate.tsx	26	atributo	Documento
+components/organisms/ConsentGate.tsx	27	cadena	Términos de uso
+components/organisms/ConsentGate.tsx	27	cadena	Política completa
+components/organisms/ConsentGate.tsx	28	cadena	Texto del documento
+components/organisms/ConsentGate.tsx	31	jsx	El colegio es el responsable de los datos; NotaScan los trata por su cuenta y solo para la gestión académica.
+components/organisms/ConsentGate.tsx	32	jsx	Los datos de salud y de los acudientes solo los ven Secretaría y Rectoría.
+components/organisms/ConsentGate.tsx	33	jsx	Las fotografías de los exámenes se leen con Anthropic (EE. UU.) solo para obtener la nota, que siempre verifica un docente, y se borran al cerrar el periodo.
+components/organisms/ConsentGate.tsx	34	jsx	Tu cuenta es personal: NotaScan registra quién verifica notas, toma asistencia o decide solicitudes.
+components/organisms/ConsentGate.tsx	35	jsx	Los titulares pueden conocer, corregir, exportar y pedir la supresión de sus datos en Secretaría.
+components/organisms/ConsentGate.tsx	39	cadena	Leí y acepto la política de tratamiento de datos y los términos de uso
+components/organisms/ConsentGate.tsx	40	jsx	No pudimos guardar tu aceptación. Revisa tu conexión e inténtalo de nuevo.
+components/organisms/DataGrid.tsx	35	jsx	extends TableColumn
+components/organisms/DataGrid.tsx	76	jsx	(props: DataGridProps
+components/organisms/DataGrid.tsx	89	jsx	(r as Record
+components/organisms/DataGrid.tsx	125	cadena	Revisa tu conexión e inténtalo de nuevo.
+components/organisms/DataGrid.tsx	132	cadena	No hay resultados para esta búsqueda.
+components/organisms/DataGrid.tsx	141	atributo	Seleccionar
+components/organisms/DataGrid.tsx	158	cadena	Densidad de la tabla
+components/organisms/DataGrid.tsx	164	cadena	Acciones en lote
+components/organisms/DataGrid.tsx	167	jsx	Limpiar selección
+components/organisms/DataGrid.tsx	177	cadena	Seleccionar todos en esta página
+components/organisms/DataGrid.tsx	200	atributo	Paginación
+components/organisms/DataGrid.tsx	203	cadena	Página anterior
+components/organisms/DataGrid.tsx	205	atributo	Página
+components/organisms/DataGrid.tsx	207	cadena	Página siguiente
+components/organisms/Gradebook.tsx	44	atributo	Editar
+components/organisms/Gradebook.tsx	46	cadena	Pendiente de sincronizar
+components/organisms/Gradebook.tsx	128	cadena	Guardado en este equipo. Se sincronizará al reconectar.
+components/organisms/Gradebook.tsx	133	cadena	Guardado en este equipo. Se sincronizará al reconectar.
+components/organisms/Gradebook.tsx	140	cadena	Sin conexión:
+components/organisms/Gradebook.tsx	184	atributo	Curso
+components/organisms/Gradebook.tsx	185	atributo	Periodo
+components/organisms/Gradebook.tsx	186	cadena	Atajos de teclado
+components/organisms/Gradebook.tsx	187	jsx	editar / bajar
+components/organisms/Gradebook.tsx	187	jsx	cancelar
+components/organisms/Gradebook.tsx	191	cadena	Planilla de calificaciones
+components/organisms/Gradebook.tsx	193	cadena	Planilla de calificaciones de
+components/organisms/Gradebook.tsx	196	jsx	Estudiante
+components/organisms/Gradebook.tsx	198	jsx	automático
+components/organisms/Gradebook.tsx	227	jsx	Promedio del curso
+components/organisms/Gradebook.tsx	239	cadena	Modo offline: los cambios se guardan en este equipo.
+components/organisms/Header.tsx	43	cadena	Secciones de
+components/organisms/InstitutionIdentity.tsx	21	cadena	Informe académico
+components/organisms/InstitutionIdentity.tsx	26	cadena	Nombre del colegio
+components/organisms/InstitutionIdentity.tsx	35	atributo	Colegio:
+components/organisms/InstitutionIdentity.tsx	52	cadena	El logo debe ser PNG, JPG, SVG o WebP.
+components/organisms/InstitutionIdentity.tsx	53	cadena	El logo pesa
+components/organisms/InstitutionIdentity.tsx	53	cadena	MB. El máximo es 1 MB.
+components/organisms/InstitutionIdentity.tsx	60	cadena	Escribe el nombre del colegio.
+components/organisms/InstitutionIdentity.tsx	62	cadena	El código DANE tiene 12 dígitos.
+components/organisms/InstitutionIdentity.tsx	70	cadena	Vista previa de la identidad
+components/organisms/InstitutionIdentity.tsx	71	jsx	Así se verá en el boletín
+components/organisms/InstitutionIdentity.tsx	72	cadena	el colegio
+components/organisms/InstitutionIdentity.tsx	72	cadena	Encabezado del boletín de
+components/organisms/InstitutionIdentity.tsx	73	cadena	Periodo 3
+components/organisms/InstitutionIdentity.tsx	75	jsx	Y en el menú de la app del colegio
+components/organisms/InstitutionIdentity.tsx	99	cadena	Nombre del colegio
+components/organisms/InstitutionIdentity.tsx	100	atributo	Se usan si el colegio no tiene logo.
+components/organisms/InstitutionIdentity.tsx	100	atributo	Iniciales del escudo
+components/organisms/InstitutionIdentity.tsx	101	cadena	Código DANE
+components/organisms/InstitutionIdentity.tsx	102	atributo	Ciudad
+components/organisms/InstitutionIdentity.tsx	103	atributo	Departamento
+components/organisms/InstitutionIdentity.tsx	104	cadena	Número y año de la resolución
+components/organisms/InstitutionIdentity.tsx	104	cadena	Resolución de aprobación
+components/organisms/InstitutionIdentity.tsx	110	jsx	Quitar logo
+components/organisms/InstitutionIdentity.tsx	111	atributo	Archivo del logo
+components/organisms/InstitutionIdentity.tsx	115	jsx	PNG, JPG, SVG o WebP de hasta 1 MB. Mejor con fondo transparente: se ajusta al escudo sin recortarse.
+components/organisms/LegalDocument.tsx	16	jsx	(p.startsWith("**") && p.endsWith("**") ?
+components/organisms/LegalDocument.tsx	64	cadena	+ i} style={{ margin: 0 }}>{inline(para.join(
+components/organisms/Observer.tsx	27	atributo	Tipo
+components/organisms/Observer.tsx	53	cadena	No hay anotaciones de este tipo.
+components/organisms/Observer.tsx	53	atributo	Las observaciones aparecerán en orden cronológico.
+components/organisms/Observer.tsx	58	cadena	Sin clase
+components/organisms/Observer.tsx	77	jsx	Septiembre 2026
+components/organisms/Observer.tsx	78	cadena	% de asistencia
+components/organisms/Observer.tsx	80	atributo	Asistencia de septiembre
+components/organisms/Observer.tsx	86	cadena	de septiembre:
+components/organisms/Observer.tsx	110	cadena	Sin registro
+components/organisms/Observer.tsx	110	cadena	Sin clase
+components/organisms/Observer.tsx	117	cadena	Sin registros de asistencia
+components/organisms/Observer.tsx	117	cadena	% de asistencia
+components/organisms/Observer.tsx	119	cadena	Asistencia de
+components/organisms/Overlays.tsx	65	cadena	Cerrar panel
+components/organisms/Overlays.tsx	97	jsx	Cancelar
+components/organisms/Overlays.tsx	148	cadena	Las calificaciones verificadas serán guardadas.
+components/organisms/Overlays.tsx	151	jsx	Cancelar
+components/organisms/Overlays.tsx	152	cadena	Confirmar y guardar
+components/organisms/Overlays.tsx	185	cadena	Restablecer contraseña
+components/organisms/Overlays.tsx	186	cadena	¿Deseas generar un nuevo acceso para este usuario?
+components/organisms/Overlays.tsx	186	cadena	La solicitud de restablecimiento fue realizada correctamente.
+components/organisms/Overlays.tsx	190	jsx	Cancelar
+components/organisms/Overlays.tsx	191	jsx	Restablecer contraseña
+components/organisms/Overlays.tsx	196	cadena	su correo
+components/organisms/Overlays.tsx	196	cadena	Se envió un enlace de un solo uso a
+components/organisms/Overlays.tsx	198	jsx	No pudimos enviar el enlace. Revisa tu conexión e inténtalo de nuevo.
+components/organisms/Overlays.tsx	199	jsx	La contraseña actual no se muestra ni se recupera: se genera un acceso nuevo.
+components/organisms/PhoneUpload.tsx	37	cadena	Toma las fotos con el celular
+components/organisms/PhoneUpload.tsx	38	cadena	Las fotos llegan solas a «
+components/organisms/PhoneUpload.tsx	38	cadena	» y la IA las lee como las que arrastras.
+components/organisms/PhoneUpload.tsx	40	jsx	Cerrar ventana
+components/organisms/PhoneUpload.tsx	44	cadena	Código QR para abrir la página de fotos en el celular
+components/organisms/PhoneUpload.tsx	48	jsx	El código venció
+components/organisms/PhoneUpload.tsx	49	jsx	Generar otro
+components/organisms/PhoneUpload.tsx	51	jsx	Generando el código…
+components/organisms/PhoneUpload.tsx	55	jsx	Apunta la cámara del celular al código.
+components/organisms/PhoneUpload.tsx	55	jsx	Se abre la página de NotaScan; no hay que instalar nada ni iniciar sesión.
+components/organisms/PhoneUpload.tsx	56	jsx	Toca «Tomar foto» por cada hoja.
+components/organisms/PhoneUpload.tsx	56	jsx	Hoja completa, con luz y sin sombras; el código y el nombre a la vista.
+components/organisms/PhoneUpload.tsx	57	jsx	Cada foto aparece en la lista y la IA la lee; tú confirmas cada nota.
+components/organisms/PhoneUpload.tsx	57	jsx	Revisa aquí.
+components/organisms/PhoneUpload.tsx	61	cadena	Sin fotos
+components/organisms/PhoneUpload.tsx	62	cadena	El código vence en
+components/organisms/principal/PrincipalPanels.tsx	35	cadena	Periodo 3
+components/organisms/principal/PrincipalPanels.tsx	41	atributo	Año
+components/organisms/principal/PrincipalPanels.tsx	42	atributo	Periodo
+components/organisms/principal/PrincipalPanels.tsx	45	atributo	Indicadores institucionales
+components/organisms/principal/PrincipalPanels.tsx	46	jsx	Promedio institucional
+components/organisms/principal/PrincipalPanels.tsx	46	jsx	+0.1 frente al periodo anterior
+components/organisms/principal/PrincipalPanels.tsx	47	jsx	−2 puntos · 39 estudiantes
+components/organisms/principal/PrincipalPanels.tsx	47	jsx	Índice de reprobación
+components/organisms/principal/PrincipalPanels.tsx	48	jsx	Octavo concentra la mayor tasa
+components/organisms/principal/PrincipalPanels.tsx	48	jsx	Tasa de inasistencia
+components/organisms/principal/PrincipalPanels.tsx	51	cadena	¿Qué grados están por debajo de la meta institucional?
+components/organisms/principal/PrincipalPanels.tsx	51	cadena	Promedio por grado
+components/organisms/principal/PrincipalPanels.tsx	52	cadena	Evolución del rendimiento
+components/organisms/principal/PrincipalPanels.tsx	52	atributo	¿Mejoramos frente al año pasado?
+components/organisms/principal/PrincipalPanels.tsx	53	cadena	¿Cuántos estudiantes pierden al menos una materia?
+components/organisms/principal/PrincipalPanels.tsx	53	cadena	Índice de reprobación
+components/organisms/principal/PrincipalPanels.tsx	54	cadena	Tasa de inasistencia por grado
+components/organisms/principal/PrincipalPanels.tsx	54	cadena	¿Dónde intervenir primero?
+components/organisms/principal/PrincipalPanels.tsx	65	cadena	Primer periodo con notas verificadas
+components/organisms/principal/PrincipalPanels.tsx	65	cadena	Igual que el periodo anterior
+components/organisms/principal/PrincipalPanels.tsx	67	cadena	Aparecerá cuando los docentes tomen asistencia.
+components/organisms/principal/PrincipalPanels.tsx	67	atributo	Aún no hay asistencia en este periodo.
+components/organisms/principal/PrincipalPanels.tsx	72	atributo	Año
+components/organisms/principal/PrincipalPanels.tsx	73	atributo	Periodo
+components/organisms/principal/PrincipalPanels.tsx	76	atributo	Indicadores institucionales
+components/organisms/principal/PrincipalPanels.tsx	77	jsx	Promedio institucional
+components/organisms/principal/PrincipalPanels.tsx	78	jsx	Índice de reprobación
+components/organisms/principal/PrincipalPanels.tsx	79	jsx	Tasa de inasistencia
+components/organisms/principal/PrincipalPanels.tsx	82	cadena	¿Qué grados están por debajo de la meta institucional?
+components/organisms/principal/PrincipalPanels.tsx	82	cadena	Promedio por grado
+components/organisms/principal/PrincipalPanels.tsx	83	cadena	Evolución del rendimiento
+components/organisms/principal/PrincipalPanels.tsx	83	atributo	¿Mejoramos frente al año pasado?
+components/organisms/principal/PrincipalPanels.tsx	85	cadena	¿Cuántos estudiantes pierden al menos una materia?
+components/organisms/principal/PrincipalPanels.tsx	85	cadena	Índice de reprobación
+components/organisms/principal/PrincipalPanels.tsx	86	cadena	Tasa de inasistencia por grado
+components/organisms/principal/PrincipalPanels.tsx	86	cadena	¿Dónde intervenir primero?
+components/organisms/principal/PrincipalPanels.tsx	105	cadena	Resumen por estado
+components/organisms/principal/PrincipalPanels.tsx	116	cadena	Seguimiento docente
+components/organisms/principal/PrincipalPanels.tsx	123	cadena	Última actualización
+components/organisms/principal/PrincipalPanels.tsx	128	cadena	Se notificó a
+components/organisms/principal/PrincipalPanels.tsx	131	cadena	lo verá en su Inicio.
+components/organisms/principal/PrincipalPanels.tsx	132	cadena	No se envió el recordatorio
+components/organisms/principal/PrincipalPanels.tsx	132	cadena	Revisa tu conexión e inténtalo de nuevo.
+components/organisms/principal/PrincipalPanels.tsx	134	jsx	Enviar recordatorio
+components/organisms/principal/PrincipalPanels.tsx	174	cadena	Inténtalo de nuevo.
+components/organisms/principal/PrincipalPanels.tsx	174	cadena	No se guardó la decisión
+components/organisms/principal/PrincipalPanels.tsx	182	cadena	La nota de
+components/organisms/principal/PrincipalPanels.tsx	189	cadena	Estado de las solicitudes
+components/organisms/principal/PrincipalPanels.tsx	192	atributo	Solicitudes
+components/organisms/principal/PrincipalPanels.tsx	207	atributo	Las nuevas solicitudes de los docentes aparecerán aquí.
+components/organisms/principal/PrincipalPanels.tsx	207	cadena	No hay solicitudes en este estado.
+components/organisms/principal/PrincipalPanels.tsx	207	cadena	No hay solicitudes pendientes.
+components/organisms/principal/PrincipalPanels.tsx	210	cadena	Detalle de la solicitud
+components/organisms/principal/PrincipalPanels.tsx	218	cadena	Cambio solicitado de
+components/organisms/principal/PrincipalPanels.tsx	219	jsx	Nota actual
+components/organisms/principal/PrincipalPanels.tsx	221	jsx	Cambio solicitado
+components/organisms/principal/PrincipalPanels.tsx	232	cadena	Verás el cambio solicitado, el motivo y el historial.
+components/organisms/principal/PrincipalPanels.tsx	232	cadena	Selecciona una solicitud
+components/organisms/principal/PrincipalPanels.tsx	235	cadena	¿Aprobar el cambio de nota?
+components/organisms/principal/PrincipalPanels.tsx	235	cadena	¿Rechazar la solicitud?
+components/organisms/principal/PrincipalPanels.tsx	238	jsx	Cancelar
+components/organisms/principal/PrincipalPanels.tsx	244	cadena	Obligatorio para rechazar.
+components/organisms/principal/PrincipalPanels.tsx	244	cadena	Motivo del rechazo
+components/organisms/QueryState.tsx	20	cadena	Revisa tu conexión e inténtalo de nuevo.
+components/organisms/ReportCardDocument.tsx	33	cadena	Periodo 3
+components/organisms/ReportCardDocument.tsx	44	cadena	de 12
+components/organisms/ReportCardDocument.tsx	44	cadena	Puesto en el curso
+components/organisms/ReportCardDocument.tsx	44	cadena	Director de grupo
+components/organisms/ReportCardDocument.tsx	62	atributo	Boletín de
+components/organisms/ReportCardDocument.tsx	68	cadena	Calificaciones de
+components/organisms/ReportCardDocument.tsx	68	cadena	por materia, periodos anteriores, acumulado y concepto de cada docente
+components/organisms/ReportCardDocument.tsx	71	jsx	Área / Materia
+components/organisms/ReportCardDocument.tsx	73	jsx	Nota del periodo
+components/organisms/ReportCardDocument.tsx	75	jsx	Desempeño
+components/organisms/ReportCardDocument.tsx	89	jsx	Concepto del docente
+components/organisms/ReportCardDocument.tsx	102	cadena	Desempeño según la nota del periodo. El acumulado pondera los periodos cursados con los pesos que configura Secretaría (
+components/organisms/ReportCardDocument.tsx	104	cadena	faltas registradas en el periodo
+components/organisms/ReportCardDocument.tsx	104	cadena	Sin registros de asistencia
+components/organisms/ReportCardDocument.tsx	104	cadena	% de asistencia
+components/organisms/ReportCardDocument.tsx	105	jsx	Escala de valoración
+components/organisms/ReportCardDocument.tsx	105	jsx	Superior 4.6–5.0 · Alto 4.0–4.5 · Básico 3.0–3.9 · Bajo 1.0–2.9 (Decreto 1290 de 2009)
+components/organisms/ReportCardDocument.tsx	109	jsx	Mensaje del director de grupo
+components/organisms/ReportCardDocument.tsx	124	cadena	Periodo 3
+components/organisms/ReportDocument.tsx	46	jsx	(j === 0 ?
+components/organisms/ReportDocument.tsx	49	jsx	(j === 0 ?
+components/organisms/ReportDocument.tsx	53	cadena	con NotaScan. Solo incluye notas verificadas por un docente.
+components/organisms/ReportDocument.tsx	53	cadena	Generado por
+components/organisms/ReviewFlow.tsx	9	cadena	Detectar calificación
+components/organisms/ReviewFlow.tsx	9	cadena	Cargar fotografía
+components/organisms/ReviewFlow.tsx	9	cadena	Detectar estudiante
+components/organisms/ReviewFlow.tsx	14	cadena	Flujo de calificación
+components/organisms/ReviewFlow.tsx	53	cadena	Resumen de la revisión
+components/organisms/ReviewFlow.tsx	55	cadena	Esta evaluación
+components/organisms/ReviewFlow.tsx	56	jsx	estudiantes
+components/organisms/ReviewFlow.tsx	61	cadena	Todo verificado. Listo para guardar.
+components/organisms/ReviewFlow.tsx	61	cadena	por verificar antes de guardar
+components/organisms/ReviewFlow.tsx	65	cadena	requieren revisión
+components/organisms/ReviewFlow.tsx	71	cadena	El docente verifica
+components/organisms/ReviewFlow.tsx	71	cadena	El sistema guarda
+components/organisms/ReviewFlow.tsx	71	cadena	Precisión con control humano
+components/organisms/ReviewFlow.tsx	71	cadena	La IA detecta
+components/organisms/ReviewFlow.tsx	82	cadena	Identificando estudiante
+components/organisms/ReviewFlow.tsx	82	cadena	Detectando calificación
+components/organisms/ReviewFlow.tsx	101	cadena	Estudiante identificado
+components/organisms/ReviewFlow.tsx	116	cadena	Listo para revisar
+components/organisms/ReviewFlow.tsx	118	cadena	Analizando fotografía…
+components/organisms/ReviewFlow.tsx	119	atributo	Vista previa de
+components/organisms/ReviewFlow.tsx	131	jsx	: a ?
+components/organisms/ReviewFlow.tsx	134	cadena	María Fernanda López
+components/organisms/ReviewFlow.tsx	140	cadena	Progreso del reconocimiento
+components/organisms/ReviewFlow.tsx	143	jsx	La IA solo detecta. Tú revisas y confirmas cada nota.
+components/organisms/Sidebar.tsx	29	atributo	Navegación principal
+components/organisms/Sidebar.tsx	32	atributo	Cerrar menú
+components/organisms/Sidebar.tsx	35	jsx	Navegación
+components/organisms/Sidebar.tsx	51	cadena	Periodo 3 · 2026
+components/organisms/Sidebar.tsx	58	atributo	Cerrar sesión
+components/organisms/StudentGradeCard.tsx	92	jsx	Sin detección
+components/organisms/StudentGradeCard.tsx	101	cadena	Corregir calificación
+components/organisms/StudentGradeCard.tsx	101	cadena	Introduce la calificación
+components/organisms/StudentGradeCard.tsx	108	jsx	No pudimos detectar una calificación.
+components/organisms/StudentGradeCard.tsx	109	jsx	Puedes introducirla manualmente.
+components/organisms/StudentGradeCard.tsx	115	cadena	Calificación corregida
+components/organisms/StudentGradeCard.tsx	115	cadena	Introducida por el docente
+components/organisms/StudentGradeCard.tsx	115	cadena	Calificación detectada
+components/organisms/StudentGradeCard.tsx	118	atributo	Calificación
+components/organisms/StudentGradeCard.tsx	128	jsx	Sin detección de la IA · ingreso manual
+components/organisms/StudentGradeCard.tsx	129	cadena	Lectura de la IA
+components/organisms/StudentGradeCard.tsx	130	cadena	IA detectó
+components/organisms/StudentGradeCard.tsx	142	jsx	Cancelar
+components/organisms/StudentGradeCard.tsx	146	atributo	Editar calificación de
+components/organisms/StudentGradeCard.tsx	149	atributo	Editar calificación de
+components/organisms/StudentGradeCard.tsx	150	atributo	Confirmar calificación de
+components/organisms/TeacherPanels.tsx	30	cadena	Sin nota de recuperación
+components/organisms/TeacherPanels.tsx	33	cadena	Se mantiene
+components/organisms/TeacherPanels.tsx	33	cadena	No aprobada
+components/organisms/TeacherPanels.tsx	37	jsx	La nota original nunca se reemplaza: queda en el historial académico junto a la de recuperación.
+components/organisms/TeacherPanels.tsx	39	cadena	No hay estudiantes en recuperación.
+components/organisms/TeacherPanels.tsx	39	cadena	Estudiantes que requieren recuperación
+components/organisms/TeacherPanels.tsx	43	atributo	Se conserva en el historial
+components/organisms/TeacherPanels.tsx	43	cadena	Nota original
+components/organisms/TeacherPanels.tsx	45	cadena	Nota de recuperación
+components/organisms/TeacherPanels.tsx	49	atributo	0.0
+components/organisms/TeacherPanels.tsx	50	cadena	Nota de recuperación de
+components/organisms/TeacherPanels.tsx	64	cadena	Recuperación registrada
+components/organisms/TeacherPanels.tsx	65	cadena	No pudimos guardar la recuperación
+components/organisms/TeacherPanels.tsx	67	jsx	Guardar
+components/organisms/TeacherPanels.tsx	91	cadena	Asistencia de
+components/organisms/TeacherPanels.tsx	104	atributo	El estudiante participó activamente durante la actividad.
+components/organisms/TeacherPanels.tsx	104	atributo	Observación
+components/organisms/TeacherPanels.tsx	136	cadena	Las marcas siguen en pantalla.
+components/organisms/TeacherPanels.tsx	136	cadena	No pudimos guardar la asistencia
+components/organisms/TeacherPanels.tsx	143	atributo	Curso
+components/organisms/TeacherPanels.tsx	144	atributo	Fecha
+components/organisms/TeacherPanels.tsx	144	cadena	Fecha de la clase
+components/organisms/TeacherPanels.tsx	149	cadena	sin marcar
+components/organisms/TeacherPanels.tsx	152	jsx	Marcar el resto como presentes
+components/organisms/TeacherPanels.tsx	155	jsx	Atajos: con una fila enfocada pulsa
+components/organisms/TeacherPanels.tsx	161	cadena	Guardar asistencia
+components/organisms/TeacherPanels.tsx	161	cadena	por marcar
+components/organisms/TitleBar.tsx	51	atributo	Minimizar
+components/organisms/TitleBar.tsx	55	atributo	Cerrar
+components/organisms/Toast.tsx	20	atributo	Cerrar aviso
+components/templates/AppShell.tsx	34	cadena	Matemáticas · 7A
+components/templates/AppShell.tsx	42	atributo	Abrir menú
+data/academic.ts	17	cadena	Tecnología e informática
+data/academic.ts	33	cadena	María Fernanda López
+data/academic.ts	34	cadena	Juan Sebastián Martínez
+data/academic.ts	36	cadena	Carlos Andrés Rodríguez
+data/academic.ts	38	cadena	Santiago Muñoz
+data/academic.ts	40	cadena	Andrés Felipe Erazo
+data/academic.ts	42	cadena	Sebastián Delgado
+data/academic.ts	57	cadena	En revisión
+data/academic.ts	65	cadena	resuelve problemas con ecuaciones lineales, proporcionalidad y porcentajes
+data/academic.ts	66	cadena	explica el movimiento rectilíneo y aplica las leyes de Newton en situaciones cotidianas
+data/academic.ts	68	cadena	se comunica en situaciones cotidianas usando el presente y el pasado simple
+data/academic.ts	69	cadena	explica la estructura de la célula y los procesos de nutrición en los seres vivos
+data/academic.ts	70	cadena	diseña soluciones sencillas con algoritmos y herramientas digitales
+data/academic.ts	75	cadena	alcanza los logros propuestos para el periodo
+data/academic.ts	78	cadena	Demuestra autonomía, argumenta sus procesos y apoya el aprendizaje de sus compañeros.
+data/academic.ts	78	cadena	Sus trabajos son rigurosos y creativos; se le invita a asumir retos de profundización.
+data/academic.ts	78	cadena	Participa con criterio y lidera el trabajo en equipo de manera ejemplar.
+data/academic.ts	79	cadena	Su desempeño es constante; se recomienda revisar con más cuidado antes de entregar.
+data/academic.ts	79	cadena	Cumple con sus compromisos; puede profundizar en la presentación ordenada de sus procedimientos.
+data/academic.ts	79	cadena	Participa activamente; le falta precisión en algunos ejercicios de mayor complejidad.
+data/academic.ts	80	cadena	Comprende lo esencial, pero necesita más práctica autónoma y preguntar sus dudas a tiempo.
+data/academic.ts	80	cadena	Se sugiere repasar los temas del periodo y aprovechar las tutorías de la tarde.
+data/academic.ts	80	cadena	Debe reforzar la práctica diaria y la entrega puntual de talleres para consolidar lo aprendido.
+data/academic.ts	81	cadena	Se recomienda plan de mejoramiento, asistencia a las tutorías y acompañamiento en casa.
+data/academic.ts	81	cadena	Requiere compromiso con la entrega de trabajos y acompañamiento cercano de la familia.
+data/academic.ts	81	cadena	Presenta vacíos en los temas base; debe realizar las actividades de recuperación programadas.
+data/academic.ts	83	cadena	Aún no alcanza el logro:
+data/academic.ts	83	cadena	Alcanza satisfactoriamente el logro:
+data/academic.ts	83	cadena	Alcanza de manera sobresaliente el logro:
+data/academic.ts	83	cadena	Alcanza el logro mínimo:
+data/academic.ts	87	cadena	frente al periodo anterior.
+data/academic.ts	88	cadena	frente al periodo anterior; conviene revisar sus causas.
+data/academic.ts	90	cadena	faltas en el periodo.
+data/academic.ts	95	cadena	Periodo 1
+data/academic.ts	95	cadena	Periodo 3
+data/academic.ts	95	cadena	Periodo 4
+data/academic.ts	95	cadena	Periodo 2
+data/academic.ts	98	cadena	Periodo 3
+data/academic.ts	111	cadena	Periodo 3
+data/academic.ts	132	cadena	cerró el periodo con un desempeño superior que refleja disciplina y gusto por aprender.
+data/academic.ts	133	cadena	tuvo un periodo muy positivo: es responsable, participa en clase y mantiene buenas relaciones con sus compañeros.
+data/academic.ts	134	cadena	cumplió con los procesos del periodo y muestra disposición para mejorar.
+data/academic.ts	135	cadena	atravesó un periodo difícil y necesita nuestro acompañamiento cercano para recuperar el ritmo.
+data/academic.ts	136	cadena	Se destaca en
+data/academic.ts	137	cadena	Le pedimos cuidar la asistencia y la puntualidad.
+data/academic.ts	137	cadena	Su asistencia es ejemplar.
+data/academic.ts	138	cadena	Contamos con el apoyo de la familia para seguir creciendo en el próximo periodo.
+data/academic.ts	138	cadena	Invitamos a la familia a una reunión para acordar un plan de mejoramiento.
+data/academic.ts	151	cadena	Ana Lucía Rosero
+data/academic.ts	151	cadena	María Fernanda López Rosero
+data/academic.ts	151	cadena	Participación destacada
+data/academic.ts	152	cadena	María Fernanda López Rosero
+data/academic.ts	152	cadena	Cita médica · excusa entregada
+data/academic.ts	153	cadena	Llamado de atención
+data/academic.ts	153	cadena	Carlos Pérez
+data/academic.ts	153	cadena	María Fernanda López Rosero
+data/academic.ts	153	cadena	Llegó tarde a clase
+data/academic.ts	154	cadena	Proyecto de ciencias
+data/academic.ts	154	cadena	María Fernanda López Rosero
+data/academic.ts	155	cadena	Inglés · taller 3
+data/academic.ts	155	cadena	Tarea sin entregar
+data/academic.ts	155	cadena	Juan Sebastián Martínez Paz
+data/academic.ts	156	cadena	Representó al colegio
+data/academic.ts	156	cadena	Olimpiadas de matemáticas
+data/academic.ts	156	cadena	Juan Sebastián Martínez Paz
+data/admin.ts	8	cadena	Periodo 1
+data/admin.ts	8	cadena	Periodo 3
+data/admin.ts	8	cadena	Periodo 4
+data/admin.ts	8	cadena	Periodo 2
+data/admin.ts	15	cadena	Invitación enviada
+data/admin.ts	15	cadena	Sin cuenta
+data/admin.ts	23	cadena	Hace 9 días
+data/admin.ts	29	cadena	Claudia Enríquez
+data/admin.ts	29	cadena	Rubén Bravo
+data/admin.ts	29	cadena	Marcela Narváez
+data/admin.ts	53	cadena	Confirmar importación
+data/admin.ts	57	cadena	Tomás Riascos
+data/admin.ts	58	cadena	María Fernanda López Rosero
+data/admin.ts	60	cadena	Nicolás Cabrera
+data/principal.ts	15	cadena	Juan Sebastián Martínez Paz
+data/principal.ts	16	cadena	Carlos Pérez
+data/principal.ts	18	cadena	Sara Lucía Cabrera Paz
+data/principal.ts	18	cadena	Ana Lucía Rosero
+data/principal.ts	18	cadena	Aprobada por Hernando Villota
+data/principal.ts	19	cadena	Tomás Ordóñez Mora
+data/principal.ts	19	cadena	Rechazada por Hernando Villota: falta el soporte de la evaluación
+data/principal.ts	24	cadena	Al día
+data/principal.ts	24	cadena	Requiere atención
+data/reviewRows.ts	12	cadena	María Fernanda López
+data/reviewRows.ts	13	cadena	Juan Sebastián Martínez
+data/reviewRows.ts	15	cadena	Carlos Andrés Rodríguez
+data/reviewRows.ts	17	cadena	Santiago Muñoz
+data/reviewRows.ts	19	cadena	Andrés Felipe Erazo
+data/roles.ts	17	cadena	Año lectivo
+data/roles.ts	17	cadena	Secretaría académica
+data/roles.ts	18	cadena	Estructura académica
+data/roles.ts	18	cadena	Ranking académico
+data/roles.ts	21	cadena	Colegio Los Andes
+data/roles.ts	22	cadena	Seguimiento docente
+data/roles.ts	25	cadena	Ana Lucía Rosero
+data/roles.ts	25	cadena	Matemáticas · 7A
+data/roles.ts	25	cadena	Docente · Matemáticas
+data/roles.ts	25	cadena	Periodo 3 · 2026
+data/students.ts	7	cadena	Juan José
+data/students.ts	7	cadena	Sara Lucía
+data/students.ts	7	cadena	María Fernanda
+data/students.ts	7	cadena	Andrés Felipe
+data/students.ts	7	cadena	Carlos Andrés
+data/students.ts	7	cadena	Juan Sebastián
+data/students.ts	32	cadena	María Fernanda
+data/students.ts	33	cadena	Juan Sebastián
+data/students.ts	40	cadena	Tarjeta de identidad
+hooks/useDialogFocus.ts	12	jsx	("[data-autofocus]") || node.querySelector
+lib/grade.ts	21	cadena	La calificación debe estar entre 1.0 y 5.0.
+lib/grade.ts	35	cadena	Requiere revisión
+lib/grade.ts	35	cadena	Pendiente de revisión
+lib/supabase.ts	30	cadena	Supabase no se usa en modo demostración.
+lib/supabase.ts	33	cadena	Faltan VITE_SUPABASE_URL o VITE_SUPABASE_PUBLISHABLE_KEY en .env.local.
+pages/admin/AdminPages.tsx	47	cadena	Cierre programado el 15 de octubre
+pages/admin/AdminPages.tsx	47	cadena	Cerrar Periodo 3
+pages/admin/AdminPages.tsx	50	cadena	Asignar docente a 8B · Inglés
+pages/admin/AdminPages.tsx	50	cadena	La malla curricular tiene un hueco
+pages/admin/AdminPages.tsx	52	cadena	No hay periodo abierto: los docentes no ven sus cursos
+pages/admin/AdminPages.tsx	52	cadena	Abrir un periodo
+pages/admin/AdminPages.tsx	52	cadena	Cierre programado el
+pages/admin/AdminPages.tsx	53	cadena	por generar
+pages/admin/AdminPages.tsx	53	cadena	boletines del
+pages/admin/AdminPages.tsx	54	cadena	Todos los estudiantes están al día
+pages/admin/AdminPages.tsx	55	cadena	Asignar docente a
+pages/admin/AdminPages.tsx	55	cadena	La malla curricular tiene
+pages/admin/AdminPages.tsx	55	cadena	La malla curricular tiene un hueco
+pages/admin/AdminPages.tsx	57	cadena	Buenos días
+pages/admin/AdminPages.tsx	63	atributo	Esto es lo que necesita gestión hoy.
+pages/admin/AdminPages.tsx	63	cadena	Buenos días
+pages/admin/AdminPages.tsx	63	cadena	Secretaría académica · Año lectivo
+pages/admin/AdminPages.tsx	65	jsx	Importar estudiantes
+pages/admin/AdminPages.tsx	66	jsx	Registrar estudiante
+pages/admin/AdminPages.tsx	68	cadena	Cargando el resumen de Secretaría
+pages/admin/AdminPages.tsx	68	jsx	: failed ?
+pages/admin/AdminPages.tsx	68	atributo	No pudimos cargar el resumen.
+pages/admin/AdminPages.tsx	71	cadena	registros requieren gestión
+pages/admin/AdminPages.tsx	71	cadena	matrículas pendientes
+pages/admin/AdminPages.tsx	71	cadena	matrículas activas
+pages/admin/AdminPages.tsx	73	cadena	Matrículas pendientes
+pages/admin/AdminPages.tsx	74	jsx	Ver estudiantes
+pages/admin/AdminPages.tsx	74	jsx	Matrículas pendientes
+pages/admin/AdminPages.tsx	76	cadena	Matrículas pendientes
+pages/admin/AdminPages.tsx	76	cadena	No hay matrículas pendientes.
+pages/admin/AdminPages.tsx	85	cadena	Tareas del periodo
+pages/admin/AdminPages.tsx	86	jsx	Tareas del periodo
+pages/admin/AdminPages.tsx	92	atributo	Ir a
+pages/admin/AdminPages.tsx	110	cadena	Estudiantes y Matrículas
+pages/admin/AdminPages.tsx	110	cadena	Gestión de matrícula
+pages/admin/AdminPages.tsx	111	cadena	Consulta estudiantes y abre su perfil completo.
+pages/admin/AdminPages.tsx	111	cadena	Busca, edita, archiva o retira estudiantes. Selecciona varios para acciones en lote.
+pages/admin/AdminPages.tsx	113	jsx	Importar estudiantes
+pages/admin/AdminPages.tsx	114	jsx	Registrar estudiante
+pages/admin/AdminPages.tsx	126	cadena	Matrícula 2026
+pages/admin/AdminPages.tsx	126	cadena	Registra estudiantes uno a uno o importa un archivo completo.
+pages/admin/AdminPages.tsx	126	atributo	Matrículas
+pages/admin/AdminPages.tsx	127	atributo	Tipo de matrícula
+pages/admin/AdminPages.tsx	127	cadena	Registrar estudiante
+pages/admin/AdminPages.tsx	127	cadena	Importación masiva
+pages/admin/AdminPages.tsx	137	atributo	Usuarios
+pages/admin/AdminPages.tsx	137	cadena	Docentes, acudientes, administrativos y directivos con acceso a NotaScan.
+pages/admin/AdminPages.tsx	137	jsx	Invitar usuario
+pages/admin/AdminPages.tsx	146	cadena	Estructura Académica
+pages/admin/AdminPages.tsx	146	cadena	Grados, cursos y materias que usa toda la institución.
+pages/admin/AdminPages.tsx	155	atributo	Malla Curricular
+pages/admin/AdminPages.tsx	155	cadena	¿Qué docente dicta qué materia en qué curso? Haz clic en una celda para asignar o editar.
+pages/admin/AdminPages.tsx	155	cadena	Docente + Materia + Curso + Periodo
+pages/admin/AdminPages.tsx	168	atributo	Periodos Académicos
+pages/admin/AdminPages.tsx	168	cadena	Fechas de apertura y cierre, estado y cómo se compone la nota de cada periodo.
+pages/admin/AdminPages.tsx	168	cadena	Año lectivo
+pages/admin/AdminPages.tsx	171	cadena	Crear periodo
+pages/admin/AdminPages.tsx	171	cadena	En la demostración los periodos son fijos.
+pages/admin/AdminPages.tsx	172	cadena	El periodo
+pages/admin/AdminPages.tsx	172	cadena	Periodo creado
+pages/admin/AdminPages.tsx	172	cadena	quedó en borrador. Revisa sus fechas y su peso en la nota final.
+pages/admin/AdminPages.tsx	173	cadena	No pudimos crear el periodo
+pages/admin/AdminPages.tsx	174	jsx	Crear periodo
+pages/admin/AdminPages.tsx	184	atributo	Previsualiza y genera boletines en PDF. Los estudiantes sin paz y salvo quedan bloqueados.
+pages/admin/AdminPages.tsx	184	atributo	Boletines
+pages/admin/AdminPages.tsx	184	cadena	Periodo 3 · 2026
+pages/admin/AdminPages.tsx	193	atributo	Paz y Salvos
+pages/admin/AdminPages.tsx	193	cadena	Si alguna obligación está pendiente, los reportes y boletines del estudiante quedan bloqueados para el acudiente.
+pages/admin/AdminPages.tsx	202	atributo	Ordena, filtra y exporta el desempeño por periodo, grado, curso o materia.
+pages/admin/AdminPages.tsx	202	cadena	Ranking Académico
+pages/admin/AdminPages.tsx	202	cadena	Año lectivo 2026
+pages/ForbiddenPage.tsx	18	cadena	No tienes permiso para ver esta sección.
+pages/ForbiddenPage.tsx	19	cadena	Esta sección es de
+pages/ForbiddenPage.tsx	19	cadena	y tu cuenta es de
+pages/ForbiddenPage.tsx	20	jsx	Ir a mi inicio
+pages/LoginPage.tsx	15	cadena	Un teléfono escanea la hoja de un examen y detecta la nota 4.5
+pages/LoginPage.tsx	54	jsx	IA 98%
+pages/LoginPage.tsx	115	jsx	; onSetPassword: NonNullable
+pages/LoginPage.tsx	146	cadena	Restablece tu contraseña
+pages/LoginPage.tsx	146	cadena	Crea tu contraseña
+pages/LoginPage.tsx	146	cadena	Activa tu cuenta
+pages/LoginPage.tsx	152	cadena	Escribe tu correo y el código numérico que te enviamos.
+pages/LoginPage.tsx	152	cadena	Escribe el correo con el que te invitaron y el código numérico que te llegó.
+pages/LoginPage.tsx	153	atributo	nombre@colegio.edu.co
+pages/LoginPage.tsx	153	atributo	Correo institucional
+pages/LoginPage.tsx	154	cadena	Escribe tu correo completo.
+pages/LoginPage.tsx	155	atributo	12345678
+pages/LoginPage.tsx	155	cadena	Código del correo
+pages/LoginPage.tsx	157	cadena	Escribe el código completo del correo.
+pages/LoginPage.tsx	161	cadena	Código verificado para
+pages/LoginPage.tsx	162	atributo	••••••••
+pages/LoginPage.tsx	162	atributo	Contraseña nueva
+pages/LoginPage.tsx	164	cadena	Al menos 8 caracteres con letras y números.
+pages/LoginPage.tsx	165	cadena	Ocultar contraseña
+pages/LoginPage.tsx	165	cadena	Mostrar contraseña
+pages/LoginPage.tsx	166	atributo	••••••••
+pages/LoginPage.tsx	166	cadena	Repite la contraseña
+pages/LoginPage.tsx	167	cadena	Las contraseñas no coinciden.
+pages/LoginPage.tsx	172	cadena	Guardar y entrar
+pages/LoginPage.tsx	174	jsx	Volver a iniciar sesión
+pages/LoginPage.tsx	197	cadena	Escribe tu correo institucional completo.
+pages/LoginPage.tsx	198	cadena	La contraseña tiene al menos 6 caracteres.
+pages/LoginPage.tsx	231	jsx	tú verificas
+pages/LoginPage.tsx	231	jsx	· el sistema guarda
+pages/LoginPage.tsx	231	jsx	La IA detecta ·
+pages/LoginPage.tsx	240	jsx	¡Hola
+pages/LoginPage.tsx	241	jsx	Bienvenido de nuevo a NotaScan.
+pages/LoginPage.tsx	247	jsx	Iniciar sesión
+pages/LoginPage.tsx	249	jsx	Entrar como
+pages/LoginPage.tsx	257	atributo	nombre@ucc.edu.co
+pages/LoginPage.tsx	257	atributo	Correo institucional
+pages/LoginPage.tsx	259	atributo	••••••••
+pages/LoginPage.tsx	259	atributo	Contraseña
+pages/LoginPage.tsx	261	cadena	Ocultar contraseña
+pages/LoginPage.tsx	261	cadena	Mostrar contraseña
+pages/LoginPage.tsx	264	jsx	¿Olvidaste tu contraseña?
+pages/LoginPage.tsx	270	jsx	o entra con
+pages/LoginPage.tsx	271	jsx	Cuenta institucional
+pages/LoginPage.tsx	272	jsx	El acceso con cuenta institucional aún no está disponible. Entra con tu correo.
+pages/LoginPage.tsx	273	jsx	¿Eres estudiante o acudiente? Entra a la app móvil
+pages/LoginPage.tsx	275	jsx	Activa tu cuenta con el código del correo
+pages/LoginPage.tsx	275	jsx	¿Te invitaron?
+pages/LoginPage.tsx	276	jsx	¿Primera vez?
+pages/LoginPage.tsx	276	jsx	Solicita acceso a tu coordinación
+pages/LoginPage.tsx	278	jsx	Política de tratamiento de datos
+pages/LoginPage.tsx	282	atributo	Política de tratamiento de datos
+pages/LoginPage.tsx	283	jsx	Cerrar
+pages/LoginPage.tsx	284	cadena	Texto de la política
+pages/LoginPage.tsx	288	cadena	Revisa tu correo
+pages/LoginPage.tsx	290	jsx	Ya tengo el código
+pages/LoginPage.tsx	290	cadena	Te enviamos un código a
+pages/LoginPage.tsx	291	cadena	para elegir una contraseña nueva.
+pages/LoginPage.tsx	291	cadena	Te enviamos un enlace a
+pages/platform/PlatformPages.tsx	37	cadena	Sin uso
+pages/platform/PlatformPages.tsx	37	cadena	Se cae
+pages/platform/PlatformPages.tsx	48	atributo	Actividad de las últimas 8 semanas:
+pages/platform/PlatformPages.tsx	72	cadena	Escribe el nombre del colegio.
+pages/platform/PlatformPages.tsx	73	cadena	Escribe el nombre de la persona de Secretaría.
+pages/platform/PlatformPages.tsx	74	cadena	Escribe un correo válido.
+pages/platform/PlatformPages.tsx	86	cadena	un código para activar su cuenta de Secretaría.
+pages/platform/PlatformPages.tsx	86	cadena	Colegio dado de alta
+pages/platform/PlatformPages.tsx	87	cadena	Colegio dado de alta, invitación sin enviar
+pages/platform/PlatformPages.tsx	96	atributo	Colegios
+pages/platform/PlatformPages.tsx	97	cadena	Los colegios que usan NotaScan: su estado, cómo lo están usando y su identidad.
+pages/platform/PlatformPages.tsx	98	jsx	Dar de alta un colegio
+pages/platform/PlatformPages.tsx	99	cadena	Estado del colegio
+pages/platform/PlatformPages.tsx	102	cadena	Colegios de la plataforma
+pages/platform/PlatformPages.tsx	104	cadena	No pudimos cargar los colegios.
+pages/platform/PlatformPages.tsx	105	cadena	No hay colegios en este estado.
+pages/platform/PlatformPages.tsx	105	cadena	Aún no hay colegios en la plataforma.
+pages/platform/PlatformPages.tsx	106	cadena	Prueba con otra pestaña.
+pages/platform/PlatformPages.tsx	106	cadena	Da de alta el primer colegio que compró el servicio.
+pages/platform/PlatformPages.tsx	109	atributo	Abrir
+pages/platform/PlatformPages.tsx	115	cadena	Uso 7 días
+pages/platform/PlatformPages.tsx	119	cadena	Último acceso
+pages/platform/PlatformPages.tsx	123	cadena	Dar de alta un colegio
+pages/platform/PlatformPages.tsx	124	cadena	onClick={() => setForm(null)}>Cancelar</Button>, <Button key=
+pages/platform/PlatformPages.tsx	124	jsx	Dar de alta
+pages/platform/PlatformPages.tsx	124	jsx	Cancelar
+pages/platform/PlatformPages.tsx	127	cadena	Nombre del colegio
+pages/platform/PlatformPages.tsx	128	atributo	Iniciales del escudo
+pages/platform/PlatformPages.tsx	128	atributo	Hasta 3 letras.
+pages/platform/PlatformPages.tsx	129	atributo	Ciudad
+pages/platform/PlatformPages.tsx	130	atributo	Departamento
+pages/platform/PlatformPages.tsx	131	atributo	Anual
+pages/platform/PlatformPages.tsx	131	atributo	Plan
+pages/platform/PlatformPages.tsx	132	atributo	Contrato hasta
+pages/platform/PlatformPages.tsx	133	jsx	Primera cuenta de Secretaría
+pages/platform/PlatformPages.tsx	134	atributo	Nombre completo
+pages/platform/PlatformPages.tsx	135	atributo	Le enviamos un código para activar su cuenta; desde ahí registra al resto del colegio.
+pages/platform/PlatformPages.tsx	135	atributo	Correo
+pages/platform/PlatformPages.tsx	167	jsx	(null), usageRef = useRef
+pages/platform/PlatformPages.tsx	167	jsx	(null), secretariesRef = useRef
+pages/platform/PlatformPages.tsx	167	jsx	(null), serviceRef = useRef
+pages/platform/PlatformPages.tsx	178	jsx	Todos los colegios
+pages/platform/PlatformPages.tsx	182	atributo	Cargando el colegio
+pages/platform/PlatformPages.tsx	183	atributo	No pudimos cargar el colegio.
+pages/platform/PlatformPages.tsx	184	cadena	Puede que el enlace sea de un colegio que ya no existe.
+pages/platform/PlatformPages.tsx	184	jsx	Ver todos los colegios
+pages/platform/PlatformPages.tsx	184	atributo	No encontramos este colegio.
+pages/platform/PlatformPages.tsx	196	cadena	Así se verá desde ahora en la app de
+pages/platform/PlatformPages.tsx	196	cadena	y en sus boletines.
+pages/platform/PlatformPages.tsx	197	cadena	No pudimos guardar la identidad
+pages/platform/PlatformPages.tsx	202	cadena	Nadie de
+pages/platform/PlatformPages.tsx	202	cadena	sin plan
+pages/platform/PlatformPages.tsx	202	cadena	puede entrar hasta que lo reactives. Sus datos se conservan.
+pages/platform/PlatformPages.tsx	203	cadena	No pudimos guardar el servicio
+pages/platform/PlatformPages.tsx	209	cadena	Sin ciudad
+pages/platform/PlatformPages.tsx	210	cadena	estudiantes activos ·
+pages/platform/PlatformPages.tsx	212	jsx	Todos los colegios
+pages/platform/PlatformPages.tsx	213	jsx	Guardar identidad
+pages/platform/PlatformPages.tsx	216	cadena	Requiere atención
+pages/platform/PlatformPages.tsx	217	cadena	Todo en orden
+pages/platform/PlatformPages.tsx	217	cadena	Requiere atención
+pages/platform/PlatformPages.tsx	228	jsx	Tiene identidad completa, cuentas activas y uso en las últimas semanas.
+pages/platform/PlatformPages.tsx	232	atributo	Uso
+pages/platform/PlatformPages.tsx	235	cadena	observaciones · 30 días
+pages/platform/PlatformPages.tsx	235	cadena	registros de asistencia · 7 días
+pages/platform/PlatformPages.tsx	235	cadena	notas verificadas · 30 días
+pages/platform/PlatformPages.tsx	240	cadena	Notas verificadas y asistencia tomada
+pages/platform/PlatformPages.tsx	240	atributo	Actividad por semana
+pages/platform/PlatformPages.tsx	243	cadena	Último acceso:
+pages/platform/PlatformPages.tsx	248	atributo	Identidad
+pages/platform/PlatformPages.tsx	259	atributo	Servicio
+pages/platform/PlatformPages.tsx	262	atributo	Estado
+pages/platform/PlatformPages.tsx	264	atributo	Plan
+pages/platform/PlatformPages.tsx	265	atributo	Contrato hasta
+pages/platform/PlatformPages.tsx	268	jsx	Guardar servicio
+pages/platform/PlatformPages.tsx	278	cadena	¿Suspender a
+pages/platform/PlatformPages.tsx	279	atributo	Nadie del colegio podrá entrar hasta que lo reactives. Sus datos y boletines se conservan.
+pages/platform/PlatformPages.tsx	279	atributo	Suspender
+pages/platform/PlatformPages.tsx	292	cadena	Invitación enviada
+pages/platform/PlatformPages.tsx	292	cadena	Sin invitar
+pages/platform/PlatformPages.tsx	310	cadena	un código para activar su cuenta de Secretaría.
+pages/platform/PlatformPages.tsx	310	cadena	Invitación enviada
+pages/platform/PlatformPages.tsx	310	cadena	Invitación reenviada
+pages/platform/PlatformPages.tsx	311	cadena	No enviamos la invitación
+pages/platform/PlatformPages.tsx	315	cadena	Escribe el nombre de la persona de Secretaría.
+pages/platform/PlatformPages.tsx	316	cadena	Escribe un correo válido.
+pages/platform/PlatformPages.tsx	333	atributo	Secretaría
+pages/platform/PlatformPages.tsx	334	jsx	Agregar cuenta de Secretaría
+pages/platform/PlatformPages.tsx	334	jsx	Secretaría
+pages/platform/PlatformPages.tsx	335	atributo	Cargando las cuentas de Secretaría
+pages/platform/PlatformPages.tsx	336	cadena	No pudimos cargar las cuentas de Secretaría.
+pages/platform/PlatformPages.tsx	337	cadena	puede configurar la estructura ni matricular. Agrega a la persona encargada y le enviamos su invitación.
+pages/platform/PlatformPages.tsx	337	atributo	Nadie de
+pages/platform/PlatformPages.tsx	337	atributo	Sin cuenta de Secretaría
+pages/platform/PlatformPages.tsx	343	cadena	· último acceso:
+pages/platform/PlatformPages.tsx	348	cadena	Reenviar invitación a
+pages/platform/PlatformPages.tsx	348	cadena	Enviar invitación a
+pages/platform/PlatformPages.tsx	351	atributo	Quitar a
+pages/platform/PlatformPages.tsx	358	jsx	Solo se quita a quien nunca recibió su invitación. Una cuenta activa la desactiva el propio colegio desde Usuarios.
+pages/platform/PlatformPages.tsx	361	atributo	Agregar cuenta de Secretaría
+pages/platform/PlatformPages.tsx	362	cadena	onClick={() => setForm(null)}>Cancelar</Button>, <Button key=
+pages/platform/PlatformPages.tsx	362	jsx	Agregar y enviar invitación
+pages/platform/PlatformPages.tsx	362	jsx	Cancelar
+pages/platform/PlatformPages.tsx	366	atributo	Nombre completo
+pages/platform/PlatformPages.tsx	367	atributo	Correo
+pages/platform/PlatformPages.tsx	368	atributo	Le enviamos un código para activar su cuenta; desde ahí registra al resto del colegio.
+pages/platform/PlatformPages.tsx	374	cadena	¿Quitar a
+pages/platform/PlatformPages.tsx	375	atributo	Quitar
+pages/platform/PlatformPages.tsx	375	cadena	deja de estar registrada en la Secretaría de
+pages/platform/PlatformPages.tsx	379	cadena	ya no está en la Secretaría de
+pages/platform/PlatformPages.tsx	380	cadena	No pudimos quitarla
+pages/principal/PrincipalPages.tsx	37	cadena	Cargando la analítica
+pages/principal/PrincipalPages.tsx	38	atributo	No pudimos cargar la analítica.
+pages/principal/PrincipalPages.tsx	39	cadena	Los indicadores aparecen cuando los docentes verifiquen las primeras notas del periodo.
+pages/principal/PrincipalPages.tsx	39	cadena	Aún no hay notas verificadas.
+pages/principal/PrincipalPages.tsx	45	cadena	periodo abierto
+pages/principal/PrincipalPages.tsx	45	cadena	Periodo 3
+pages/principal/PrincipalPages.tsx	51	cadena	Periodo 3 · 2026
+pages/principal/PrincipalPages.tsx	62	cadena	Cargando el seguimiento docente
+pages/principal/PrincipalPages.tsx	62	cadena	No pudimos cargar el seguimiento docente.
+pages/principal/PrincipalPages.tsx	63	atributo	Aquí aparecen los docentes con calificaciones atrasadas.
+pages/principal/PrincipalPages.tsx	63	cadena	Todos los docentes están al día.
+pages/principal/PrincipalPages.tsx	63	cadena	Aún no hay asignaciones en el periodo abierto.
+pages/principal/PrincipalPages.tsx	67	cadena	Cargando las solicitudes
+pages/principal/PrincipalPages.tsx	68	cadena	No pudimos cargar las solicitudes.
+pages/principal/PrincipalPages.tsx	68	cadena	Revisa tu conexión e inténtalo de nuevo.
+pages/principal/PrincipalPages.tsx	69	cadena	No hay solicitudes pendientes.
+pages/principal/PrincipalPages.tsx	69	cadena	Las nuevas solicitudes de los docentes aparecerán aquí.
+pages/principal/PrincipalPages.tsx	72	atributo	Cómo va el colegio y qué necesita tu decisión hoy.
+pages/principal/PrincipalPages.tsx	72	atributo	Panorama Institucional
+pages/principal/PrincipalPages.tsx	72	cadena	Rectoría ·
+pages/principal/PrincipalPages.tsx	73	jsx	Ver analítica completa
+pages/principal/PrincipalPages.tsx	77	jsx	Esperan tu decisión
+pages/principal/PrincipalPages.tsx	88	jsx	Revisar solicitudes
+pages/principal/PrincipalPages.tsx	90	cadena	Docentes que requieren atención
+pages/principal/PrincipalPages.tsx	91	jsx	Docentes con pendientes
+pages/principal/PrincipalPages.tsx	96	cadena	evaluación pendiente
+pages/principal/PrincipalPages.tsx	124	cadena	No pudimos exportar el informe
+pages/principal/PrincipalPages.tsx	124	cadena	Faltan los datos del colegio. Recarga la página e inténtalo de nuevo.
+pages/principal/PrincipalPages.tsx	134	cadena	Inténtalo de nuevo.
+pages/principal/PrincipalPages.tsx	134	cadena	No pudimos exportar el informe
+pages/principal/PrincipalPages.tsx	139	atributo	Cada gráfico responde una pregunta. Pasa el cursor sobre las barras y puntos para ver el detalle.
+pages/principal/PrincipalPages.tsx	139	atributo	Rendimiento institucional
+pages/principal/PrincipalPages.tsx	140	jsx	Exportar informe
+pages/principal/PrincipalPages.tsx	142	atributo	Exportar informe
+pages/principal/PrincipalPages.tsx	143	cadena	Indicadores, promedio por grado, evolución e inasistencia de
+pages/principal/PrincipalPages.tsx	145	jsx	Cancelar
+pages/principal/PrincipalPages.tsx	148	atributo	Formato
+pages/principal/PrincipalPages.tsx	161	cadena	Cargando el seguimiento docente
+pages/principal/PrincipalPages.tsx	161	cadena	No pudimos cargar el seguimiento docente.
+pages/principal/PrincipalPages.tsx	162	atributo	Secretaría arma la malla curricular; el avance de cada docente aparecerá aquí.
+pages/principal/PrincipalPages.tsx	162	cadena	Aún no hay asignaciones en el periodo abierto.
+pages/principal/PrincipalPages.tsx	168	cadena	Supervisión ·
+pages/principal/PrincipalPages.tsx	168	cadena	Avance del registro de calificaciones por docente. Verde: al día · Amarillo: requiere atención · Rojo: retraso.
+pages/principal/PrincipalPages.tsx	168	atributo	Seguimiento Docente
+pages/principal/PrincipalPages.tsx	179	cadena	No pudimos cargar las solicitudes.
+pages/principal/PrincipalPages.tsx	179	cadena	Cargando las solicitudes
+pages/principal/PrincipalPages.tsx	182	cadena	Cambios de nota que los docentes solicitan después del cierre. Cada decisión queda en el historial.
+pages/principal/PrincipalPages.tsx	182	cadena	Bandeja de autorizaciones
+pages/principal/PrincipalPages.tsx	182	atributo	Solicitudes
+pages/principal/PrincipalPages.tsx	194	cadena	No pudimos cargar las anotaciones.
+pages/principal/PrincipalPages.tsx	194	cadena	Cargando las anotaciones
+pages/principal/PrincipalPages.tsx	195	atributo	Las observaciones que registren los docentes aparecerán aquí en orden cronológico.
+pages/principal/PrincipalPages.tsx	195	cadena	Aún no hay anotaciones.
+pages/principal/PrincipalPages.tsx	198	cadena	Anotaciones recientes de toda la institución, en orden cronológico.
+pages/principal/PrincipalPages.tsx	198	atributo	Observador
+pages/StudentProfilePage.tsx	54	jsx	Promedio · Periodo 3
+pages/StudentProfilePage.tsx	56	cadena	de 6 materias aprobadas
+pages/StudentProfilePage.tsx	58	atributo	Asistencia
+pages/StudentProfilePage.tsx	60	jsx	Paz y salvo
+pages/StudentProfilePage.tsx	61	cadena	Al día
+pages/StudentProfilePage.tsx	65	atributo	Periodos 1 a 3
+pages/StudentProfilePage.tsx	65	cadena	Evolución del promedio
+pages/StudentProfilePage.tsx	73	cadena	Calificaciones por materia
+pages/StudentProfilePage.tsx	89	atributo	Boletines bloqueados
+pages/StudentProfilePage.tsx	89	atributo	El estudiante tiene obligaciones pendientes en Paz y Salvos.
+pages/StudentProfilePage.tsx	94	cadena	Fecha de matrícula
+pages/StudentProfilePage.tsx	98	jsx	Información médica: sin alergias registradas. Visible solo para Secretaría y Rectoría.
+pages/StudentProfilePage.tsx	106	jsx	Estudiantes
+pages/StudentProfilePage.tsx	115	cadena	Secciones del perfil
+pages/StudentProfilePage.tsx	127	jsx	Estudiantes
+pages/StudentProfilePage.tsx	146	cadena	Cargando el perfil del estudiante
+pages/StudentProfilePage.tsx	147	cadena	No pudimos cargar el perfil.
+pages/StudentProfilePage.tsx	148	atributo	No encontramos a este estudiante.
+pages/StudentProfilePage.tsx	148	atributo	Puede que no esté en tus cursos o que el enlace ya no sea válido.
+pages/StudentProfilePage.tsx	148	jsx	Volver a Estudiantes
+pages/StudentProfilePage.tsx	169	cadena	Sin notas verificadas en el periodo
+pages/StudentProfilePage.tsx	171	atributo	Asistencia
+pages/StudentProfilePage.tsx	173	jsx	Paz y salvo
+pages/StudentProfilePage.tsx	174	cadena	Al día
+pages/StudentProfilePage.tsx	179	cadena	Periodos de
+pages/StudentProfilePage.tsx	179	cadena	Evolución del promedio
+pages/StudentProfilePage.tsx	181	atributo	La evolución aparece cuando el estudiante tenga notas verificadas en algún periodo.
+pages/StudentProfilePage.tsx	181	cadena	Aún no hay notas verificadas.
+pages/StudentProfilePage.tsx	188	jsx	Ves las notas de las materias que dictas; el resto las consultan Secretaría y Rectoría.
+pages/StudentProfilePage.tsx	191	cadena	Calificaciones por materia ·
+pages/StudentProfilePage.tsx	195	jsx	(isNaN(r.grade) ?
+pages/StudentProfilePage.tsx	195	jsx	Sin notas
+pages/StudentProfilePage.tsx	198	atributo	El curso no tiene materias en el periodo.
+pages/StudentProfilePage.tsx	198	cadena	Secretaría arma la malla curricular de cada curso.
+pages/StudentProfilePage.tsx	202	atributo	Aparecerá cuando los docentes tomen asistencia en el curso.
+pages/StudentProfilePage.tsx	202	cadena	Aún no hay asistencia registrada.
+pages/StudentProfilePage.tsx	204	cadena	Las observaciones de los docentes aparecerán aquí en orden cronológico.
+pages/StudentProfilePage.tsx	204	atributo	Aún no hay anotaciones.
+pages/StudentProfilePage.tsx	206	atributo	Boletines bloqueados
+pages/StudentProfilePage.tsx	206	atributo	El estudiante tiene obligaciones pendientes en Paz y Salvos.
+pages/StudentProfilePage.tsx	207	cadena	El boletín completo lo consultan Secretaría y Rectoría.
+pages/StudentProfilePage.tsx	207	cadena	Incluye las notas de todas las materias; tú ves las de tus materias en Calificaciones.
+pages/StudentProfilePage.tsx	208	cadena	Secretaría configura los periodos del año.
+pages/StudentProfilePage.tsx	208	cadena	Aún no hay periodos.
+pages/StudentProfilePage.tsx	211	cadena	sin alergias registradas
+pages/StudentProfilePage.tsx	215	cadena	Fecha de matrícula
+pages/StudentProfilePage.tsx	219	cadena	Información médica:
+pages/StudentProfilePage.tsx	227	cadena	Secciones del perfil
+pages/StudentProfilePage.tsx	236	atributo	Cargando el boletín
+pages/StudentProfilePage.tsx	237	cadena	No pudimos cargar el boletín.
+pages/StudentProfilePage.tsx	239	cadena	Aún no hay boletín para este periodo.
+pages/StudentProfilePage.tsx	239	atributo	Aparece cuando el estudiante tenga notas verificadas.
+pages/StudentProfilePage.tsx	264	cadena	: todo lo que el colegio tiene de este estudiante.
+pages/StudentProfilePage.tsx	266	cadena	Revisa tu conexión e inténtalo de nuevo.
+pages/StudentProfilePage.tsx	266	cadena	No pudimos exportar los datos
+pages/StudentProfilePage.tsx	270	atributo	Autorización del acudiente
+pages/StudentProfilePage.tsx	271	jsx	Autorización del acudiente
+pages/StudentProfilePage.tsx	272	atributo	Cargando la autorización
+pages/StudentProfilePage.tsx	273	cadena	No pudimos cargar la autorización.
+pages/StudentProfilePage.tsx	277	cadena	Datos de salud
+pages/StudentProfilePage.tsx	277	cadena	No autorizados
+pages/StudentProfilePage.tsx	281	jsx	Sin autorización registrada. El colegio debe tener la autorización firmada del acudiente para tratar estos datos.
+pages/StudentProfilePage.tsx	284	jsx	Registrar autorización
+pages/StudentProfilePage.tsx	285	jsx	Revocar autorización
+pages/StudentProfilePage.tsx	286	jsx	Exportar datos del estudiante
+pages/StudentProfilePage.tsx	288	cadena	Registrar autorización del acudiente
+pages/StudentProfilePage.tsx	289	cadena	Registra la autorización firmada que entregó el acudiente (política vigente).
+pages/StudentProfilePage.tsx	291	jsx	Cancelar
+pages/StudentProfilePage.tsx	293	cadena	Autorización registrada
+pages/StudentProfilePage.tsx	293	cadena	Quedó con la versión vigente de la política y la fecha.
+pages/StudentProfilePage.tsx	294	cadena	No se registró la autorización
+pages/StudentProfilePage.tsx	299	atributo	Quién firma
+pages/StudentProfilePage.tsx	299	cadena	Escribe el nombre de quien firmó.
+pages/StudentProfilePage.tsx	300	atributo	Parentesco
+pages/StudentProfilePage.tsx	301	atributo	Fecha en que se recibió
+pages/StudentProfilePage.tsx	302	cadena	Autorizó expresamente los datos de salud
+pages/StudentProfilePage.tsx	306	cadena	¿Revocar la autorización?
+pages/StudentProfilePage.tsx	307	cadena	Queda en el historial con el motivo. Si ya no hay autorización para datos de salud, esos datos se borran; el registro académico se conserva.
+pages/StudentProfilePage.tsx	309	jsx	Cancelar
+pages/StudentProfilePage.tsx	311	cadena	Quedó en el historial con el motivo.
+pages/StudentProfilePage.tsx	311	cadena	Autorización revocada
+pages/StudentProfilePage.tsx	312	cadena	No se revocó la autorización
+pages/StudentProfilePage.tsx	315	cadena	Obligatorio. Por ejemplo: «El acudiente retiró la autorización de salud».
+pages/StudentProfilePage.tsx	315	atributo	Motivo
+pages/teacher/ClassroomPages.tsx	41	cadena	No pudimos cargar la planilla.
+pages/teacher/ClassroomPages.tsx	41	cadena	Cargando la planilla
+pages/teacher/ClassroomPages.tsx	41	cadena	Cargando tus cursos
+pages/teacher/ClassroomPages.tsx	43	cadena	Crea las evaluaciones del periodo para registrar sus notas.
+pages/teacher/ClassroomPages.tsx	43	jsx	Ir a evaluaciones
+pages/teacher/ClassroomPages.tsx	43	atributo	Este curso aún no tiene evaluaciones.
+pages/teacher/ClassroomPages.tsx	47	cadena	Planilla de Calificaciones
+pages/teacher/ClassroomPages.tsx	47	cadena	Escribe sin soltar el teclado. El promedio se calcula solo con los porcentajes del periodo.
+pages/teacher/ClassroomPages.tsx	70	cadena	Cargando los conceptos
+pages/teacher/ClassroomPages.tsx	70	cadena	No pudimos cargar los conceptos.
+pages/teacher/ClassroomPages.tsx	70	cadena	Cargando tus cursos
+pages/teacher/ClassroomPages.tsx	73	atributo	Curso
+pages/teacher/ClassroomPages.tsx	79	cadena	Director de grupo ·
+pages/teacher/ClassroomPages.tsx	80	cadena	Conceptos del periodo
+pages/teacher/ClassroomPages.tsx	80	cadena	Mensajes del director
+pages/teacher/ClassroomPages.tsx	81	cadena	El mensaje que firmas al final del boletín de cada estudiante de tu grupo. La IA te ayuda con el primer borrador.
+pages/teacher/ClassroomPages.tsx	81	cadena	El concepto que acompaña la nota de cada estudiante en el boletín. La IA te ayuda con el primer borrador.
+pages/teacher/ClassroomPages.tsx	84	cadena	Qué escribir
+pages/teacher/ClassroomPages.tsx	85	cadena	Mensajes de director ·
+pages/teacher/ClassroomPages.tsx	85	cadena	Conceptos de mi materia
+pages/teacher/ClassroomPages.tsx	93	cadena	Lo redacta a partir del promedio del periodo, sus mejores y más bajas materias y las faltas. Ningún mensaje llega al boletín sin tu revisión.
+pages/teacher/ClassroomPages.tsx	95	cadena	materias con nota
+pages/teacher/ClassroomPages.tsx	95	cadena	Sin notas verificadas
+pages/teacher/ClassroomPages.tsx	97	cadena	mensajes del grupo
+pages/teacher/ClassroomPages.tsx	97	cadena	quedaron en los boletines del
+pages/teacher/ClassroomPages.tsx	98	cadena	de tus
+pages/teacher/ClassroomPages.tsx	98	cadena	estudiantes, con tu firma.
+pages/teacher/ClassroomPages.tsx	98	cadena	Aparecerán al final del boletín del
+pages/teacher/ClassroomPages.tsx	116	cadena	No pudimos cargar las recuperaciones.
+pages/teacher/ClassroomPages.tsx	116	cadena	Cargando tus cursos
+pages/teacher/ClassroomPages.tsx	117	cadena	No pudimos cargar las recuperaciones.
+pages/teacher/ClassroomPages.tsx	117	cadena	Cargando las recuperaciones
+pages/teacher/ClassroomPages.tsx	120	cadena	Solo aparecen los estudiantes con una materia por debajo de 3.0.
+pages/teacher/ClassroomPages.tsx	120	atributo	Recuperaciones
+pages/teacher/ClassroomPages.tsx	120	cadena	· actividades de recuperación
+pages/teacher/ClassroomPages.tsx	120	cadena	Periodo 2
+pages/teacher/ClassroomPages.tsx	137	cadena	No pudimos cargar la asistencia.
+pages/teacher/ClassroomPages.tsx	137	cadena	Cargando la lista del curso
+pages/teacher/ClassroomPages.tsx	137	cadena	Cargando tus cursos
+pages/teacher/ClassroomPages.tsx	141	atributo	Asistencia
+pages/teacher/ClassroomPages.tsx	141	cadena	Marca a todos en segundos. Agrega observaciones solo cuando haga falta.
+pages/teacher/ClassroomPages.tsx	141	cadena	Jueves 1 de octubre · 2.ª hora
+pages/teacher/ClassroomPages.tsx	177	cadena	Ana Lucía Rosero
+pages/teacher/ClassroomPages.tsx	184	cadena	Observación registrada
+pages/teacher/ClassroomPages.tsx	184	cadena	Quedó en el observador de
+pages/teacher/ClassroomPages.tsx	185	cadena	No pudimos registrar la observación
+pages/teacher/ClassroomPages.tsx	196	cadena	se destacó durante la clase:
+pages/teacher/ClassroomPages.tsx	197	cadena	Durante la clase,
+pages/teacher/ClassroomPages.tsx	197	cadena	presentó la siguiente situación:
+pages/teacher/ClassroomPages.tsx	198	cadena	Se informa que
+pages/teacher/ClassroomPages.tsx	203	cadena	No pudimos cargar las anotaciones.
+pages/teacher/ClassroomPages.tsx	203	cadena	Cargando las anotaciones
+pages/teacher/ClassroomPages.tsx	204	atributo	Las observaciones que registres aparecerán aquí en orden cronológico.
+pages/teacher/ClassroomPages.tsx	204	cadena	Aún no hay anotaciones.
+pages/teacher/ClassroomPages.tsx	205	cadena	Cargando tus cursos
+pages/teacher/ClassroomPages.tsx	208	atributo	Comportamiento
+pages/teacher/ClassroomPages.tsx	208	cadena	Observador del estudiante
+pages/teacher/ClassroomPages.tsx	208	atributo	Registra anotaciones positivas, informativas o de atención. El acudiente las ve en su aplicación.
+pages/teacher/ClassroomPages.tsx	210	cadena	Nueva observación
+pages/teacher/ClassroomPages.tsx	211	jsx	Nueva observación
+pages/teacher/ClassroomPages.tsx	214	atributo	Selecciona
+pages/teacher/ClassroomPages.tsx	214	atributo	Estudiante
+pages/teacher/ClassroomPages.tsx	215	cadena	Selecciona un estudiante.
+pages/teacher/ClassroomPages.tsx	218	cadena	Tipo de observación
+pages/teacher/ClassroomPages.tsx	221	atributo	Participación destacada
+pages/teacher/ClassroomPages.tsx	221	cadena	Escribe un título breve.
+pages/teacher/ClassroomPages.tsx	221	atributo	Título
+pages/teacher/ClassroomPages.tsx	222	cadena	Escribe notas cortas y deja que la IA las redacte; revisa antes de agregar.
+pages/teacher/ClassroomPages.tsx	222	atributo	El estudiante participó activamente durante la actividad.
+pages/teacher/ClassroomPages.tsx	222	atributo	Descripción
+pages/teacher/ClassroomPages.tsx	223	jsx	Redactar con IA
+pages/teacher/ClassroomPages.tsx	224	jsx	Agregar observación
+pages/teacher/ClassroomPages.tsx	229	jsx	Anotaciones recientes
+pages/teacher/DashboardPage.tsx	23	cadena	No pudimos cargar tu resumen.
+pages/teacher/DashboardPage.tsx	23	cadena	Cargando tu resumen
+pages/teacher/DashboardPage.tsx	23	cadena	Cargando tus cursos
+pages/teacher/DashboardPage.tsx	34	cadena	notas esperando
+pages/teacher/DashboardPage.tsx	34	cadena	en revisión y
+pages/teacher/DashboardPage.tsx	34	cadena	tu verificación.
+pages/teacher/DashboardPage.tsx	34	cadena	nota esperando
+pages/teacher/DashboardPage.tsx	36	jsx	Nueva evaluación
+pages/teacher/DashboardPage.tsx	43	atributo	Continuar revisión
+pages/teacher/DashboardPage.tsx	45	jsx	Continúa donde quedaste
+pages/teacher/DashboardPage.tsx	56	cadena	Avance de revisión
+pages/teacher/DashboardPage.tsx	58	jsx	Continuar revisión
+pages/teacher/DashboardPage.tsx	63	jsx	No tienes revisiones pendientes
+pages/teacher/DashboardPage.tsx	64	jsx	Cuando subas las fotografías de una evaluación, aparecerá aquí.
+pages/teacher/DashboardPage.tsx	66	jsx	Calificar una evaluación
+pages/teacher/DashboardPage.tsx	72	cadena	nota por verificar
+pages/teacher/DashboardPage.tsx	72	cadena	notas por verificar
+pages/teacher/DashboardPage.tsx	76	jsx	verificadas este mes
+pages/teacher/DashboardPage.tsx	84	atributo	Evaluaciones en curso
+pages/teacher/DashboardPage.tsx	85	jsx	Ver todas
+pages/teacher/DashboardPage.tsx	85	jsx	Evaluaciones en curso
+pages/teacher/DashboardPage.tsx	94	cadena	Avance de
+pages/teacher/DashboardPage.tsx	100	atributo	Crea las evaluaciones del periodo para empezar a calificar.
+pages/teacher/DashboardPage.tsx	100	jsx	Ir a evaluaciones
+pages/teacher/DashboardPage.tsx	100	cadena	No hay evaluaciones en curso.
+pages/teacher/DashboardPage.tsx	102	atributo	Requieren tu atención
+pages/teacher/DashboardPage.tsx	103	jsx	Requieren tu atención
+pages/teacher/DashboardPage.tsx	109	cadena	Recordatorio de
+pages/teacher/DashboardPage.tsx	111	cadena	No pudimos marcarlo como visto
+pages/teacher/DashboardPage.tsx	111	cadena	Revisa tu conexión e inténtalo de nuevo.
+pages/teacher/DashboardPage.tsx	112	cadena	Marcar como visto el recordatorio de
+pages/teacher/DashboardPage.tsx	119	atributo	Revisar nota de
+pages/teacher/DashboardPage.tsx	123	cadena	Nada pendiente por revisar.
+pages/teacher/DashboardPage.tsx	123	atributo	Las notas con baja confianza o sin detección aparecerán aquí.
+pages/teacher/GradingPages.tsx	38	cadena	No se leyó
+pages/teacher/GradingPages.tsx	38	cadena	En cola
+pages/teacher/GradingPages.tsx	38	cadena	Sin estudiante
+pages/teacher/GradingPages.tsx	70	cadena	Leyendo código, nombre y nota…
+pages/teacher/GradingPages.tsx	73	cadena	sin nota
+pages/teacher/GradingPages.tsx	75	cadena	No se guardó: anótala a mano en la planilla.
+pages/teacher/GradingPages.tsx	79	cadena	No pudimos leer la foto.
+pages/teacher/GradingPages.tsx	83	cadena	El servicio de lectura no está listo
+pages/teacher/GradingPages.tsx	102	cadena	No pudimos generar el código.
+pages/teacher/GradingPages.tsx	104	cadena	No pudimos generar el código.
+pages/teacher/GradingPages.tsx	136	cadena	No pudimos cargar tus evaluaciones.
+pages/teacher/GradingPages.tsx	136	cadena	Cargando tus evaluaciones
+pages/teacher/GradingPages.tsx	136	cadena	Cargando tus cursos
+pages/teacher/GradingPages.tsx	140	cadena	Calificar una evaluación
+pages/teacher/GradingPages.tsx	140	cadena	Paso 1 a 4 · la IA trabaja, tú esperas
+pages/teacher/GradingPages.tsx	141	atributo	Elige la evaluación y sube las fotografías. NotaScan identifica a cada estudiante por el código y el nombre que escribió en la hoja.
+pages/teacher/GradingPages.tsx	142	jsx	Ir a revisión
+pages/teacher/GradingPages.tsx	148	atributo	Evaluación
+pages/teacher/GradingPages.tsx	149	jsx	1 · Evaluación
+pages/teacher/GradingPages.tsx	151	atributo	Asignatura
+pages/teacher/GradingPages.tsx	152	atributo	Curso
+pages/teacher/GradingPages.tsx	153	atributo	Evaluación
+pages/teacher/GradingPages.tsx	155	cadena	No hay evaluaciones abiertas en este curso.
+pages/teacher/GradingPages.tsx	155	jsx	Ir a evaluaciones
+pages/teacher/GradingPages.tsx	155	atributo	Crea la evaluación en Evaluaciones y vuelve para subir las fotos.
+pages/teacher/GradingPages.tsx	157	atributo	Fotografías
+pages/teacher/GradingPages.tsx	158	jsx	2 · Fotografías
+pages/teacher/GradingPages.tsx	159	atributo	Arrastra las fotos del examen o haz clic. Una hoja por foto, con el código y el nombre del estudiante a la vista.
+pages/teacher/GradingPages.tsx	163	atributo	Celular conectado ·
+pages/teacher/GradingPages.tsx	163	jsx	Toma las fotos con el celular y llegan aquí solas.
+pages/teacher/GradingPages.tsx	183	cadena	Sin estudiante
+pages/teacher/GradingPages.tsx	185	cadena	Estudiante identificado
+pages/teacher/GradingPages.tsx	185	cadena	Sin estudiante identificado
+pages/teacher/GradingPages.tsx	187	atributo	Cada foto se lee en unos segundos. La IA solo detecta: tú revisas y confirmas cada nota.
+pages/teacher/GradingPages.tsx	187	cadena	Aún no has subido fotografías.
+pages/teacher/GradingPages.tsx	203	cadena	Santiago Muñoz · sin detección
+pages/teacher/GradingPages.tsx	204	cadena	Detectando calificación…
+pages/teacher/GradingPages.tsx	205	cadena	En espera
+pages/teacher/GradingPages.tsx	210	cadena	Calificar una evaluación
+pages/teacher/GradingPages.tsx	210	cadena	Paso 1 a 4 · la IA trabaja, tú esperas
+pages/teacher/GradingPages.tsx	211	atributo	Elige la evaluación, sube las fotografías y NotaScan identificará a cada estudiante por su código QR.
+pages/teacher/GradingPages.tsx	212	jsx	Ir a revisión
+pages/teacher/GradingPages.tsx	217	atributo	Evaluación
+pages/teacher/GradingPages.tsx	218	jsx	1 · Evaluación
+pages/teacher/GradingPages.tsx	220	atributo	Asignatura
+pages/teacher/GradingPages.tsx	221	atributo	Curso
+pages/teacher/GradingPages.tsx	222	atributo	Evaluación
+pages/teacher/GradingPages.tsx	225	atributo	Fotografías
+pages/teacher/GradingPages.tsx	226	jsx	2 · Fotografías
+pages/teacher/GradingPages.tsx	227	cadena	En espera
+pages/teacher/GradingPages.tsx	233	cadena	En cola
+pages/teacher/GradingPages.tsx	287	cadena	La evaluación
+pages/teacher/GradingPages.tsx	287	cadena	quedó actualizado.
+pages/teacher/GradingPages.tsx	291	cadena	No pudimos guardar las calificaciones
+pages/teacher/GradingPages.tsx	291	cadena	Tus verificaciones siguen en pantalla.
+pages/teacher/GradingPages.tsx	299	atributo	No pudimos cargar la revisión.
+pages/teacher/GradingPages.tsx	300	jsx	Calificar una evaluación
+pages/teacher/GradingPages.tsx	300	cadena	Cuando la IA termine de leer las fotografías de una evaluación, sus notas aparecerán aquí para que las verifiques.
+pages/teacher/GradingPages.tsx	300	atributo	No tienes evaluaciones en revisión.
+pages/teacher/GradingPages.tsx	301	cadena	Esta evaluación aún no tiene notas detectadas.
+pages/teacher/GradingPages.tsx	301	jsx	Subir fotografías
+pages/teacher/GradingPages.tsx	301	atributo	Sube las fotografías para que la IA las lea.
+pages/teacher/GradingPages.tsx	307	cadena	sin verificar quedarán pendientes
+pages/teacher/GradingPages.tsx	312	atributo	Revisión de calificaciones
+pages/teacher/GradingPages.tsx	312	cadena	IA + docente
+pages/teacher/GradingPages.tsx	312	cadena	Evaluación en revisión
+pages/teacher/GradingPages.tsx	313	cadena	La IA terminó el reconocimiento. Verifica las calificaciones antes de guardarlas.
+pages/teacher/GradingPages.tsx	315	jsx	Subir más fotos
+pages/teacher/GradingPages.tsx	316	jsx	Confirmar y guardar
+pages/teacher/GradingPages.tsx	330	cadena	Requiere revisión
+pages/teacher/GradingPages.tsx	347	jsx	Ver todas
+pages/teacher/GradingPages.tsx	347	atributo	No hay calificaciones con este filtro.
+pages/teacher/GradingPages.tsx	347	cadena	Prueba con otro estado o limpia la búsqueda.
+pages/teacher/ListPages.tsx	32	cadena	Consolidado por curso
+pages/teacher/ListPages.tsx	32	cadena	Notas definitivas y promedio ponderado de cada estudiante.
+pages/teacher/ListPages.tsx	33	cadena	Por estudiante
+pages/teacher/ListPages.tsx	33	cadena	Historial de calificaciones y observaciones de un estudiante.
+pages/teacher/ListPages.tsx	34	cadena	Por evaluación
+pages/teacher/ListPages.tsx	34	cadena	Distribución de notas, confianza de IA y correcciones manuales.
+pages/teacher/ListPages.tsx	62	cadena	No pudimos generar el reporte
+pages/teacher/ListPages.tsx	62	cadena	Faltan los datos del colegio. Recarga la página e inténtalo de nuevo.
+pages/teacher/ListPages.tsx	79	cadena	Revisa tu conexión e inténtalo de nuevo.
+pages/teacher/ListPages.tsx	79	cadena	No pudimos generar el reporte
+pages/teacher/ListPages.tsx	92	atributo	Cargando cursos y periodos
+pages/teacher/ListPages.tsx	93	cadena	No pudimos cargar los cursos y periodos.
+pages/teacher/ListPages.tsx	94	cadena	Aún no hay periodos en el año lectivo.
+pages/teacher/ListPages.tsx	94	atributo	Los reportes usan los cursos de la malla curricular y los periodos que configura Secretaría.
+pages/teacher/ListPages.tsx	94	cadena	No tienes cursos asignados.
+pages/teacher/ListPages.tsx	98	atributo	Formato
+pages/teacher/ListPages.tsx	100	atributo	Curso
+pages/teacher/ListPages.tsx	101	atributo	Periodo
+pages/teacher/ListPages.tsx	114	atributo	Reportes recientes
+pages/teacher/ListPages.tsx	116	cadena	Cargando el historial
+pages/teacher/ListPages.tsx	117	cadena	No pudimos cargar el historial.
+pages/teacher/ListPages.tsx	118	cadena	Aún no has generado reportes.
+pages/teacher/ListPages.tsx	118	atributo	Cada reporte que generes quedará aquí para volver a descargarlo con los datos del momento.
+pages/teacher/ListPages.tsx	128	atributo	Descargar
+pages/teacher/ListPages.tsx	140	atributo	Reportes
+pages/teacher/ListPages.tsx	141	cadena	Genera reportes solo con calificaciones verificadas por ti.
+pages/teacher/ListPages.tsx	141	cadena	Genera reportes con las calificaciones verificadas de la institución.
+pages/teacher/ListPages.tsx	145	cadena	Reporte por estudiante
+pages/teacher/ListPages.tsx	145	cadena	Reporte por evaluación
+pages/teacher/ListPages.tsx	146	cadena	Historial del año
+pages/teacher/ListPages.tsx	148	jsx	Cancelar
+pages/teacher/ListPages.tsx	156	atributo	Cargando opciones
+pages/teacher/ListPages.tsx	157	atributo	Selecciona
+pages/teacher/ListPages.tsx	158	cadena	Elige otro curso o periodo.
+pages/teacher/ListPages.tsx	158	cadena	No hay evaluaciones en este curso y periodo.
+pages/teacher/ListPages.tsx	158	cadena	El curso no tiene estudiantes activos.
+pages/teacher/ListPages.tsx	178	cadena	Consolidado por curso
+pages/teacher/ListPages.tsx	178	cadena	Notas definitivas y promedio ponderado de cada estudiante.
+pages/teacher/ListPages.tsx	179	cadena	Por estudiante
+pages/teacher/ListPages.tsx	179	cadena	Historial de calificaciones y observaciones de un estudiante.
+pages/teacher/ListPages.tsx	180	cadena	Por evaluación
+pages/teacher/ListPages.tsx	180	cadena	Distribución de notas, confianza de IA y correcciones manuales.
+pages/teacher/ListPages.tsx	184	cadena	Genera reportes solo con calificaciones verificadas por ti.
+pages/teacher/ListPages.tsx	184	atributo	Reportes
+pages/teacher/ListPages.tsx	186	atributo	Formato
+pages/teacher/ListPages.tsx	188	atributo	Curso
+pages/teacher/ListPages.tsx	189	atributo	Periodo
+pages/teacher/ListPages.tsx	202	atributo	Reportes recientes
+pages/teacher/ListPages.tsx	207	cadena	Ana Lucía Rosero
+pages/teacher/ListPages.tsx	208	cadena	Ana Lucía Rosero
+pages/teacher/ListPages.tsx	208	cadena	Parcial 1 · Matemáticas
+pages/teacher/ListPages.tsx	209	cadena	María Fernanda López
+pages/teacher/ListPages.tsx	209	cadena	Ana Lucía Rosero
+pages/teacher/ListPages.tsx	216	atributo	Descargar
+pages/teacher/RosterPages.tsx	38	cadena	Requiere revisión
+pages/teacher/RosterPages.tsx	55	cadena	Cargando tus estudiantes
+pages/teacher/RosterPages.tsx	55	cadena	Cargando tus cursos
+pages/teacher/RosterPages.tsx	55	cadena	No pudimos cargar tus estudiantes.
+pages/teacher/RosterPages.tsx	56	cadena	Cuando Secretaría matricule estudiantes en tus cursos, aparecerán aquí.
+pages/teacher/RosterPages.tsx	56	cadena	No tienes estudiantes en tus cursos.
+pages/teacher/RosterPages.tsx	58	cadena	Última evaluación
+pages/teacher/RosterPages.tsx	63	cadena	Matemáticas · Periodo 3 · 2026
+pages/teacher/RosterPages.tsx	63	atributo	Estudiantes
+pages/teacher/RosterPages.tsx	64	cadena	Consulta el desempeño de cada estudiante y el estado de su última calificación.
+pages/teacher/RosterPages.tsx	65	jsx	Exportar lista
+pages/teacher/RosterPages.tsx	71	cadena	Requiere revisión
+pages/teacher/RosterPages.tsx	76	cadena	Estudiantes de
+pages/teacher/RosterPages.tsx	81	jsx	Sin datos
+pages/teacher/RosterPages.tsx	81	jsx	(isNaN(r.avg) ?
+pages/teacher/RosterPages.tsx	81	cadena	Desempeño de
+pages/teacher/RosterPages.tsx	82	cadena	Última evaluación
+pages/teacher/RosterPages.tsx	86	atributo	Ningún estudiante coincide.
+pages/teacher/RosterPages.tsx	86	cadena	Prueba con otro nombre, ID o curso.
+pages/teacher/RosterPages.tsx	109	cadena	No pudimos cargar las evaluaciones.
+pages/teacher/RosterPages.tsx	109	cadena	Cargando tus cursos
+pages/teacher/RosterPages.tsx	109	cadena	Cargando las evaluaciones
+pages/teacher/RosterPages.tsx	114	cadena	Escribe el nombre de la evaluación.
+pages/teacher/RosterPages.tsx	115	cadena	Escribe un porcentaje entre 1 y 100.
+pages/teacher/RosterPages.tsx	116	cadena	Con esta evaluación el periodo sumaría
+pages/teacher/RosterPages.tsx	116	cadena	%. El máximo es 100 %.
+pages/teacher/RosterPages.tsx	128	cadena	Evaluación creada
+pages/teacher/RosterPages.tsx	130	cadena	No pudimos crear la evaluación
+pages/teacher/RosterPages.tsx	134	atributo	Curso
+pages/teacher/RosterPages.tsx	138	atributo	Evaluaciones
+pages/teacher/RosterPages.tsx	139	cadena	Exámenes, talleres y actividades del periodo con su porcentaje y estado de revisión.
+pages/teacher/RosterPages.tsx	140	jsx	Nueva evaluación
+pages/teacher/RosterPages.tsx	146	jsx	Porcentaje asignado
+pages/teacher/RosterPages.tsx	147	jsx	% de 100%
+pages/teacher/RosterPages.tsx	149	cadena	Distribución de porcentajes
+pages/teacher/RosterPages.tsx	167	cadena	Avance de
+pages/teacher/RosterPages.tsx	178	cadena	Prueba con otra pestaña.
+pages/teacher/RosterPages.tsx	178	atributo	No hay evaluaciones de este tipo.
+pages/teacher/RosterPages.tsx	178	jsx	Ver todas
+pages/teacher/RosterPages.tsx	179	atributo	Crea los exámenes, talleres y actividades del periodo con su porcentaje.
+pages/teacher/RosterPages.tsx	179	jsx	Nueva evaluación
+pages/teacher/RosterPages.tsx	179	atributo	Este curso aún no tiene evaluaciones.
+pages/teacher/RosterPages.tsx	182	cadena	Nueva evaluación
+pages/teacher/RosterPages.tsx	183	cadena	onClick={() => setForm(null)}>Cancelar</Button>, <Button key=
+pages/teacher/RosterPages.tsx	183	jsx	Crear evaluación
+pages/teacher/RosterPages.tsx	183	jsx	Cancelar
+pages/teacher/RosterPages.tsx	186	atributo	Parcial 3
+pages/teacher/RosterPages.tsx	186	atributo	Nombre
+pages/teacher/RosterPages.tsx	189	atributo	Tipo de evaluación
+pages/teacher/RosterPages.tsx	192	atributo	Porcentaje
+pages/teacher/RosterPages.tsx	193	atributo	Asignado hasta ahora:
+pages/teacher/RosterPages.tsx	193	atributo	20
+pages/teacher/RosterPages.tsx	194	cadena	Fecha de entrega
+pages/teacher/states.tsx	20	cadena	No pudimos cargar tus cursos.
+pages/teacher/states.tsx	21	cadena	Secretaría arma la malla curricular; cuando te asigne un curso aparecerá aquí.
+pages/teacher/states.tsx	21	cadena	No tienes cursos asignados en el periodo abierto.
+pages/teacher/states.tsx	32	cadena	Este curso no tiene estudiantes activos.
+pages/teacher/states.tsx	32	atributo	Cuando Secretaría matricule estudiantes en el curso, aparecerán aquí.
+services/admin.ts	22	cadena	Ya hay un periodo abierto. Ciérralo antes de abrir otro.
+services/admin.ts	23	cadena	Ya existe un registro con ese nombre o código.
+services/admin.ts	24	cadena	No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.
+services/admin.ts	85	cadena	Básica secundaria
+services/admin.ts	135	cadena	Periodo 3
+services/admin.ts	256	cadena	pesos. Usa «Crear periodo» para agregar uno.
+services/admin.ts	276	cadena	Un año lectivo admite hasta 6 periodos.
+services/admin.ts	346	cadena	Secretaría académica
+services/admin.ts	362	cadena	Esta persona aún no tiene cuenta.
+services/client.ts	26	jsx	(data: T, empty: T): Promise
+services/client.ts	29	cadena	Error forzado (demostración)
+services/client.ts	45	jsx	): Promise
+services/enrollment.ts	21	cadena	No pudimos guardar la matrícula. Revisa tu conexión e inténtalo de nuevo.
+services/enrollment.ts	24	cadena	Cédula de ciudadanía
+services/enrollment.ts	24	cadena	Tarjeta de identidad
+services/enrollment.ts	24	cadena	Cédula de extranjería
+services/enrollment.ts	84	cadena	Número de documento
+services/enrollment.ts	84	cadena	Fecha de nacimiento
+services/enrollment.ts	84	cadena	Tipo de documento
+services/enrollment.ts	135	cadena	(sin nombre)
+services/enrollment.ts	140	cadena	Documento vacío
+services/enrollment.ts	141	cadena	Documento incompleto (mínimo 8 dígitos)
+services/enrollment.ts	142	cadena	El curso
+services/enrollment.ts	142	cadena	no existe en la estructura académica
+services/enrollment.ts	143	cadena	Fecha de nacimiento inválida:
+services/enrollment.ts	144	cadena	Ya existe un estudiante con este documento
+services/enrollment.ts	145	cadena	Fila repetida (igual a la fila
+services/enrollment.ts	146	cadena	Falta el teléfono del acudiente
+services/enrollment.ts	167	cadena	Los archivos .xls antiguos no se pueden leer. En Excel: Archivo → Guardar como → «Libro de Excel (.xlsx)» o «CSV UTF-8».
+services/enrollment.ts	168	cadena	Solo se aceptan archivos Excel (.xlsx) o CSV.
+services/enrollment.ts	173	cadena	No pudimos leer el archivo. Revisa que sea un .xlsx o CSV válido y que no esté protegido con contraseña.
+services/enrollment.ts	175	cadena	El archivo no tiene filas de estudiantes debajo del encabezado.
+services/enrollment.ts	203	cadena	Tarjeta de identidad
+services/enrollment.ts	359	jsx	((s.data ?? []) as Array
+services/institution.ts	29	cadena	Colegio Los Andes
+services/institution.ts	30	cadena	Resolución 0123 de 2015
+services/institution.ts	108	cadena	Año lectivo
+services/institution.ts	108	cadena	Sin periodo abierto
+services/institution.ts	109	cadena	Sin periodo abierto
+services/offlineQueue.ts	93	cadena	(evaluación cerrada o sin permiso):
+services/offlineQueue.ts	93	cadena	La base no aceptó
+services/phoneUpload.ts	16	cadena	No pudimos generar el código.
+services/phoneUpload.ts	18	cadena	No pudimos generar el código.
+services/platform.ts	16	cadena	Revisa el DANE (12 dígitos) y las iniciales (hasta 3 letras).
+services/platform.ts	17	cadena	No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.
+services/platform.ts	41	jsx	0.2 ? "grows" : ch
+services/platform.ts	44	jsx	, extra: Partial
+services/platform.ts	58	cadena	Institución Educativa La Merced
+services/platform.ts	60	cadena	Liceo del Sur
+services/platform.ts	105	cadena	Renueva el contrato o suspende el colegio.
+services/platform.ts	106	cadena	El contrato vence en
+services/platform.ts	106	jsx	= 0 && d
+services/platform.ts	106	cadena	Conviene acordar la renovación antes del cierre.
+services/platform.ts	108	cadena	No hay notas verificadas ni asistencia tomada.
+services/platform.ts	108	cadena	Sin uso en las últimas dos semanas
+services/platform.ts	109	cadena	Las últimas 4 semanas tienen más de un 20 % menos de actividad que las 4 anteriores.
+services/platform.ts	109	cadena	El uso viene cayendo
+services/platform.ts	110	cadena	Nadie del colegio puede configurar la estructura ni matricular.
+services/platform.ts	110	cadena	Sin cuenta de Secretaría registrada
+services/platform.ts	111	cadena	Nadie del colegio ha entrado todavía
+services/platform.ts	111	cadena	La Secretaría registrada aún no activa su cuenta. Puedes reenviarle la invitación.
+services/platform.ts	112	cadena	Los boletines salen con las iniciales del colegio.
+services/platform.ts	112	cadena	Sin logo
+services/platform.ts	113	cadena	El encabezado de los boletines sale incompleto.
+services/platform.ts	113	cadena	Faltan resolución o DANE
+services/platform.ts	186	cadena	No pudimos enviar la invitación. Revisa tu conexión e inténtalo de nuevo.
+services/platform.ts	198	cadena	Claudia Enríquez
+services/principal.ts	32	cadena	Escribe el motivo del rechazo.
+services/principal.ts	33	cadena	No pudimos guardar la decisión. Revisa tu conexión e inténtalo de nuevo.
+services/principal.ts	59	cadena	Creada por
+services/principal.ts	192	cadena	Sin registros
+services/principal.ts	223	jsx	e.due_date && e.due_date
+services/principal.ts	227	jsx	(), touched = new Map
+services/privacy.ts	20	cadena	No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.
+services/privacy.ts	80	cadena	No encontramos a este estudiante.
+services/privacy.ts	89	cadena	Datos personales del estudiante que conserva el colegio en NotaScan (Ley 1581 de 2012, derecho de acceso).
+services/reminders.ts	16	cadena	con notas sin verificar en el
+services/reportCards.ts	45	cadena	Sin asignar
+services/reportCards.ts	50	jsx	p.year === cur.year && p.position
+services/reportCards.ts	115	cadena	Puesto en el curso
+services/reportCards.ts	115	cadena	Sin notas del periodo
+services/reportCards.ts	115	cadena	Director de grupo
+services/reportCards.ts	170	cadena	cerró el periodo con un desempeño superior que refleja disciplina y gusto por aprender.
+services/reportCards.ts	171	cadena	tuvo un periodo muy positivo: es responsable y participa en clase.
+services/reportCards.ts	172	cadena	cumplió con los procesos del periodo y muestra disposición para mejorar.
+services/reportCards.ts	173	cadena	atravesó un periodo difícil y necesita nuestro acompañamiento cercano para recuperar el ritmo.
+services/reportCards.ts	174	cadena	Se destaca en
+services/reportCards.ts	175	cadena	Le pedimos cuidar la asistencia: registra
+services/reportCards.ts	175	cadena	faltas en el periodo.
+services/reportCards.ts	176	cadena	Invitamos a la familia a una reunión para acordar un plan de mejoramiento.
+services/reportCards.ts	176	cadena	Contamos con el apoyo de la familia para seguir creciendo.
+services/reports.ts	23	cadena	Sin notas
+services/reports.ts	156	jsx	(r[1 + i] as number)
+services/reports.ts	158	cadena	Consolidado por curso
+services/reports.ts	160	cadena	Promedio del curso
+services/reports.ts	162	cadena	Nota del periodo por estudiante y materia
+services/reports.ts	167	cadena	Nota de cada materia: promedio ponderado (peso de cada evaluación) de las notas verificadas del periodo. Sin nota: aún no hay notas verificadas.
+services/reports.ts	168	cadena	Incluye solo las materias que dicta quien generó el reporte.
+services/reports.ts	179	cadena	No encontramos a este estudiante.
+services/reports.ts	203	cadena	Notas por materia y periodo con el acumulado del año
+services/reports.ts	208	cadena	Observador del estudiante
+services/reports.ts	213	cadena	Año lectivo
+services/reports.ts	213	cadena	Reporte por estudiante
+services/reports.ts	217	cadena	Acumulado: promedio de los periodos con nota, ponderado con los pesos que configura Secretaría (
+services/reports.ts	218	cadena	Incluye solo las materias que dicta quien generó el reporte.
+services/reports.ts	225	cadena	Sin detección
+services/reports.ts	225	cadena	Por verificar
+services/reports.ts	231	cadena	No encontramos la evaluación.
+services/reports.ts	240	jsx	= lo && v
+services/reports.ts	248	cadena	Mínima · máxima
+services/reports.ts	249	cadena	Confianza promedio de la IA
+services/reports.ts	253	cadena	Distribución de las notas verificadas por desempeño
+services/reports.ts	258	cadena	Nota de cada estudiante: lo que leyó la IA y la nota final
+services/reports.ts	259	cadena	Nota final
+services/reports.ts	259	cadena	Leída por la IA
+services/reports.ts	263	cadena	La distribución y el promedio usan solo las notas verificadas. «Corregidas»: la nota final es distinta de la que leyó la IA.
+services/reports.ts	271	cadena	Informe de rendimiento
+services/reports.ts	274	cadena	Índice de reprobación
+services/reports.ts	275	cadena	Tasa de inasistencia
+services/reports.ts	275	cadena	Sin asistencia registrada
+services/reports.ts	279	cadena	Por debajo
+services/reports.ts	279	jsx	[g.label, g.value, g.value
+services/reports.ts	279	cadena	Promedio por grado frente a la meta
+services/reports.ts	279	cadena	Frente a la meta
+services/reports.ts	279	cadena	En la meta o por encima
+services/reports.ts	280	cadena	Evolución del promedio institucional
+services/reports.ts	281	cadena	Tasa de inasistencia por grado
+services/reports.ts	283	cadena	Notas verificadas del periodo, con la misma regla del Ranking. Reprobar: alguna materia por debajo de 3.0.
+services/reports.ts	316	cadena	con NotaScan.
+services/reports.ts	316	cadena	Generado por
+services/teacher.ts	41	cadena	No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.
+services/teacher.ts	41	cadena	La evaluación está cerrada. Solicita el cambio de nota a Rectoría.
+services/teacher.ts	233	cadena	Participó activamente durante la actividad.
+services/teacherOverview.ts	19	cadena	Sin fecha
+services/teacherOverview.ts	89	cadena	Ana Lucía
+services/teacherOverview.ts	89	cadena	Martes 30 de septiembre · Periodo 3 · 2026
+services/teacherOverview.ts	89	cadena	Buenos días
+services/teacherOverview.ts	89	cadena	promedio de Matemáticas 7A
+services/teacherOverview.ts	115	cadena	Buenos días
+services/teacherOverview.ts	127	cadena	Sin detección ·
+services/vision.ts	33	cadena	No se pudo preparar la foto.
+services/vision.ts	41	cadena	No pudimos leer la foto. Revisa tu conexión e inténtalo de nuevo.
+services/vision.ts	48	cadena	Ese archivo no es una imagen que se pueda leer (usa JPG o PNG).
+services/vision.ts	51	cadena	No pudimos subir la foto. Revisa tu conexión e inténtalo de nuevo.

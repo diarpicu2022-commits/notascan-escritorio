@@ -1,6 +1,8 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { cx } from "../../lib/cx";
 import { Icon, type IconName } from "./Icon";
+import { useI18n } from "../../i18n/I18nProvider";
+
 
 // Tonos de notascan.css (.ns-progress--*). "gold" lo usa el sistema en su marcado aunque no tiene
 // regla propia: se ve con el relleno por defecto. Se acepta para reproducir el mismo DOM.
@@ -9,8 +11,9 @@ type Tone = "sage" | "burgundy" | "inverse" | "gold";
 /** Barra de avance con role="progressbar". */
 export function Progress({ value, total, tone, label }: { value: number; total: number; tone?: Tone; label?: string }) {
   const pct = total ? Math.round((value / total) * 100) : 0;
+  const { t } = useI18n();
   return (
-    <div className={cx("ns-progress", tone && "ns-progress--" + tone)} role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={value} aria-label={label || "Avance"}>
+    <div className={cx("ns-progress", tone && "ns-progress--" + tone)} role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={value} aria-label={label || t.common.advance}>
       <span style={{ width: pct + "%" }} />
     </div>
   );
@@ -18,10 +21,11 @@ export function Progress({ value, total, tone, label }: { value: number; total: 
 
 export function ProgressBar({ value, total, tone, label, showValue, valueText }: { value: number; total: number; tone?: Tone; label?: string; showValue?: boolean; valueText?: string }) {
   const pct = total ? Math.round((value / total) * 100) : 0;
+  const { t } = useI18n();
   return (
     <div className="ns-pbar">
       {label || showValue ? <div className="ns-pbar-head"><span>{label}</span>{showValue ? <strong>{valueText || pct + "%"}</strong> : null}</div> : null}
-      <Progress value={value} total={total} tone={tone} label={label || "Progreso"} />
+      <Progress value={value} total={total} tone={tone} label={label || t.common.progress} />
     </div>
   );
 }

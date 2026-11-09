@@ -11,6 +11,8 @@ import { Header } from "../../components/organisms/Header";
 import { Block, BlockTitle } from "../../components/organisms/Layout";
 import { PageShell } from "../../components/templates/PageShell";
 import { EVAL_STATUS, KIND } from "../../data/academic";
+import { useI18n } from "../../i18n/I18nProvider";
+import { shortDay, weekdayDay } from "../../i18n/dates";
 import { useDashboard } from "../../services/teacherOverview";
 import { useMarkReminderSeen, useMyReminders } from "../../services/reminders";
 import { useToast } from "../../components/organisms/Toast";
@@ -20,7 +22,12 @@ import { assignmentsState, queryState } from "./states";
 export function DashboardPage() {
   const { navigate: go } = useShell();
   const { aq, q, data: d } = useDashboard();
-  const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando tu resumen", "No pudimos cargar tu resumen.");
+  const { t, lang, shownGrade } = useI18n();
+  const x = t.tch.dash;
+  const state = assignmentsState(aq, t.tch.states.loadingCourses) ?? queryState(q, x.loading, x.error);
+  // El servicio da datos; el texto se compone aquí, en el idioma de la app (idiomas, paso 3).
+  const greeting = d ? x.greeting[d.slot] : "";
+  const dateLine = d ? x.dateLine(weekdayDay(lang, d.date), t.tch.periodName(d.period), d.year) : undefined;
   const pct = d?.hero && d.hero.total ? Math.round((d.hero.verified / d.hero.total) * 100) : 0;
   const reviewOf = (id: string) => go("review", id ? { id } : undefined);
   // Recordatorios de Rectoría: van primero en «Requieren tu atención» hasta que el docente los marca como vistos.
@@ -30,97 +37,97 @@ export function DashboardPage() {
   return (
     <PageShell active="dashboard">
       <Header
-        eyebrow={d?.dateLine ?? "Inicio"} title={d ? d.greeting + ", " + d.name : "Inicio"} highlight={d?.name}
-        description={d ? "Tienes " + d.inReview + (d.inReview === 1 ? " evaluación" : " evaluaciones") + " en revisión y " + d.toVerify + (d.toVerify === 1 ? " nota esperando" : " notas esperando") + " tu verificación." : undefined}
+        eyebrow={dateLine ?? x.home} title={d ? x.title(greeting, d.name) : x.home} highlight={d?.name}
+        description={d ? x.summary(d.inReview, d.toVerify) : undefined}
         actions={<>
-          <Button variant="secondary" icon="plus" onClick={() => go("evaluations")}>Nueva evaluación</Button>
-          <Button size="lg" icon="grade" onClick={() => go("grade")}>Calificar</Button>
+          <Button variant="secondary" icon="plus" onClick={() => go("evaluations")}>{x.newEvaluation}</Button>
+          <Button size="lg" icon="grade" onClick={() => go("grade")}>{x.grade}</Button>
         </>}
       />
       {state ?? (d ? (
         <>
           <div className="ns-home-bento">
-            <Block tone="navy" className="ns-home-hero" label="Continuar revisión">
+            <Block tone="navy" className="ns-home-hero" label={x.continueLabel}>
               <div className="ns-row" style={{ justifyContent: "space-between" }}>
-                <span className="ns-overline" style={{ color: "var(--gold)" }}>Continúa donde quedaste</span>
-                {d.hero ? <Sticker tone="gold" rotate={4}>{d.hero.pending + " pendientes"}</Sticker> : null}
+                <span className="ns-overline" style={{ color: "var(--gold)" }}>{x.continueWhere}</span>
+                {d.hero ? <Sticker tone="gold" rotate={4}>{x.pending(d.hero.pending)}</Sticker> : null}
               </div>
               {d.hero ? (
                 <>
                   <div>
                     <h2 className="ns-home-hero-title">{d.hero.title}</h2>
-                    <p className="ns-home-hero-meta">{d.hero.meta}</p>
+                    <p className="ns-home-hero-meta">{x.heroMeta(d.hero.course, d.hero.total, d.hero.hoursAgo)}</p>
                   </div>
                   <div className="ns-home-hero-progress">
-                    <div className="ns-row" style={{ justifyContent: "space-between" }}><span>{d.hero.verified + " de " + d.hero.total + " verificadas"}</span><strong>{pct + "%"}</strong></div>
-                    <Progress value={d.hero.verified} total={d.hero.total} tone="inverse" label="Avance de revisión" />
+                    <div className="ns-row" style={{ justifyContent: "space-between" }}><span>{t.tch.verifiedOf(d.hero.verified, d.hero.total)}</span><strong>{pct + "%"}</strong></div>
+                    <Progress value={d.hero.verified} total={d.hero.total} tone="inverse" label={x.reviewProgress} />
                   </div>
-                  <div><Button iconRight="arrow" onClick={() => reviewOf(d.hero!.id)}>Continuar revisión</Button></div>
+                  <div><Button iconRight="arrow" onClick={() => reviewOf(d.hero!.id)}>{x.continueLabel}</Button></div>
                 </>
               ) : (
                 <>
                   <div>
-                    <h2 className="ns-home-hero-title">No tienes revisiones pendientes</h2>
-                    <p className="ns-home-hero-meta">Cuando subas las fotografías de una evaluación, aparecerá aquí.</p>
+                    <h2 className="ns-home-hero-title">{x.noReviewsTitle}</h2>
+                    <p className="ns-home-hero-meta">{x.noReviewsText}</p>
                   </div>
-                  <div><Button iconRight="arrow" onClick={() => go("grade")}>Calificar una evaluación</Button></div>
+                  <div><Button iconRight="arrow" onClick={() => go("grade")}>{x.gradeOne}</Button></div>
                 </>
               )}
             </Block>
             <Block tone="gold" className="ns-home-stat">
               <span className="ns-bento-icon" aria-hidden><Icon name="clock" size={18} strokeWidth={2.5} /></span>
-              <span className="ns-bento-value"><CountUp value={String(d.toVerify)} /></span><span className="ns-bento-label">{d.toVerify === 1 ? "nota por verificar" : "notas por verificar"}</span>
+              <span className="ns-bento-value"><CountUp value={String(d.toVerify)} /></span><span className="ns-bento-label">{x.toVerify(d.toVerify)}</span>
             </Block>
             <Block tone="sage" className="ns-home-stat">
               <span className="ns-bento-icon" aria-hidden><Icon name="check" size={18} strokeWidth={2.5} /></span>
-              <span className="ns-bento-value"><CountUp value={d.verifiedMonth} /></span><span className="ns-bento-label">verificadas este mes</span>
+              <span className="ns-bento-value"><CountUp value={d.verifiedMonth} /></span><span className="ns-bento-label">{x.verifiedMonth}</span>
             </Block>
             <Block className="ns-home-stat">
               <span className="ns-bento-icon" aria-hidden><Icon name="reports" size={18} strokeWidth={2.5} /></span>
-              <span className="ns-bento-value"><CountUp value={d.avg} /></span><span className="ns-bento-label">{d.avgLabel}</span>
+              <span className="ns-bento-value"><CountUp value={shownGrade(d.avg)} /></span><span className="ns-bento-label">{d.avgOf ? x.avgOf(d.avgOf.subject, d.avgOf.course) : x.avgCourse}</span>
             </Block>
           </div>
           <div className="ns-home-cols">
-            <Block label="Evaluaciones en curso">
-              <BlockTitle action={<Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go("evaluations")}>Ver todas</Button>}>Evaluaciones en curso</BlockTitle>
+            <Block label={x.inProgress}>
+              <BlockTitle action={<Button variant="ghost" size="sm" iconRight="arrow" onClick={() => go("evaluations")}>{t.tch.states.seeAll}</Button>}>{x.inProgress}</BlockTitle>
               {d.evaluations.length ? (
                 <ul className="ns-list">
                   {d.evaluations.map((e) => {
                     const st = EVAL_STATUS[e.status];
                     return (
                       <li key={e.id} className="ns-list-item">
-                        <Sticker tone={KIND[e.kind][1]} rotate={0}>{KIND[e.kind][0]}</Sticker>
-                        <div className="ns-list-main"><strong>{e.name}</strong><span className="ns-caption">{e.subject + " · " + e.weight + "% · " + e.date}</span></div>
-                        <div className="ns-list-progress"><Progress value={e.reviewed} total={e.total} label={"Avance de " + e.name} /><span className="ns-caption">{e.reviewed + "/" + e.total}</span></div>
-                        <Badge tone={st[1]}>{st[0]}</Badge>
+                        <Sticker tone={KIND[e.kind][1]} rotate={0}>{t.tch.kind[e.kind]}</Sticker>
+                        <div className="ns-list-main"><strong>{e.name}</strong><span className="ns-caption">{x.evalCaption(e.subject, e.weight, e.due ? shortDay(lang, e.due) : t.tch.noDate)}</span></div>
+                        <div className="ns-list-progress"><Progress value={e.reviewed} total={e.total} label={t.tch.progressOf(e.name)} /><span className="ns-caption">{e.reviewed + "/" + e.total}</span></div>
+                        <Badge tone={st[1]}>{t.tch.evalStatus[e.status]}</Badge>
                       </li>
                     );
                   })}
                 </ul>
-              ) : <EmptyState title="No hay evaluaciones en curso." message="Crea las evaluaciones del periodo para empezar a calificar." action={<Button variant="secondary" icon="plus" onClick={() => go("evaluations")}>Ir a evaluaciones</Button>} />}
+              ) : <EmptyState title={x.noEvalsTitle} message={x.noEvalsText} action={<Button variant="secondary" icon="plus" onClick={() => go("evaluations")}>{t.tch.states.goEvaluations}</Button>} />}
             </Block>
-            <Block tone="paper" label="Requieren tu atención">
-              <BlockTitle>Requieren tu atención</BlockTitle>
+            <Block tone="paper" label={x.attention}>
+              <BlockTitle>{x.attention}</BlockTitle>
               {d.attention.length || reminders.length ? (
                 <ul className="ns-list">
                   {reminders.map((r) => (
                     <li key={"r" + r.id} className="ns-list-item">
-                      <Avatar name={r.sender} size="sm" />
-                      <div className="ns-list-main"><strong>{"Recordatorio de " + r.sender}</strong><span className="ns-caption">{r.message}</span></div>
-                      <Button variant="secondary" size="sm" icon="check" loading={seen.isPending && seen.variables === r.id} loadingText="Guardando…"
-                        onClick={() => seen.mutateAsync(r.id).catch(() => showToast({ tone: "error", title: "No pudimos marcarlo como visto", message: "Revisa tu conexión e inténtalo de nuevo." }))}
-                        aria-label={"Marcar como visto el recordatorio de " + r.sender}>Entendido</Button>
+                      <Avatar name={r.sender || t.roles.principal} size="sm" />
+                      <div className="ns-list-main"><strong>{x.reminderOf(r.sender || t.roles.principal)}</strong><span className="ns-caption">{r.message}</span></div>
+                      <Button variant="secondary" size="sm" icon="check" loading={seen.isPending && seen.variables === r.id} loadingText={t.common.saving}
+                        onClick={() => seen.mutateAsync(r.id).catch(() => showToast({ tone: "error", title: x.seenError, message: t.common.retryHint }))}
+                        aria-label={x.seenAria(r.sender || t.roles.principal)}>{x.seen}</Button>
                     </li>
                   ))}
                   {d.attention.map((s) => (
                     <li key={s.id} className="ns-list-item">
                       <Avatar name={s.name} size="sm" />
-                      <div className="ns-list-main"><strong>{s.name}</strong><span className="ns-caption">{s.detail}</span></div>
-                      <Button variant="secondary" size="sm" icon="edit" onClick={() => reviewOf(s.evaluationId)} aria-label={"Revisar nota de " + s.name}>Revisar</Button>
+                      <div className="ns-list-main"><strong>{s.name}</strong><span className="ns-caption">{x.detail(s.noDetection, s.evaluation)}</span></div>
+                      <Button variant="secondary" size="sm" icon="edit" onClick={() => reviewOf(s.evaluationId)} aria-label={x.reviewAria(s.name)}>{x.review}</Button>
                     </li>
                   ))}
                 </ul>
-              ) : <EmptyState icon="check" title="Nada pendiente por revisar." message="Las notas con baja confianza o sin detección aparecerán aquí." />}
+              ) : <EmptyState icon="check" title={x.nothingTitle} message={x.nothingText} />}
             </Block>
           </div>
         </>

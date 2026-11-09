@@ -4,12 +4,13 @@ Lo primero que se lee al retomar.
 
 ## Estado
 
-- **Multiplataforma (desde 2026-11-08, rama `feature/multiplataforma`)**: el profe pidió Windows, Linux y macOS. Rama base
-  `develop` creada ese día y puesta como rama por defecto. Paso A (fuentes dentro de la app) hecho, `verify:fonts` 28/28.
-  Paso B (barra nativa en macOS, enmienda 10) hecho, `verify:titlebar` 23/23. Paso C (GitHub Actions) hecho: compila,
-  abre y mide la app en los tres sistemas, corrida 42535903057 en verde (Windows 5/5, Linux 4/4, macOS 11/11). PR #1 listo
-  para revisión hacia `develop`. Pendiente: firma de Apple, impresora real y pantallas Retina.
-  Después: modo oscuro, selector de tema e idiomas es/en/pt. Detalle en el anexo, sección «Multiplataforma».
+- **Multiplataforma**: pasos A, B y C hechos (CI en verde en Windows 5/5, Linux 4/4 y macOS 11/11), PR #1 mergeado en
+  `develop` el 2026-11-09. Pendiente: firma de Apple, impresora real y pantallas Retina.
+- **Idiomas es/en/pt**: hecho (`docs/ux/anexos/2026-11-08-idiomas.md`), juntado en `feature/modo-oscuro`.
+- **Modo oscuro**: pasos 1 a 5 hechos, el 5 con visto bueno de Diego el 2026-11-09. Dirección Campo marino
+  (`docs/ux/anexos/2026-11-08-modo-oscuro.md`). `verify:dark` 138/138 y `verify:dark-states` 17/17 con idiomas y
+  multiplataforma juntados. PR #2 de `feature/modo-oscuro` hacia `develop` abierto el 2026-11-09. Pendientes en la
+  sección 16 del anexo (Sin permiso y error de sincronización en oscuro, Mac real, revisión nativa en/pt).
 
 - Contrato de diseño: design system `../notascan-ui/` (no se sale de él). Anexo: `docs/ux/anexos/2026-10-01-app-escritorio.md`.
 - Paso 1 · Tokens: hecho y aprobado (2026-10-01).

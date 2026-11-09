@@ -1,6 +1,7 @@
 import { useId, useState, type KeyboardEvent } from "react";
 import { cx } from "../../lib/cx";
-import { validateGrade } from "../../lib/grade";
+import { gradeCheckText, validateGrade } from "../../lib/grade";
+import { useI18n } from "../../i18n/I18nProvider";
 import type { GradeCheck } from "../../types/domain";
 import { Icon } from "./Icon";
 
@@ -25,6 +26,7 @@ export function GradeInput({
   id, label, hideLabel, value, defaultValue, onChange, hint, disabled, readOnly, autoFocus, showError = true, onKeyDown, className,
 }: GradeInputProps) {
   const autoId = useId();
+  const { t, grade } = useI18n();
   const inputId = id || autoId;
   const controlled = value !== undefined;
   const [own, setOwn] = useState(defaultValue !== undefined ? String(defaultValue) : "");
@@ -40,18 +42,18 @@ export function GradeInput({
 
   return (
     <div className={cx("ns-field", className)}>
-      <label htmlFor={inputId} className={cx("ns-field-label", hideLabel && "ns-sr")}>{label || "Calificación"}</label>
+      <label htmlFor={inputId} className={cx("ns-field-label", hideLabel && "ns-sr")}>{label || t.tch.card.gradeLabel}</label>
       <div className={cx("ns-grade-input", invalid && "is-invalid", disabled && "is-disabled")}>
         <input
           id={inputId} type="text" inputMode="decimal" autoComplete="off" value={raw} onChange={handleChange}
           onKeyDown={onKeyDown} disabled={disabled} readOnly={readOnly} autoFocus={autoFocus}
-          placeholder="0.0" aria-invalid={invalid || undefined} aria-describedby={inputId + "-msg"}
+          placeholder={grade(0)} aria-invalid={invalid || undefined} aria-describedby={inputId + "-msg"}
         />
-        <span className="ns-grade-input-scale" aria-hidden><span>DE</span><span>5.0</span></span>
+        <span className="ns-grade-input-scale" aria-hidden><span>{t.tch.card.of}</span><span>{grade(5)}</span></span>
       </div>
       <span id={inputId + "-msg"} className={invalid ? "ns-field-error" : "ns-field-hint"} role={invalid ? "alert" : undefined}>
         {invalid ? <Icon name="error" size={16} /> : null}
-        {invalid ? check.message : hint || "Escala de 1.0 a 5.0"}
+        {invalid ? gradeCheckText(t.tch.gradeCheck, raw) : hint || t.tch.card.scale}
       </span>
     </div>
   );

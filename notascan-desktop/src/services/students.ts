@@ -25,7 +25,7 @@ export function toRecord(r: OverviewRow): StudentRecord {
     id: r.id, name: r.full_name, first: r.first_names, last: r.last_names, document: r.document, docType: r.doc_type,
     grade: r.grade_level_id ?? (r.course_id ?? "").charAt(0), course: r.course_id ?? "",
     guardian: r.guardian_name ?? "", guardianRel: r.guardian_rel ?? "", guardianPhone: r.guardian_phone ?? "",
-    status: r.status, enrolled: d + " " + MONTHS[m - 1] + " " + y,
+    status: r.status, enrolled: d + " " + MONTHS[m - 1] + " " + y, enrolledOn: r.enrolled_on,
     avg: r.avg_grade === null ? NaN : Number(r.avg_grade), attendance: r.attendance_pct === null ? NaN : Number(r.attendance_pct),
     subjectsPassed: NaN, library: r.library_ok, fees: r.fees_ok, documents: r.documents_ok,
   };

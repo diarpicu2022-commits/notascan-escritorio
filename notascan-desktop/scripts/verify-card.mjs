@@ -5,7 +5,7 @@
 // 4) Contraste muestreado sobre el render. 5) Tamaño de los controles. 6) Consola.
 import { join } from "node:path";
 import { DS, OUT, URL_BASE, createReport, findOffSystemValues, startPreview, watchConsole, sampleTextContrast } from "./harness.mjs";
-import { applyAmendments } from "./harness.mjs";
+import { applyAmendments, I5_MASK } from "./harness.mjs";
 
 const report = createReport();
 const offenders = findOffSystemValues();
@@ -56,11 +56,13 @@ try {
 
   const normalize = (page) => page.evaluate(() => {
     const walk = (el) => {
-      if (el.nodeType === 3) return el.textContent.trim() ? `"${el.textContent.trim()}"` : "";
+      // Idiomas, I5: la app escribe la nota con coma decimal («4,5») y el sistema con punto. Se comparan igual.
+    const dec = (s) => s.replace(/(\d),(\d)/g, "$1.$2");
+    if (el.nodeType === 3) return el.textContent.trim() ? `"${dec(el.textContent.trim())}"` : "";
       if (el.nodeType !== 1) return "";
       const attrs = [...el.attributes]
         .filter((a) => !["id", "aria-labelledby", "aria-describedby", "for", "style"].includes(a.name))
-        .map((a) => `${a.name}=${a.value}`).sort().join(" ");
+        .map((a) => `${a.name}=${dec(a.value)}`).sort().join(" ");
       return `<${el.tagName.toLowerCase()} ${attrs}>${[...el.childNodes].map(walk).join("")}</${el.tagName.toLowerCase()}>`;
     };
     return [...document.querySelectorAll(".ns-grid > *")].map(walk);
@@ -77,9 +79,10 @@ try {
   // Diferencia de píxeles, tarjeta por tarjeta.
   const refCards = ref.locator(".ns-grid > *");
   const mineCards = mine.locator(".ns-grid > *");
+  const I5_CARDS = [2, 3];
   for (let i = 0; i < 6; i++) {
-    const a = await refCards.nth(i).screenshot({ animations: "disabled" });
-    const b = await mineCards.nth(i).screenshot({ animations: "disabled", path: join(OUT, `paso2-card-${i + 1}.png`) });
+    const a = await refCards.nth(i).screenshot({ animations: "disabled", mask: [refCards.nth(i).locator(I5_MASK)] });
+    const b = await mineCards.nth(i).screenshot({ animations: "disabled", mask: [mineCards.nth(i).locator(I5_MASK)], path: join(OUT, `paso2-card-${i + 1}.png`) });
     const diff = await mine.evaluate(async ([x, y]) => {
       const load = async (b64) => { const im = new Image(); im.src = "data:image/png;base64," + b64; await im.decode(); return im; };
       const [ia, ib] = await Promise.all([load(x), load(y)]);
@@ -90,7 +93,11 @@ try {
       for (let p = 0; p < da.length; p += 4) if (Math.abs(da[p] - db[p]) + Math.abs(da[p + 1] - db[p + 1]) + Math.abs(da[p + 2] - db[p + 2]) > 24) off++;
       return { size: `${ia.width}x${ia.height}`, pct: (off / (da.length / 4)) * 100 };
     }, [a.toString("base64"), b.toString("base64")]);
-    report.check(`Tarjeta ${i + 1}: píxeles iguales a la referencia (≤ 0.5 % distintos)`, diff.pct <= 0.5, `${diff.size}, ${diff.pct.toFixed(3)} % distinto`);
+    // I5: en las tarjetas 2 y 3 la coma cambia el ancho de la cifra y desplaza lo que la rodea fuera de la máscara.
+    // Se declaran como consecuencia de I5 (anexo §16) con tope de 1 %, el resto sigue en 0,5 %.
+    const i5 = I5_CARDS.includes(i + 1);
+    const cap = i5 ? 1 : 0.5;
+    report.check(`Tarjeta ${i + 1}: píxeles iguales a la referencia (≤ ${cap} % distintos${i5 ? ", consecuencia de I5" : ""})`, diff.pct <= cap, `${diff.size}, ${diff.pct.toFixed(3)} % distinto`);
   }
   await ref.screenshot({ fullPage: true, path: join(OUT, "paso2-referencia-ds-1440.png") });
   report.check("Consola de la referencia sin errores", refConsole.length === 0, refConsole.join(" | "));
@@ -111,7 +118,7 @@ try {
   await page.goto(URL_BASE + "#/dev/card", { waitUntil: "networkidle" });
   await page.waitForTimeout(900);
   const seen = await page.evaluate(() => window.__seen);
-  report.check("Count-up: la nota cuenta desde 0.0 y termina en 4.2", seen[0] === "0.0" && seen[seen.length - 1] === "4.2" && seen.length > 5, `${seen.length} valores: ${seen.slice(0, 4).join(", ")} … ${seen.slice(-2).join(", ")}`);
+  report.check("Count-up: la nota cuenta desde 0,0 y termina en 4,2 (I5)", seen[0] === "0,0" && seen[seen.length - 1] === "4,2" && seen.length > 5, `${seen.length} valores: ${seen.slice(0, 4).join(", ")} … ${seen.slice(-2).join(", ")}`);
   await page.screenshot({ fullPage: true, path: join(OUT, "paso2-cards-1440.png") });
 
   const card = page.locator(".ns-card").nth(2); // Valentina Guerrero · 4.2 · 94 %
@@ -122,19 +129,19 @@ try {
   await input.fill("");
   await page.keyboard.type("7");
   const err = await card.locator(".ns-field-error").textContent().catch(() => "");
-  report.check("Nota 7 muestra el error del sistema", err.includes("La calificación debe estar entre 1.0 y 5.0."), err);
+  report.check("Nota 7 muestra el error del sistema", err.includes("La calificación debe estar entre 1,0 y 5,0."), err);
   report.check("Confirmar deshabilitado con nota fuera de rango", await card.getByRole("button", { name: "Confirmar" }).isDisabled());
   await page.keyboard.press("Enter");
   report.check("Enter con nota inválida no verifica", !(await card.evaluate((el) => el.classList.contains("ns-card--verified"))));
   await page.keyboard.press("Escape");
-  report.check("Escape cancela y devuelve 4.2", (await card.locator(".ns-card-grade").textContent()) === "4.2");
+  report.check("Escape cancela y devuelve 4,2", (await card.locator(".ns-card-grade").textContent()) === "4,2");
 
   await card.getByRole("button", { name: "Editar calificación de Valentina Guerrero" }).click();
   await input.fill("4,3");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(100);
   report.check("Enter con 4,3 verifica la tarjeta", await card.evaluate((el) => el.classList.contains("ns-card--verified")));
-  report.check("El sello cae con la nota corregida", (await card.locator(".ns-stamp").textContent()) === "4.3Verificada");
+  report.check("El sello cae con la nota corregida", (await card.locator(".ns-stamp").textContent()) === "4,3Verificada");
   report.check("Rótulo pasa a «Calificación corregida»", (await card.locator(".ns-card-grade-label").textContent()) === "Calificación corregida");
   report.check("Estado con palabra fija «Verificada»", (await card.locator(".ns-status").textContent()) === "Verificada");
   await page.waitForTimeout(800);
@@ -152,7 +159,7 @@ try {
   await page.keyboard.press("Enter");
   await page.waitForTimeout(800); // la nota vuelve a contar hasta el valor nuevo
   report.check("Ingreso manual 3.6 queda verificado como «Introducida por el docente»",
-    (await noDet.locator(".ns-card-grade-label").textContent()) === "Introducida por el docente" && (await noDet.locator(".ns-card-grade").textContent()) === "3.6");
+    (await noDet.locator(".ns-card-grade-label").textContent()) === "Introducida por el docente" && (await noDet.locator(".ns-card-grade").textContent()) === "3,6");
 
   // Foco visible en los botones
   await page.locator(".ns-card").nth(3).getByRole("button", { name: /Confirmar calificación/ }).focus();
@@ -197,7 +204,7 @@ try {
   const rmPage = await rm.newPage();
   await rmPage.goto(URL_BASE + "#/dev/card", { waitUntil: "networkidle" });
   const rmGrade = await rmPage.locator(".ns-card").nth(2).locator(".ns-card-grade").textContent();
-  report.check("Con movimiento reducido la nota aparece sin contar", rmGrade === "4.2", rmGrade);
+  report.check("Con movimiento reducido la nota aparece sin contar", rmGrade === "4,2", rmGrade);
   const rmAnim = await rmPage.locator(".ns-card").nth(1).evaluate((el) => getComputedStyle(el).animationName);
   report.check("Con movimiento reducido no late la tarjeta en revisión", rmAnim === "none", rmAnim);
   await rm.close();

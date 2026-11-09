@@ -9,13 +9,17 @@ interface CountUpProps {
 export function CountUp({ value, animate = true }: CountUpProps) {
   const raw = String(value);
   const m = raw.match(/^([^0-9]*)([0-9][0-9.,]*)(.*)$/);
-  const num = m ? parseFloat(m[2].replace(/,/g, "")) : NaN;
-  const dec = m && /\.\d+$/.test(m[2]) ? m[2].split(".")[1].length : 0;
+  // Coma decimal (idiomas, paso 3): «3,9» en portugués cuenta hasta 3,9 y no hasta 39. Solo con una coma y sin punto.
+  const comma = !!m && /^\d+,\d{1,2}$/.test(m[2]);
+  const digits = m ? (comma ? m[2].replace(",", ".") : m[2]) : "";
+  const num = m ? parseFloat(digits.replace(/,/g, "")) : NaN;
+  const dec = m && /\.\d+$/.test(digits) ? digits.split(".")[1].length : 0;
   const shown = useCountUp(isNaN(num) ? 0 : num, !isNaN(num) && animate);
   if (!m || isNaN(num)) return <>{raw}</>;
+  const text = shown.toFixed(dec);
   return (
     <span className="ns-countup" aria-label={raw}>
-      <span aria-hidden>{m[1] + shown.toFixed(dec) + m[3]}</span>
+      <span aria-hidden>{m[1] + (comma ? text.replace(".", ",") : text) + m[3]}</span>
     </span>
   );
 }

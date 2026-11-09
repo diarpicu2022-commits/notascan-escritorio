@@ -2,6 +2,7 @@ import { useId, useState, type ReactNode } from "react";
 import { cx } from "../../lib/cx";
 import { Button } from "../atoms/Button";
 import { Icon } from "../atoms/Icon";
+import { useI18n } from "../../i18n/I18nProvider";
 
 interface SearchFieldProps {
   value?: string;
@@ -14,13 +15,14 @@ interface SearchFieldProps {
 
 export function SearchField({ value, defaultValue, onChange, placeholder, label, className }: SearchFieldProps) {
   const id = useId();
+  const { t } = useI18n();
   return (
     <div className={cx("ns-search", className)} role="search">
-      <label htmlFor={id} className="ns-sr">{label || "Buscar"}</label>
+      <label htmlFor={id} className="ns-sr">{label || t.tch.find.label}</label>
       <Icon name="search" size={18} />
-      <input id={id} type="search" className="ns-input" placeholder={placeholder || "Buscar estudiante o ID"} value={value} defaultValue={defaultValue} onChange={(e) => onChange?.(e.target.value)} />
+      <input id={id} type="search" className="ns-input" placeholder={placeholder || t.tch.find.placeholder} value={value} defaultValue={defaultValue} onChange={(e) => onChange?.(e.target.value)} />
       {value ? (
-        <Button variant="ghost" size="sm" className="ns-search-clear ns-btn--icon" aria-label="Limpiar búsqueda" onClick={() => onChange?.("")}><Icon name="close" size={16} /></Button>
+        <Button variant="ghost" size="sm" className="ns-search-clear ns-btn--icon" aria-label={t.tch.find.clear} onClick={() => onChange?.("")}><Icon name="close" size={16} /></Button>
       ) : null}
     </div>
   );

@@ -9,9 +9,13 @@ import { DEMO, supabase } from "../lib/supabase";
 
 const throwIf = (r: { error: unknown }) => { if (r.error) throw r.error; };
 
+/** `sender`: nombre de quien envía; vacío si no se sabe (la pantalla pone «Rectoría» en el idioma). */
 export interface Reminder { id: number; message: string; sender: string; at: string }
 
-/** Texto del recordatorio según el avance del docente. */
+/**
+ * Texto del recordatorio según el avance del docente. Se guarda y lo lee el docente: sale en español, como los correos
+ * de acceso (D4).
+ */
 export function reminderText(pending: number, pct: number, period: string): string {
   return "Tienes " + pending + (pending === 1 ? " evaluación" : " evaluaciones") + " con notas sin verificar en el " + period
     + " (" + pct + " % registrado). Ponte al día, por favor.";
@@ -39,7 +43,7 @@ export function useMyReminders() {
         .is("seen_at", null).order("created_at", { ascending: false });
       throwIf(r);
       return ((r.data ?? []) as unknown as Array<{ id: number; message: string; created_at: string; sender: { full_name: string } | null }>)
-        .map((x) => ({ id: x.id, message: x.message, sender: x.sender?.full_name ?? "Rectoría", at: x.created_at }));
+        .map((x) => ({ id: x.id, message: x.message, sender: x.sender?.full_name ?? "", at: x.created_at }));
     },
   });
 }

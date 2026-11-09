@@ -1,0 +1,227 @@
+/* Modo oscuro de NotaScan · dirección B · Campo marino (contrato del 2026-11-08).
+   ARCHIVO GENERADO por scripts/generar-tema-oscuro.mjs a partir de notascan.css y amendments.css. No se edita a mano.
+   Solo actúa con data-theme="dark" en <html>. Sin el atributo, o con "light", la app queda igual que antes.
+   Todo va dentro de @media screen, así que la impresión resuelve siempre los tokens claros (O5). */
+@media screen {
+  /* TOKENS (O1): mismos nombres de tokens.css con los valores de B. color-scheme hace que las barras de
+     desplazamiento y los controles nativos de WebView2 y WKWebView sigan el tema. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --navy: #ece4d4;
+    --navy-soft: #bdb5a6;
+    --gold: #c9a35e;
+    --gold-ink: #dcbf86;
+    --gold-soft: #342c1e;
+    --ivory: #161513;
+    --ivory-deep: #2a2824;
+    --paper: #1f1e1b;
+    --charcoal: #d6cfc2;
+    --muted: #a8a194;
+    --hairline: rgba(236, 228, 212, 0.16);
+    --sage: #83a889;
+    --sage-ink: #aed0b2;
+    --sage-soft: #1e2a21;
+    --burgundy: #eea49a;
+    --burgundy-soft: #36211e;
+    --glass: rgba(31, 30, 27, 0.78);
+    --glass-edge: rgba(236, 228, 212, 0.10);
+    --scrim: rgba(8, 8, 7, 0.62);
+    --focus: #dcbf86;
+    --shadow-sm: 2px 2px 0 #34497a;
+    --shadow-md: 4px 4px 0 #34497a;
+    --shadow-lg: 6px 6px 0 #34497a;
+    --shadow-gold: 3px 3px 0 #c9a35e;
+    --shadow-pressed: 0 0 0 #34497a;
+    --shadow-glass: 0 10px 30px rgba(0, 0, 0, 0.4);
+  }
+  /* CAMPOS (35 reglas, O3): en claro --navy es a la vez tinta y fondo de los bloques invertidos.
+     En oscuro la tinta pasa a marfil, así que dentro de cada bloque se vuelve a declarar --navy como campo de marca
+     #22345c con texto #f1eadc. La regla del sistema, sin editarse, pinta el campo con estos valores. */
+  :root[data-theme="dark"] .ns-chip[aria-pressed="true"] { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-summary-cell--lead { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-sticker--navy { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-chip[aria-pressed="true"] { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-bento-tile--lead { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-card-index { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-nav-item[aria-current="page"] { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-block--navy { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-weight-seg--examen { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-auth-panel { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  @media (max-width: 820px) {
+  :root[data-theme="dark"] .ns-auth-submit { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  }
+  :root[data-theme="dark"] .ns-checkbox input:checked + .ns-checkbox-box, :root[data-theme="dark"] .ns-checkbox input:indeterminate + .ns-checkbox-box { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-iconbtn[data-tip]:hover::after, :root[data-theme="dark"] .ns-iconbtn[data-tip]:focus-visible::after { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-seg-tab[aria-selected="true"] { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-bulkbar { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-pager-num.is-on { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-reg-step.is-on { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-period-item[aria-selected="true"], :root[data-theme="dark"] .ns-period-item[aria-checked="true"] { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-weight-seg--t0, :root[data-theme="dark"] .ns-weight-dot--t0 { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-paper-crest { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-inbox-item.is-on { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-att-btn--excused.is-on { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  @media (max-width: 820px) {
+  :root[data-theme="dark"] .ns-auth-role.is-on { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  }
+  :root[data-theme="dark"] .ns-m-tab.is-on { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-m-hero { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-ml-sheet .ns-auth-submit { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-w--navy .ns-w-body { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-hsw--navy { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-kpi--lead { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-brand-b--navy { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-m-card--navy { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-auth-panel { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-theme-seg-ind { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-theme-seg .ns-theme-seg-tab[aria-checked="true"] { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  :root[data-theme="dark"] .ns-auth-wave { --navy: #22345c; --ivory: #f1eadc; --muted: #c9c1b2; --hairline: rgba(241, 234, 220, 0.22); }
+  /* Nº de la tarjeta que requiere revisión: el burdeos de oscuro es claro y lleva tinta oscura. */
+  :root[data-theme="dark"] .ns-card--needs-review .ns-card-index { background-color: var(--burgundy); color: #161513; --ivory: #161513; }
+  /* CONTROLES EN CAMPO (9 reglas, enmienda 2026-11-08): borde en la tinta #ece4d4 para que el estado se vea. */
+  :root[data-theme="dark"] .ns-nav-item[aria-current="page"], :root[data-theme="dark"] .ns-chip[aria-pressed="true"], :root[data-theme="dark"] .ns-period-item[aria-selected="true"], :root[data-theme="dark"] .ns-period-item[aria-checked="true"], :root[data-theme="dark"] .ns-weight-seg--examen, :root[data-theme="dark"] .ns-weight-seg--t0, :root[data-theme="dark"] .ns-checkbox input:checked + .ns-checkbox-box, :root[data-theme="dark"] .ns-checkbox input:indeterminate + .ns-checkbox-box, :root[data-theme="dark"] .ns-inbox-item.is-on { border-color: #ece4d4; }
+  /* DORADOS (55 reglas, O4): en claro el dorado lleva tinta navy. Con la tinta marfil el texto de
+     «Calificar», «Confirmar» o la cabecera de tablas caería a 1.9:1, así que todo relleno dorado lleva #161513. */
+  :root[data-theme="dark"] .ns-btn--primary { --btn-fg: #161513; }
+  :root[data-theme="dark"] .ns-btn--primary:hover { --btn-bg: var(--gold-ink); }
+  :root[data-theme="dark"] .ns-logo-dot { color: #161513; }
+  :root[data-theme="dark"] .ns-logo-mark { color: #161513; }
+  :root[data-theme="dark"] .ns-badge--solid { color: #161513; }
+  :root[data-theme="dark"] .ns-divider-mark::before { color: #161513; }
+  :root[data-theme="dark"] .ns-dot--warning .ns-dot-mark { color: #161513; }
+  :root[data-theme="dark"] .ns-conf--medium .ns-conf-seg.is-on { color: #161513; }
+  :root[data-theme="dark"] .ns-nav-item[aria-current="page"]::before { color: #161513; }
+  :root[data-theme="dark"] .ns-header-eyebrow::after { color: #161513; }
+  :root[data-theme="dark"] .ns-tab[aria-selected="true"]::after { color: #161513; }
+  :root[data-theme="dark"] .ns-step.is-current .ns-step-mark { color: #161513; }
+  :root[data-theme="dark"] .ns-photo-scan { color: #161513; }
+  :root[data-theme="dark"] .ns-dialog-seal { color: #161513; }
+  :root[data-theme="dark"] .ns-toast--info .ns-toast-icon { color: #161513; }
+  :root[data-theme="dark"] .ns-mark::before { color: #161513; }
+  :root[data-theme="dark"] .ns-sticker--gold { color: #161513; }
+  :root[data-theme="dark"] .ns-avatar[data-tone="0"] { color: #161513; }
+  :root[data-theme="dark"] .ns-grade-input-scale { color: #161513; }
+  :root[data-theme="dark"] .ns-chip[aria-pressed="true"] .ns-chip-count { color: #161513; }
+  :root[data-theme="dark"] .ns-bento-tile--gold .ns-bento-icon { color: #161513; }
+  :root[data-theme="dark"] .ns-step.is-current .ns-step-mark { color: #161513; }
+  :root[data-theme="dark"] .ns-table th { color: #161513; }
+  :root[data-theme="dark"] .ns-brand-b--gold { color: #161513; }
+  :root[data-theme="dark"] .ns-marquee-label { color: #161513; }
+  :root[data-theme="dark"] .ns-marquee-item:nth-child(4n+2) .ns-marquee-sep { color: #161513; }
+  :root[data-theme="dark"] .ns-nav-item[aria-current="page"] .ns-nav-item-count { color: #161513; }
+  :root[data-theme="dark"] .ns-progress span { color: #161513; }
+  :root[data-theme="dark"] .ns-progress--inverse span { color: #161513; }
+  :root[data-theme="dark"] .ns-weight-seg--taller { color: #161513; }
+  :root[data-theme="dark"] .ns-seg-tab[aria-selected="true"] .ns-chip-count { color: #161513; }
+  :root[data-theme="dark"] .ns-medal--1 { color: #161513; }
+  :root[data-theme="dark"] .ns-swatch-dot--gold { color: #161513; }
+  :root[data-theme="dark"] .ns-gs-links button:hover { color: #161513; }
+  :root[data-theme="dark"] .ns-reg-step.is-on .ns-reg-num { color: #161513; }
+  :root[data-theme="dark"] .ns-weight-seg--t1, :root[data-theme="dark"] .ns-weight-dot--t1 { color: #161513; }
+  :root[data-theme="dark"] .ns-change { color: #161513; }
+  :root[data-theme="dark"] .ns-history li::before { color: #161513; }
+  :root[data-theme="dark"] .ns-cal-day--late { color: #161513; }
+  :root[data-theme="dark"] .ns-gcell-dot { color: #161513; }
+  :root[data-theme="dark"] .ns-att-btn--late.is-on { color: #161513; }
+  :root[data-theme="dark"] .ns-m-badge { color: #161513; }
+  :root[data-theme="dark"] .ns-m-ava .ns-avatar { color: #161513; }
+  :root[data-theme="dark"] .ns-m-grade.is-top { color: #161513; }
+  :root[data-theme="dark"] .ns-hbar i.is-gold { color: #161513; }
+  :root[data-theme="dark"] .ns-ach-medal--unlocked { color: #161513; }
+  :root[data-theme="dark"] .ns-ach-medal--claimable { color: #161513; }
+  :root[data-theme="dark"] .ns-confetti--0 { color: #161513; }
+  :root[data-theme="dark"] .ns-notif-icon--achievement { color: #161513; }
+  :root[data-theme="dark"] .ns-notif-dot { color: #161513; }
+  :root[data-theme="dark"] .ns-w--gold .ns-w-body { color: #161513; }
+  :root[data-theme="dark"] .ns-wadd-chip:hover { color: #161513; }
+  :root[data-theme="dark"] .ns-hsw--gold { color: #161513; }
+  :root[data-theme="dark"] .ns-hsw-brand i { color: #161513; }
+  :root[data-theme="dark"] .ns-hs-app--ns i { color: #161513; }
+  /* DORADOS REPINTADOS (1 reglas, paso 4): variantes más específicas que el sistema repinta sin dorado.
+     Recuperan su tinta, porque el parche de arriba les ponía tinta oscura sobre fondo oscuro. */
+  :root[data-theme="dark"] .ns-table th[scope="row"] { color: var(--navy); }
+  :root[data-theme="dark"] :is(.ns-logo-dot, .ns-logo-mark, .ns-badge--solid, .ns-dot--warning .ns-dot-mark, .ns-conf--medium .ns-conf-seg.is-on, .ns-step.is-current .ns-step-mark, .ns-photo-scan, .ns-dialog-seal, .ns-toast--info .ns-toast-icon, .ns-sticker--gold, .ns-avatar[data-tone="0"], .ns-grade-input-scale, .ns-chip[aria-pressed="true"] .ns-chip-count, .ns-bento-tile--gold .ns-bento-icon, .ns-step.is-current .ns-step-mark, .ns-table th, .ns-brand-b--gold, .ns-marquee-label, .ns-marquee-item:nth-child(4n+2) .ns-marquee-sep, .ns-nav-item[aria-current="page"] .ns-nav-item-count, .ns-progress span, .ns-progress--inverse span, .ns-weight-seg--taller, .ns-seg-tab[aria-selected="true"] .ns-chip-count, .ns-medal--1, .ns-swatch-dot--gold, .ns-gs-links button:hover, .ns-reg-step.is-on .ns-reg-num, .ns-weight-seg--t1, .ns-weight-dot--t1, .ns-change, .ns-cal-day--late, .ns-gcell-dot, .ns-att-btn--late.is-on, .ns-m-badge, .ns-m-ava .ns-avatar, .ns-m-grade.is-top, .ns-hbar i.is-gold, .ns-ach-medal--unlocked, .ns-ach-medal--claimable, .ns-confetti--0, .ns-notif-icon--achievement, .ns-notif-dot, .ns-w--gold .ns-w-body, .ns-wadd-chip:hover, .ns-hsw--gold, .ns-hsw-brand i, .ns-hs-app--ns i) :is(button, a, input, select, textarea, [tabindex]) { --focus: #161513; }
+  /* REPISAS (40 reglas): sombras duras escritas en notascan.css como «Npx Npx 0 var(--navy)» sin pasar
+     por --shadow-*. En oscuro serían marfil, y la repisa pasa al navy de marca #34497a, el mismo gesto del claro. */
+  :root[data-theme="dark"] .ns-btn--sm:hover, :root[data-theme="dark"] .ns-btn--sm.is-hover { box-shadow: 1px 1px 0 #34497a; }
+  :root[data-theme="dark"] .ns-btn--lg:hover, :root[data-theme="dark"] .ns-btn--lg.is-hover { box-shadow: 3px 3px 0 #34497a; }
+  :root[data-theme="dark"] .ns-avatar { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-chip { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-chip:hover { box-shadow: 1px 1px 0 #34497a; }
+  :root[data-theme="dark"] .ns-select { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-nav-item:hover, :root[data-theme="dark"] .ns-nav-item.is-hover { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-bento-icon { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-step-mark { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-step.is-current .ns-step-mark { box-shadow: 3px 3px 0 #34497a; }
+  :root[data-theme="dark"] .ns-card:hover { box-shadow: 7px 7px 0 #34497a; }
+  :root[data-theme="dark"] .ns-card--needs-review .ns-card-index { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-dialog { box-shadow: 8px 8px 0 #34497a; }
+  :root[data-theme="dark"] .ns-brand-b--gold { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-brand-b--sage { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-weight-seg { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-eval:hover { box-shadow: 7px 7px 0 #34497a; }
+  :root[data-theme="dark"] .ns-sidebar { box-shadow: 3px 3px 0 #34497a; }
+  :root[data-theme="dark"] .ns-auth-panel { box-shadow: -6px 0 0 #34497a; }
+  :root[data-theme="dark"] .ns-seg { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-medal { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-chart-tip { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-gsearch-trigger { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-gsearch { box-shadow: 8px 8px 0 #34497a; }
+  :root[data-theme="dark"] .ns-assign-chip:hover { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-gcell.is-active { box-shadow: inset 0 0 0 2px #34497a, inset 0 -4px 0 var(--gold); }
+  :root[data-theme="dark"] .ns-gcell.is-editing { box-shadow: inset 0 0 0 2px #34497a; }
+  :root[data-theme="dark"] .ns-phone { box-shadow: 8px 8px 0 #34497a; }
+  :root[data-theme="dark"] .ns-m-card { box-shadow: 3px 3px 0 #34497a; }
+  :root[data-theme="dark"] .ns-m-next { box-shadow: 3px 3px 0 #34497a; }
+  :root[data-theme="dark"] .ns-m-grade.is-top { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-ach { box-shadow: 3px 3px 0 #34497a; }
+  :root[data-theme="dark"] .ns-ach:active { box-shadow: 1px 1px 0 #34497a; }
+  :root[data-theme="dark"] .ns-sim-result { box-shadow: 4px 4px 0 #34497a; }
+  :root[data-theme="dark"] .ns-notif.is-unread { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-w-body { box-shadow: 3px 3px 0 #34497a; }
+  :root[data-theme="dark"] button.ns-w-body:hover { box-shadow: 4px 5px 0 #34497a; }
+  :root[data-theme="dark"] button.ns-w-body:active { box-shadow: 1px 1px 0 #34497a; }
+  :root[data-theme="dark"] .ns-w-gradetile { box-shadow: 2px 2px 0 #34497a; }
+  :root[data-theme="dark"] .ns-wboard.is-editing .ns-w-body { box-shadow: 3px 3px 0 #34497a; }
+  /* LITERALES: fondos claros escritos a mano en notascan.css para una página marfil (fila y menú al pasar el ratón,
+     aviso sin leer, diálogo, esqueleto, flecha del selector, trama del lienzo). Pasan a tokens. */
+  :root[data-theme="dark"] .ns-table tbody tr:hover td, :root[data-theme="dark"] .ns-gb tbody tr.is-row th, :root[data-theme="dark"] .ns-gb tbody tr.is-row td { background: var(--ivory-deep); }
+  :root[data-theme="dark"] .ns-nav-item:hover, :root[data-theme="dark"] .ns-nav-item.is-hover { background: var(--ivory-deep); }
+  :root[data-theme="dark"] .ns-att-row.is-absent { background: var(--burgundy-soft); }
+  :root[data-theme="dark"] .ns-notif.is-unread, :root[data-theme="dark"] .ns-textarea.is-ai { background: var(--gold-soft); }
+  :root[data-theme="dark"] .ns-dialog { background: var(--paper); }
+  :root[data-theme="dark"] .ns-skel::after { background: linear-gradient(90deg, transparent, var(--hairline), transparent); }
+  :root[data-theme="dark"] .ns-select-input { background-image: linear-gradient(45deg, transparent 50%, var(--navy) 50%), linear-gradient(135deg, var(--navy) 50%, transparent 50%); }
+  :root[data-theme="dark"] .ns-canvas::before { background: radial-gradient(circle at 1px 1px, var(--hairline) 1.2px, transparent 1.6px) 0 0 / 22px 22px; }
+  /* LITERALES GENERADOS (10 reglas, paso 4): los demás fondos claros a mano. Cada uno pasa al token claro
+     más cercano, que en oscuro resuelve su par de B (la búsqueda Ctrl+K, la medalla de bronce, el sello). */
+  :root[data-theme="dark"] .ns-nav-item:hover, :root[data-theme="dark"] .ns-nav-item.is-hover { background-color: var(--paper); } /* era rgba(255, 253, 248, .8) */
+  :root[data-theme="dark"] .ns-stamp { background-color: var(--sage-soft); } /* era rgba(225, 234, 223, .82) */
+  :root[data-theme="dark"] .ns-dialog { background-color: var(--paper); } /* era rgba(255, 253, 248, .9) */
+  :root[data-theme="dark"] .ns-table tbody tr:hover td { background-color: var(--ivory); } /* era #fbf7ef */
+  :root[data-theme="dark"] .ns-medal--3 { background-color: var(--gold-soft); } /* era #e2c9a4 */
+  :root[data-theme="dark"] .ns-gsearch { background-color: var(--paper); } /* era rgba(255, 253, 248, .96) */
+  :root[data-theme="dark"] .ns-gb tbody tr.is-row th, :root[data-theme="dark"] .ns-gb tbody tr.is-row td { background-color: var(--ivory); } /* era #fbf6ea */
+  :root[data-theme="dark"] .ns-att-row.is-absent { background-color: var(--paper); } /* era #fdf6f4 */
+  :root[data-theme="dark"] .ns-notif.is-unread { background-color: var(--paper); } /* era #fffaf0 */
+  :root[data-theme="dark"] .ns-textarea.is-ai { background-color: var(--paper); } /* era #fffaf0 */
+  /* La lista hecha a mano de arriba resolvía algunos con otro token (la fila al pasar el ratón va a --ivory-deep para que
+     se note). Se repite aquí para que gane sobre la lista generada. */
+  :root[data-theme="dark"] .ns-table tbody tr:hover td, :root[data-theme="dark"] .ns-gb tbody tr.is-row th, :root[data-theme="dark"] .ns-gb tbody tr.is-row td { background: var(--ivory-deep); }
+  :root[data-theme="dark"] .ns-nav-item:hover, :root[data-theme="dark"] .ns-nav-item.is-hover { background: var(--ivory-deep); }
+  :root[data-theme="dark"] .ns-att-row.is-absent { background: var(--burgundy-soft); }
+  :root[data-theme="dark"] .ns-notif.is-unread, :root[data-theme="dark"] .ns-textarea.is-ai { background: var(--gold-soft); }
+  /* SUPERFICIES EN CAMPO (229 selectores, paso 4): papel, marfil y suaves dentro de un bloque navy vuelven
+     a los tokens oscuros de B, igual que en claro vuelven a ser superficies claras con tinta navy. */
+  :root[data-theme="dark"] :is(.ns-chip[aria-pressed="true"], .ns-summary-cell--lead, .ns-sticker--navy, .ns-bento-tile--lead, .ns-card-index, .ns-nav-item[aria-current="page"], .ns-block--navy, .ns-weight-seg--examen, .ns-auth-panel, .ns-auth-submit, .ns-checkbox input:checked + .ns-checkbox-box, .ns-checkbox input:indeterminate + .ns-checkbox-box, .ns-iconbtn[data-tip]:hover::after, .ns-iconbtn[data-tip]:focus-visible::after, .ns-seg-tab[aria-selected="true"], .ns-bulkbar, .ns-pager-num.is-on, .ns-reg-step.is-on, .ns-period-item[aria-selected="true"], .ns-period-item[aria-checked="true"], .ns-weight-seg--t0, .ns-weight-dot--t0, .ns-paper-crest, .ns-inbox-item.is-on, .ns-att-btn--excused.is-on, .ns-auth-role.is-on, .ns-m-tab.is-on, .ns-m-hero, .ns-ml-sheet .ns-auth-submit, .ns-w--navy .ns-w-body, .ns-hsw--navy, .ns-kpi--lead, .ns-brand-b--navy, .ns-m-card--navy, .ns-theme-seg-ind, .ns-theme-seg .ns-theme-seg-tab[aria-checked="true"]) :is(body, .ns-btn--ghost:hover, .ns-btn--ghost.is-hover, .ns-input, .ns-input[aria-invalid="true"], .ns-input:disabled, .ns-grade-input, .ns-grade-input-scale, .ns-badge--neutral, .ns-badge--high, .ns-badge--verified, .ns-badge--medium, .ns-badge--low, .ns-badge--review, .ns-badge--pending, .ns-avatar, .ns-avatar[data-tone="1"], .ns-avatar[data-tone="2"], .ns-avatar[data-tone="3"], .ns-dot--processing .ns-dot-mark, .ns-conf-track, .ns-nav-item:hover, .ns-nav-item.is-hover, .ns-nav-item-count, .ns-chip, .ns-select, .ns-canvas, .ns-sidebar-course, .ns-summary, .ns-summary-bar, .ns-card, .ns-card-foot, .ns-card--needs-review .ns-card-foot, .ns-card--verified .ns-card-foot, .ns-stamp, .ns-skel, .ns-step-mark, .ns-proc-bar, .ns-dialog, .ns-toast, .ns-empty, .ns-empty--error, .ns-empty-seal, .ns-table-wrap, .ns-table th, .ns-table tbody tr:hover td, .ns-drop, .ns-drop:hover, .ns-drop.is-over, .ns-sticker--sage, .ns-sticker--paper, .ns-chip:hover, .ns-chip-count, .ns-filters, .ns-sidebar, .ns-bento-tile--sage, .ns-bento-tile--gold, .ns-bento-tile--burgundy, .ns-bento-icon, .ns-bento-pct, .ns-card-head, .ns-card--verified .ns-card-head, .ns-card--needs-review .ns-card-head, .ns-card-grade, .ns-card--verified .ns-card-grade, .ns-brand, .ns-marquee, .ns-marquee--navy, .ns-marquee--gold, .ns-block, .ns-block--gold, .ns-block--sage, .ns-block--burgundy, .ns-block--paper, .ns-progress, .ns-file-icon, .ns-weight-seg--actividad, .ns-eval, .ns-eval-head, .ns-eval--examen .ns-eval-head, .ns-eval--actividad .ns-eval-head, .ns-eval-weight, .ns-auth, .ns-role-chip, .ns-select-input.is-invalid, .ns-input.is-invalid, .ns-sensitive, .ns-switch, .ns-switch-knob, .ns-checkbox-box, .ns-iconbtn:hover:not(:disabled), .ns-iconbtn--danger:hover:not(:disabled), .ns-seg, .ns-seg-tab:hover, .ns-mini-profile, .ns-drawer, .ns-drawer-head, .ns-table tbody tr.is-selected td, .ns-table tbody tr.is-selected th, .ns-pager-num, .ns-course-tag, .ns-medal--2, .ns-medal--3, .ns-chart-tip, .ns-kpi, .ns-conn-pill, .ns-conn-pill--offline, .ns-conn-pill--error, .ns-gsearch-trigger, .ns kbd, kbd, .ns-gsearch, .ns-gs-recent button:hover, .ns-gs-results li.is-on, .ns-gsearch-preview, .ns-gs-links button, .ns-reg-step:hover, .ns-summary-card, .ns-matrix tbody th, .ns-assign-chip, .ns-assign-chip:hover, .ns-assign-empty, .ns-period-item, .ns-weight-seg--t3, .ns-weight-dot--t3, .ns-weight-seg--t4, .ns-weight-dot--t4, .ns-weight-seg--empty, .ns-pct-input, .ns-weight-total.is-ok, .ns-weight-total.is-bad, .ns-tstatus, .ns-tstatus--ok, .ns-tstatus--warn, .ns-tstatus--late, .ns-inbox-item, .ns-inbox-item:hover, .ns-change-big, .ns-tl-item, .ns-tl-item--neutral .ns-tl-icon, .ns-tl-item--attention, .ns-cal-day, .ns-cal-day--present, .ns-gb-wrap, .ns-gb thead th, .ns-gb-sticky, .ns-gb thead .ns-gb-sticky, .ns-gb tbody tr.is-row th, .ns-gb tbody tr.is-row td, .ns-gcell.is-active, .ns-gcell.is-editing, .ns-gcell.is-invalid, .ns-gb-avg, .ns-gb tfoot th, .ns-gb tfoot td, .ns-gb-status, .ns-gb-status.is-error, .ns-gb-status.is-ok, .ns-gb-status.is-warn, .ns-orig, .ns-att-count, .ns-att-count--present, .ns-att-count--absent, .ns-att-count--late, .ns-att-list, .ns-att-row.is-absent, .ns-att-btn, .ns-att-btn:hover, .ns-phone, .ns-m-bell, .ns-m-avatar, .ns-m-nav, .ns-m-card, .ns-m-next, .ns-m-grade, .ns-m-grade.is-low, .ns-m-quick button, .ns-m-subjects li, .ns-m-meter, .ns-hbar, .ns-ach, .ns-ach--locked, .ns-ach--claimable, .ns-ach-medal--progress, .ns-ach-medal--claimable, .ns-ach-medal--locked, .ns-ach-prog, .ns-sheet, .ns-celebrate-card, .ns-confetti--2, .ns-confetti--3, .ns-sim-result, .ns-sim-result.is-low, .ns-step-btn, .ns-notif, .ns-notif.is-unread, .ns-notif-icon--grade, .ns-notif-icon--report, .ns-notif-icon--attendance, .ns-child, .ns-p-alert, .ns-p-alert--attention, .ns-p-summary button, .ns-rc-list li, .ns-ai-banner, .ns-ai-banner-icon, .ns-concept, .ns-textarea.is-ai, .ns-battery--inverse, .ns-ml-sheet, .ns-ml-sheet .ns-auth-input, .ns-w-body, .ns-w--gold-soft .ns-w-body, .ns-w--sage .ns-w-body, .ns-w--burgundy .ns-w-body, .ns-w-count, .ns-w-classbar, .ns-w-week .is-absent i, .ns-w-week .is-today i, .ns-w-bars i, .ns-w-cal, .ns-w-pill, .ns-w-gradetile, .ns-wadd-chip, .ns-hsw, .ns-hsw--sage, .ns-hsw-day li.is-now, .ns-hsw-prog, .ns-change-big .is-new) { --navy: #ece4d4; --ivory: #161513; --muted: #a8a194; --hairline: rgba(236, 228, 212, 0.16); }
+  /* Resumen del perfil del estudiante: el componente escribe color var(--ivory-deep) sobre el bloque navy (enmienda de
+     octubre). Dentro del campo ese texto secundario es el --muted de campo. */
+  :root[data-theme="dark"] .ns-profile-grid .ns-block--navy > span { --ivory-deep: #c9c1b2; }
+  /* PAPEL (O5): el boletín en pantalla y la foto del examen son documentos, no interfaz. Siguen en claro. */
+  :root[data-theme="dark"] .ns-paper, :root[data-theme="dark"] .ns-photo { --navy: #1b2a4a; --navy-soft: #33425f; --gold: #b8924b; --gold-ink: #7a5f2c; --gold-soft: #f3e8d2; --ivory: #f7f3ec; --ivory-deep: #efe8dc; --paper: #fffdf8; --charcoal: #2b2b2b; --muted: #5b5a56; --hairline: rgba(27, 42, 74, 0.16); --sage: #6b8f71; --sage-ink: #3f6346; --sage-soft: #e1eadf; --burgundy: #7a2e2e; --burgundy-soft: #f3e1dd; --focus: #1b2a4a; color-scheme: light; }
+  /* Paso 5 (pendiente 4 del paso 4): la hoja del examen dibujada en el login también es papel. Sigue en claro, igual que
+     la foto del examen, con su sombra navy y la nota a mano en burdeos. El teléfono sí pasa a oscuro: es una pantalla. */
+  :root[data-theme="dark"] .ns-auth-illus .a-paper { --navy: #1b2a4a; --navy-soft: #33425f; --gold: #b8924b; --gold-ink: #7a5f2c; --gold-soft: #f3e8d2; --ivory: #f7f3ec; --ivory-deep: #efe8dc; --paper: #fffdf8; --charcoal: #2b2b2b; --muted: #5b5a56; --hairline: rgba(27, 42, 74, 0.16); --sage: #6b8f71; --sage-ink: #3f6346; --sage-soft: #e1eadf; --burgundy: #7a2e2e; --burgundy-soft: #f3e1dd; --focus: #1b2a4a; color-scheme: light; }
+  /* Dentro del papel, los campos del sistema (el escudo del boletín) también resuelven los tokens claros. */
+  :root[data-theme="dark"] :is(.ns-paper, .ns-photo) :is(.ns-chip[aria-pressed="true"], .ns-summary-cell--lead, .ns-sticker--navy, .ns-bento-tile--lead, .ns-card-index, .ns-nav-item[aria-current="page"], .ns-block--navy, .ns-weight-seg--examen, .ns-auth-panel, .ns-auth-submit, .ns-checkbox input:checked + .ns-checkbox-box, .ns-checkbox input:indeterminate + .ns-checkbox-box, .ns-iconbtn[data-tip]:hover::after, .ns-iconbtn[data-tip]:focus-visible::after, .ns-seg-tab[aria-selected="true"], .ns-bulkbar, .ns-pager-num.is-on, .ns-reg-step.is-on, .ns-period-item[aria-selected="true"], .ns-period-item[aria-checked="true"], .ns-weight-seg--t0, .ns-weight-dot--t0, .ns-paper-crest, .ns-inbox-item.is-on, .ns-att-btn--excused.is-on, .ns-auth-role.is-on, .ns-m-tab.is-on, .ns-m-hero, .ns-ml-sheet .ns-auth-submit, .ns-w--navy .ns-w-body, .ns-hsw--navy, .ns-kpi--lead, .ns-brand-b--navy, .ns-m-card--navy, .ns-theme-seg-ind, .ns-theme-seg .ns-theme-seg-tab[aria-checked="true"]) { --navy: #1b2a4a; --navy-soft: #33425f; --gold: #b8924b; --gold-ink: #7a5f2c; --gold-soft: #f3e8d2; --ivory: #f7f3ec; --ivory-deep: #efe8dc; --paper: #fffdf8; --charcoal: #2b2b2b; --muted: #5b5a56; --hairline: rgba(27, 42, 74, 0.16); --sage: #6b8f71; --sage-ink: #3f6346; --sage-soft: #e1eadf; --burgundy: #7a2e2e; --burgundy-soft: #f3e1dd; --focus: #1b2a4a; color-scheme: light; }
+}

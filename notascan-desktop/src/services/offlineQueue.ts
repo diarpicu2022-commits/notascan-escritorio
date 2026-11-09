@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { queryClient } from "./client";
 import type { SyncStatus } from "../types/domain";
+import { useI18n } from "../i18n/I18nProvider";
 
 /*
  * Cola sin conexión de la planilla (paso 6f). Las notas que no se pueden enviar se guardan en ESTE equipo
@@ -59,7 +60,10 @@ export function useRealSync(userId: string | undefined): RealSync {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [last, setLast] = useState<string>(() => read(lastKeyOf(uid), "—"));
-  const [notice, setNotice] = useState<string | null>(null);
+  // Lo que la base no aceptó; el texto del aviso se arma en el idioma de la app.
+  const [rejectedItems, setRejectedItems] = useState<string[]>([]);
+  const { t } = useI18n();
+  const notice = rejectedItems.length ? t.conn.rejected(rejectedItems.length, rejectedItems.join("; ")) : null;
   const queueRef = useRef(queue);
   queueRef.current = queue;
   const flushing = useRef(false);
@@ -90,7 +94,7 @@ export function useRealSync(userId: string | undefined): RealSync {
     // Lo enviado ya es de la base: las vistas que leen notas se recargan.
     void queryClient.invalidateQueries({ queryKey: ["gradebook"] });
     void queryClient.invalidateQueries({ queryKey: ["review"] });
-    setNotice(rejected.length ? "La base no aceptó " + (rejected.length === 1 ? "1 cambio" : rejected.length + " cambios") + " (evaluación cerrada o sin permiso): " + rejected.join("; ") + "." : null);
+    setRejectedItems(rejected);
   }, [persist, uid]);
 
   useEffect(() => {

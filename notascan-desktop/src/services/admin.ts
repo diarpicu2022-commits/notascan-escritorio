@@ -4,6 +4,8 @@ import { GRADE_NAME, PERIOD_SETUP, SUBJECTS, TEACHERS } from "../data/academic";
 import { INITIAL_ASSIGN, PERIODS, USERS, type Assignment, type DirectoryUser, type UserRole, type UserStatus } from "../data/admin";
 import { ALL_STUDENTS, COURSES } from "../data/students";
 import { demoData, demoInitial, forcedState, allRows } from "./client";
+import { es, type Messages } from "../i18n/es";
+import { seenOf, type Seen } from "../i18n/seen";
 
 /*
  * Secretaría · configuración (paso 6b.3a): estructura académica, malla curricular, periodos y usuarios.
@@ -15,13 +17,27 @@ const throwIf = (r: { error: unknown }) => { if (r.error) throw r.error; };
 const msgOf = (e: unknown) => (e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "");
 const codeOf = (e: unknown) => (e && typeof e === "object" && "code" in e ? String((e as { code: unknown }).code) : "");
 
-/** Mensaje para la persona: las reglas de la base se muestran tal cual; lo demás, genérico. */
-export function adminMessage(e: unknown): string {
+/**
+ * Mensaje para la persona: las reglas de la base se muestran tal cual (llegan en español); lo demás, en el idioma de
+ * la app. Los errores propios (`AdminError`) llevan código y se escriben con el diccionario (idiomas, paso 4).
+ */
+export function adminMessage(e: unknown, t: Messages = es): string {
+  if (e instanceof AdminError) return e.text(t);
   const m = msgOf(e);
   if (/Cambia el docente|Solo Secretaría|debe sumar 100|no existe|La meta debe/.test(m)) return m;
-  if (/academic_periods_one_open/.test(m)) return "Ya hay un periodo abierto. Ciérralo antes de abrir otro.";
-  if (codeOf(e) === "23505") return "Ya existe un registro con ese nombre o código.";
-  return "No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.";
+  if (/academic_periods_one_open/.test(m)) return t.adm.err.oneOpen;
+  if (codeOf(e) === "23505") return t.adm.err.duplicate;
+  return t.adm.err.failed;
+}
+
+/** Error propio de Secretaría con código y datos; `message` es el texto español de siempre. */
+export class AdminError extends Error {
+  code: "weightsCount" | "maxPeriods" | "noAccount";
+  args: number[];
+  constructor(code: AdminError["code"], ...args: number[]) { super(""); this.code = code; this.args = args; this.message = this.text(es); }
+  text(t: Messages): string {
+    return this.code === "weightsCount" ? t.adm.err.weightsCount(this.args[0], this.args[1]) : t.adm.err[this.code];
+  }
 }
 
 /* ---------- Estructura académica ---------- */
@@ -253,7 +269,7 @@ export function useSavePeriodWeights() {
         PERIOD_SETUP.weights = weights.map((x) => Number(x.weight) || 0);
         return;
       }
-      if (weights.length !== periods.length) throw new Error("Hay " + periods.length + " periodos creados y " + weights.length + " pesos. Usa «Crear periodo» para agregar uno.");
+      if (weights.length !== periods.length) throw new AdminError("weightsCount", periods.length, weights.length);
       for (let i = 0; i < periods.length; i++) {
         const r = await supabase().from("academic_periods").update({ final_weight: Number(weights[i].weight) || 0 }).eq("id", periods[i].id);
         throwIf(r);
@@ -273,7 +289,7 @@ export function useCreatePeriod() {
       const year = last?.year ?? new Date().getFullYear();
       // Siguiente posición del año (no el número de periodos: puede haber huecos).
       const position = Math.max(0, ...periods.filter((p) => p.year === year).map((p) => p.position ?? 0)) + 1;
-      if (position > 6) throw new Error("Un año lectivo admite hasta 6 periodos.");
+      if (position > 6) throw new AdminError("maxPeriods");
       const start = new Date((last?.close ?? year + "-01-20") + "T12:00:00");
       start.setDate(start.getDate() + 3);
       const end = new Date(start); end.setDate(end.getDate() + 42);
@@ -296,13 +312,9 @@ export type DirUser = DirectoryUser & { kind: "staff" | "guardian"; profileId?: 
 const ROLE_FROM_DB: Record<string, UserRole> = { teacher: "teacher", admin: "staff", principal: "director" };
 const ROLE_TO_DB: Record<string, string> = { teacher: "teacher", staff: "admin", director: "principal" };
 
-/** «Hoy, 08:42», «Ayer, 17:10», «Hace 9 días» o «Nunca». */
-export function lastSeen(iso: string | null): string {
-  if (!iso) return "Nunca";
-  const d = new Date(iso), now = new Date();
-  const hm = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-  const days = Math.floor((new Date(now.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86400000);
-  return days <= 0 ? "Hoy, " + hm : days === 1 ? "Ayer, " + hm : "Hace " + days + " días";
+/** Último acceso como dato (hoy, ayer, hace N días o nunca); la pantalla lo escribe con `seenText`. */
+export function lastSeen(iso: string | null): Seen {
+  return seenOf(iso, "calendar");
 }
 
 const DEMO_USERS: DirUser[] = USERS.map((u) => ({ ...u, kind: u.role === "guardian" ? "guardian" : "staff" }));
@@ -322,7 +334,7 @@ async function fetchUsers(): Promise<DirUser[]> {
   });
   // Los acudientes aún no tienen cuenta: su acceso llega con la app móvil.
   const guardians: DirUser[] = ((g.data ?? []) as Array<{ id: number; full_name: string; email: string | null }>).map((x) => ({
-    id: "g:" + x.id, kind: "guardian", guardianId: x.id, name: x.full_name, email: x.email ?? "", role: "guardian", status: "none", last: "Nunca",
+    id: "g:" + x.id, kind: "guardian", guardianId: x.id, name: x.full_name, email: x.email ?? "", role: "guardian", status: "none", last: { k: "never" },
   }));
   return staff.concat(guardians);
 }
@@ -359,7 +371,7 @@ export function useDeactivateUser() {
   return useMutation({
     mutationFn: async (u: DirUser) => {
       if (DEMO) return;
-      if (!u.profileId) throw new Error("Esta persona aún no tiene cuenta.");
+      if (!u.profileId) throw new AdminError("noAccount");
       const r = await supabase().from("profiles").update({ status: "inactive" }).eq("id", u.profileId);
       throwIf(r);
     },

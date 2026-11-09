@@ -1,0 +1,183 @@
+/* Modo oscuro · dirección C · Lámpara baja · maqueta 2026-11-08. Generada por scripts/verify-dark-directions.mjs. NO es la implementación. */
+@media screen {
+:root[data-theme="dark"] { color-scheme: dark;
+  --navy: #ddd3c1;
+  --navy-soft: #b3aa9a;
+  --gold: #b8924b;
+  --gold-ink: #d3b176;
+  --gold-soft: #30281a;
+  --ivory: #1a1713;
+  --ivory-deep: #2d2923;
+  --paper: #221f1a;
+  --charcoal: #cfc6b6;
+  --muted: #a0978a;
+  --hairline: rgba(221, 211, 193, 0.14);
+  --sage: #7a9e80;
+  --sage-ink: #a3c2a8;
+  --sage-soft: #20271f;
+  --burgundy: #d4827a;
+  --burgundy-soft: #311e1b;
+  --glass: rgba(34, 31, 26, 0.8);
+  --glass-edge: rgba(221, 211, 193, 0.08);
+  --scrim: rgba(10, 9, 7, 0.66);
+  --focus: #d3b176;
+  --shadow-sm: 0 0 0 transparent;
+  --shadow-md: 0 0 0 transparent;
+  --shadow-lg: 0 0 0 transparent;
+  --shadow-gold: 3px 3px 0 #b8924b;
+  --shadow-pressed: 0 0 0 transparent;
+  --shadow-glass: none;
+}
+/* CAMPOS (32 reglas): bloques que en claro son navy con texto marfil o dorado. */
+:root[data-theme="dark"] .ns-chip[aria-pressed="true"] { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-summary-cell--lead { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-sticker--navy { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-chip[aria-pressed="true"] { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-bento-tile--lead { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-card-index { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-nav-item[aria-current="page"] { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-block--navy { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-weight-seg--examen { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-auth-panel { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+@media (max-width: 820px) {
+:root[data-theme="dark"] .ns-auth-submit { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+}
+:root[data-theme="dark"] .ns-checkbox input:checked + .ns-checkbox-box, :root[data-theme="dark"] .ns-checkbox input:indeterminate + .ns-checkbox-box { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-iconbtn[data-tip]:hover::after, :root[data-theme="dark"] .ns-iconbtn[data-tip]:focus-visible::after { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-seg-tab[aria-selected="true"] { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-bulkbar { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-pager-num.is-on { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-reg-step.is-on { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-period-item[aria-selected="true"], :root[data-theme="dark"] .ns-period-item[aria-checked="true"] { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-weight-seg--t0, :root[data-theme="dark"] .ns-weight-dot--t0 { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-paper-crest { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-inbox-item.is-on { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-att-btn--excused.is-on { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+@media (max-width: 820px) {
+:root[data-theme="dark"] .ns-auth-role.is-on { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+}
+:root[data-theme="dark"] .ns-m-tab.is-on { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-m-hero { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-ml-sheet .ns-auth-submit { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-w--navy .ns-w-body { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-hsw--navy { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-kpi--lead { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-brand-b--navy { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-m-card--navy { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-auth-panel { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-auth-wave { --navy: #232c3e; --ivory: #e6dccb; --muted: #b9b09f; --hairline: rgba(230, 220, 203, 0.2); }
+:root[data-theme="dark"] .ns-card--needs-review .ns-card-index { background-color: var(--burgundy); color: #1a1713; --ivory: #1a1713; }
+/* DORADOS (55 reglas): todo relleno dorado lleva tinta oscura encima, como en claro. */
+:root[data-theme="dark"] .ns-btn--primary { --btn-fg: #1a1713; }
+:root[data-theme="dark"] .ns-logo-dot { color: #1a1713; }
+:root[data-theme="dark"] .ns-logo-mark { color: #1a1713; }
+:root[data-theme="dark"] .ns-badge--solid { color: #1a1713; }
+:root[data-theme="dark"] .ns-divider-mark::before { color: #1a1713; }
+:root[data-theme="dark"] .ns-dot--warning .ns-dot-mark { color: #1a1713; }
+:root[data-theme="dark"] .ns-conf--medium .ns-conf-seg.is-on { color: #1a1713; }
+:root[data-theme="dark"] .ns-nav-item[aria-current="page"]::before { color: #1a1713; }
+:root[data-theme="dark"] .ns-header-eyebrow::after { color: #1a1713; }
+:root[data-theme="dark"] .ns-tab[aria-selected="true"]::after { color: #1a1713; }
+:root[data-theme="dark"] .ns-step.is-current .ns-step-mark { color: #1a1713; }
+:root[data-theme="dark"] .ns-photo-scan { color: #1a1713; }
+:root[data-theme="dark"] .ns-dialog-seal { color: #1a1713; }
+:root[data-theme="dark"] .ns-toast--info .ns-toast-icon { color: #1a1713; }
+:root[data-theme="dark"] .ns-mark::before { color: #1a1713; }
+:root[data-theme="dark"] .ns-sticker--gold { color: #1a1713; }
+:root[data-theme="dark"] .ns-avatar[data-tone="0"] { color: #1a1713; }
+:root[data-theme="dark"] .ns-grade-input-scale { color: #1a1713; }
+:root[data-theme="dark"] .ns-chip[aria-pressed="true"] .ns-chip-count { color: #1a1713; }
+:root[data-theme="dark"] .ns-bento-tile--gold .ns-bento-icon { color: #1a1713; }
+:root[data-theme="dark"] .ns-step.is-current .ns-step-mark { color: #1a1713; }
+:root[data-theme="dark"] .ns-table th { color: #1a1713; }
+:root[data-theme="dark"] .ns-brand-b--gold { color: #1a1713; }
+:root[data-theme="dark"] .ns-marquee-label { color: #1a1713; }
+:root[data-theme="dark"] .ns-marquee-item:nth-child(4n+2) .ns-marquee-sep { color: #1a1713; }
+:root[data-theme="dark"] .ns-nav-item[aria-current="page"] .ns-nav-item-count { color: #1a1713; }
+:root[data-theme="dark"] .ns-progress span { color: #1a1713; }
+:root[data-theme="dark"] .ns-progress--inverse span { color: #1a1713; }
+:root[data-theme="dark"] .ns-weight-seg--taller { color: #1a1713; }
+:root[data-theme="dark"] .ns-seg-tab[aria-selected="true"] .ns-chip-count { color: #1a1713; }
+:root[data-theme="dark"] .ns-medal--1 { color: #1a1713; }
+:root[data-theme="dark"] .ns-swatch-dot--gold { color: #1a1713; }
+:root[data-theme="dark"] .ns-gs-links button:hover { color: #1a1713; }
+:root[data-theme="dark"] .ns-reg-step.is-on .ns-reg-num { color: #1a1713; }
+:root[data-theme="dark"] .ns-weight-seg--t1, :root[data-theme="dark"] .ns-weight-dot--t1 { color: #1a1713; }
+:root[data-theme="dark"] .ns-change { color: #1a1713; }
+:root[data-theme="dark"] .ns-change-big .is-new { color: #1a1713; }
+:root[data-theme="dark"] .ns-history li::before { color: #1a1713; }
+:root[data-theme="dark"] .ns-cal-day--late { color: #1a1713; }
+:root[data-theme="dark"] .ns-gcell-dot { color: #1a1713; }
+:root[data-theme="dark"] .ns-att-btn--late.is-on { color: #1a1713; }
+:root[data-theme="dark"] .ns-m-badge { color: #1a1713; }
+:root[data-theme="dark"] .ns-m-ava .ns-avatar { color: #1a1713; }
+:root[data-theme="dark"] .ns-m-grade.is-top { color: #1a1713; }
+:root[data-theme="dark"] .ns-hbar i.is-gold { color: #1a1713; }
+:root[data-theme="dark"] .ns-ach-medal--unlocked { color: #1a1713; }
+:root[data-theme="dark"] .ns-ach-medal--claimable { color: #1a1713; }
+:root[data-theme="dark"] .ns-confetti--0 { color: #1a1713; }
+:root[data-theme="dark"] .ns-notif-icon--achievement { color: #1a1713; }
+:root[data-theme="dark"] .ns-notif-dot { color: #1a1713; }
+:root[data-theme="dark"] .ns-w--gold .ns-w-body { color: #1a1713; }
+:root[data-theme="dark"] .ns-wadd-chip:hover { color: #1a1713; }
+:root[data-theme="dark"] .ns-hsw--gold { color: #1a1713; }
+:root[data-theme="dark"] .ns-hsw-brand i { color: #1a1713; }
+:root[data-theme="dark"] .ns-hs-app--ns i { color: #1a1713; }
+/* REPISAS (42 reglas): sombras duras escritas con var(--navy) en notascan.css. */
+:root[data-theme="dark"] .ns-btn--sm:hover, :root[data-theme="dark"] .ns-btn--sm.is-hover { box-shadow: 1px 1px 0 transparent; }
+:root[data-theme="dark"] .ns-btn--lg:hover, :root[data-theme="dark"] .ns-btn--lg.is-hover { box-shadow: 3px 3px 0 transparent; }
+:root[data-theme="dark"] .ns-avatar { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-chip { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-chip:hover { box-shadow: 1px 1px 0 transparent; }
+:root[data-theme="dark"] .ns-select { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-nav-item:hover, :root[data-theme="dark"] .ns-nav-item.is-hover { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-bento-icon { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-marquee--gold { box-shadow: 0 4px 0 transparent; }
+:root[data-theme="dark"] .ns-step-mark { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-step.is-current .ns-step-mark { box-shadow: 3px 3px 0 transparent; }
+:root[data-theme="dark"] .ns-card:hover { box-shadow: 7px 7px 0 transparent; }
+:root[data-theme="dark"] .ns-card--needs-review .ns-card-index { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-dialog { box-shadow: 8px 8px 0 transparent; }
+:root[data-theme="dark"] .ns-brand-b--gold { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-brand-b--sage { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-weight-seg { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-eval:hover { box-shadow: 7px 7px 0 transparent; }
+:root[data-theme="dark"] .ns-sidebar { box-shadow: 3px 3px 0 transparent; }
+:root[data-theme="dark"] .ns-auth-panel { box-shadow: -6px 0 0 transparent; }
+:root[data-theme="dark"] .ns-seg { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-medal { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-chart-tip { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-gsearch-trigger { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-gsearch { box-shadow: 8px 8px 0 transparent; }
+:root[data-theme="dark"] .ns-assign-chip:hover { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-change-big .is-new { box-shadow: 3px 3px 0 transparent; }
+:root[data-theme="dark"] .ns-gcell.is-active { box-shadow: inset 0 0 0 2px transparent, inset 0 -4px 0 var(--gold); }
+:root[data-theme="dark"] .ns-gcell.is-editing { box-shadow: inset 0 0 0 2px transparent; }
+:root[data-theme="dark"] .ns-phone { box-shadow: 8px 8px 0 transparent; }
+:root[data-theme="dark"] .ns-m-card { box-shadow: 3px 3px 0 transparent; }
+:root[data-theme="dark"] .ns-m-next { box-shadow: 3px 3px 0 transparent; }
+:root[data-theme="dark"] .ns-m-grade.is-top { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-ach { box-shadow: 3px 3px 0 transparent; }
+:root[data-theme="dark"] .ns-ach:active { box-shadow: 1px 1px 0 transparent; }
+:root[data-theme="dark"] .ns-sim-result { box-shadow: 4px 4px 0 transparent; }
+:root[data-theme="dark"] .ns-notif.is-unread { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-w-body { box-shadow: 3px 3px 0 transparent; }
+:root[data-theme="dark"] button.ns-w-body:hover { box-shadow: 4px 5px 0 transparent; }
+:root[data-theme="dark"] button.ns-w-body:active { box-shadow: 1px 1px 0 transparent; }
+:root[data-theme="dark"] .ns-w-gradetile { box-shadow: 2px 2px 0 transparent; }
+:root[data-theme="dark"] .ns-wboard.is-editing .ns-w-body { box-shadow: 3px 3px 0 transparent; }
+/* LITERALES comunes */
+:root[data-theme="dark"] .ns-table tbody tr:hover td, :root[data-theme="dark"] .ns-gb tbody tr.is-row th, :root[data-theme="dark"] .ns-gb tbody tr.is-row td { background: var(--ivory-deep); }
+:root[data-theme="dark"] .ns-nav-item:hover, :root[data-theme="dark"] .ns-nav-item.is-hover { background: var(--ivory-deep); }
+:root[data-theme="dark"] .ns-att-row.is-absent { background: var(--burgundy-soft); }
+:root[data-theme="dark"] .ns-notif.is-unread, :root[data-theme="dark"] .ns-textarea.is-ai { background: var(--gold-soft); }
+:root[data-theme="dark"] .ns-dialog { background: var(--paper); }
+:root[data-theme="dark"] .ns-skel::after { background: linear-gradient(90deg, transparent, var(--hairline), transparent); }
+:root[data-theme="dark"] .ns-select-input { background-image: linear-gradient(45deg, transparent 50%, var(--navy) 50%), linear-gradient(135deg, var(--navy) 50%, transparent 50%); }
+:root[data-theme="dark"] .ns-canvas::before { background: radial-gradient(circle at 1px 1px, var(--hairline) 1.2px, transparent 1.6px) 0 0 / 22px 22px; }
+:root[data-theme="dark"] .ns-btn--primary:hover { --btn-bg: var(--gold-ink); }
+/* PAPEL: el boletín en pantalla y la foto del examen siguen en claro. */
+:root[data-theme="dark"] .ns-paper, :root[data-theme="dark"] .ns-photo { --navy: #1b2a4a; --navy-soft: #33425f; --gold: #b8924b; --gold-ink: #7a5f2c; --gold-soft: #f3e8d2; --ivory: #f7f3ec;
+  --ivory-deep: #efe8dc; --paper: #fffdf8; --charcoal: #2b2b2b; --muted: #5b5a56; --hairline: rgba(27, 42, 74, 0.16); --sage: #6b8f71;
+  --sage-ink: #3f6346; --sage-soft: #e1eadf; --burgundy: #7a2e2e; --burgundy-soft: #f3e1dd; --focus: #1b2a4a; color-scheme: light; }
+}

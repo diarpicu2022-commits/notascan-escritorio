@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEMO, supabase } from "../lib/supabase";
 import { TEACHERS } from "../data/academic";
-import { REQUESTS, type GradeRequest, type RequestStatus, type TeacherState } from "../data/principal";
+import { REQUESTS, type GradeRequest, type RequestEvent, type RequestStatus, type TeacherState } from "../data/principal";
+import { es, type Messages } from "../i18n/es";
 import { allRows, demoData, demoInitial, forcedState } from "./client";
 import { useAcademic, type Academic } from "./enrollment";
+import { seenOf, type Seen } from "../i18n/seen";
 
 /*
  * Rectoría · solicitudes de cambio de nota (paso 6b.4a). La decisión la toma la base (decide_grade_request):
@@ -26,11 +28,11 @@ export function historyDate(iso: string): string {
 }
 
 /** Mensaje para la persona: las reglas de la base se muestran tal cual; lo demás, genérico. */
-export function decideMessage(e: unknown): string {
+export function decideMessage(e: unknown, t: Messages = es): string {
   const m = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "";
   if (/no indica qué nota|La nota cambió|no está pendiente|Solo Rectoría/.test(m)) return m;
-  if (/rejection_needs_reason/.test(m)) return "Escribe el motivo del rechazo.";
-  return "No pudimos guardar la decisión. Revisa tu conexión e inténtalo de nuevo.";
+  if (/rejection_needs_reason/.test(m)) return t.pri.req.needReason;
+  return t.pri.req.decideFailed;
 }
 
 interface RequestRow {
@@ -55,8 +57,9 @@ async function fetchRequests(): Promise<GradeRequest[]> {
     const events = (x.events ?? []).slice().sort((a, b) => a.at.localeCompare(b.at));
     return {
       id: x.id, teacher, student: x.student?.full_name ?? "", course: x.course_id, subject: x.subject?.name ?? "",
-      from: Number(x.from_value), to: Number(x.to_value), reason: x.reason, detail: x.detail ?? "", date: requestDate(x.created_at), status: x.status,
-      history: [["Creada por " + teacher, historyDate(x.created_at)] as [string, string]].concat(events.map((e) => [e.description, historyDate(e.at)] as [string, string])),
+      from: Number(x.from_value), to: Number(x.to_value), reason: x.reason, detail: x.detail ?? "", at: x.created_at, status: x.status,
+      // Los pasos que escribe la base llegan en español y se muestran tal cual (D4).
+      history: [{ k: "created", by: teacher, at: x.created_at } as RequestEvent].concat(events.map((e) => ({ k: "text", text: e.description, at: e.at }) as RequestEvent)),
     };
   });
 }
@@ -184,18 +187,8 @@ export function useAnalytics(periodName?: string) {
    (estudiantes activos del curso × evaluaciones vencidas) y la última nota que tocó.
    Verde: 100 %; amarillo: 80 % o más; rojo: menos de 80 % (los mismos cortes de color de la barra del sistema). */
 
-export interface MonitorRow { id: string; name: string; subjects: readonly string[]; courses: readonly string[]; pending: number; pct: number; last: string; status: TeacherState }
-
-const DAY = 86_400_000;
-/** «Hoy, 09:20» · «Ayer, 17:10» · «Hace 9 días» · «Sin registros». */
-export function lastLabel(iso: string | null, now = new Date()): string {
-  if (!iso) return "Sin registros";
-  const d = new Date(iso);
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  if (d.getTime() >= start) return "Hoy, " + hhmm(d);
-  if (d.getTime() >= start - DAY) return "Ayer, " + hhmm(d);
-  return "Hace " + Math.ceil((start - d.getTime()) / DAY) + " días";
-}
+/** `last`: última nota que tocó, como dato; sin registros, «never» (la pantalla escribe «Sin registros»). */
+export interface MonitorRow { id: string; name: string; subjects: readonly string[]; courses: readonly string[]; pending: number; pct: number; last: Seen; status: TeacherState }
 
 async function fetchMonitoring(): Promise<MonitorRow[]> {
   const sb = supabase();
@@ -245,7 +238,7 @@ async function fetchMonitoring(): Promise<MonitorRow[]> {
     return {
       id: email, name: names.get(email) ?? email.split("@")[0],
       subjects: [...new Set(list.map((x) => x.subject?.name ?? ""))].filter(Boolean), courses: [...new Set(list.map((x) => x.course_id))].sort(),
-      pending, pct, last: lastLabel(lastIso), status: (pct === 100 ? "ok" : pct >= 80 ? "warn" : "late") as TeacherState,
+      pending, pct, last: seenOf(lastIso, "elapsed"), status: (pct === 100 ? "ok" : pct >= 80 ? "warn" : "late") as TeacherState,
     };
   });
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cx } from "../../lib/cx";
 import type { NavItem } from "../../data/roles";
 import { Button } from "../atoms/Button";
@@ -7,6 +8,8 @@ import { NavigationItem } from "../molecules/NavigationItem";
 import { UserProfile } from "../molecules/UserProfile";
 import type { Institution } from "../../services/institution";
 import { SchoolBadge } from "./InstitutionIdentity";
+import { PreferencesDrawer } from "./Preferences";
+import { useI18n } from "../../i18n/I18nProvider";
 
 interface SidebarProps {
   items: NavItem[];
@@ -25,14 +28,16 @@ interface SidebarProps {
 
 /** Navegación global. Solo navega: sin filtros, títulos ni acciones de página. */
 export function Sidebar({ items, active, collapsed: rail, user, course, courseLabel, school, onNavigate, onLogout, onClose, className }: SidebarProps) {
+  const { t } = useI18n();
+  const [prefsOpen, setPrefsOpen] = useState(false);
   return (
-    <aside className={cx("ns-sidebar", rail && "ns-sidebar--rail", className)} aria-label="Navegación principal">
+    <aside className={cx("ns-sidebar", rail && "ns-sidebar--rail", className)} aria-label={t.shell.nav}>
       <div className="ns-sidebar-brand">
         {rail ? <Logo size={30} markOnly /> : <BrandTile />}
-        {onClose ? <Button variant="ghost" size="sm" className="ns-btn--icon" aria-label="Cerrar menú" onClick={onClose}><Icon name="close" size={16} /></Button> : null}
+        {onClose ? <Button variant="ghost" size="sm" className="ns-btn--icon" aria-label={t.shell.closeMenu} onClick={onClose}><Icon name="close" size={16} /></Button> : null}
       </div>
       <nav>
-        {rail ? null : <div className="ns-sidebar-section">Navegación</div>}
+        {rail ? null : <div className="ns-sidebar-section">{t.shell.navSection}</div>}
         <ul>
           {items.map((it, i) => (
             <li key={it.id}>
@@ -48,15 +53,26 @@ export function Sidebar({ items, active, collapsed: rail, user, course, courseLa
         {rail || !school ? null : <SchoolBadge institution={school} />}
         {rail || !course ? null : (
           <div className="ns-sidebar-course">
-            <span className="ns-overline">{courseLabel || "Periodo 3 · 2026"}</span>
+            <span className="ns-overline">{courseLabel || t.shell.contextLabel.teacher}</span>
             <span style={{ font: "600 14px/20px var(--font-ui)" }}>{course}</span>
           </div>
         )}
+        {/* Preferencias (anexo 2026-11-08-idiomas, I1 enmendada el 2026-11-08): fila propia encima de la persona, con
+            icono y palabra, hecha con la misma pieza del menú. Junto a «Cerrar sesión» le cortaba el nombre. */}
+        <button
+          type="button" data-enmienda="11" className={cx("ns-nav-item ns-pref-row", rail && "ns-nav-item--rail")}
+          aria-haspopup="dialog" aria-label={rail ? t.prefs.open : undefined} title={rail ? t.prefs.open : undefined}
+          onClick={() => setPrefsOpen(true)}
+        >
+          <Icon name="settings" size={20} />
+          {rail ? null : <span>{t.prefs.open}</span>}
+        </button>
         <div className="ns-sidebar-user">
           <UserProfile name={user.name} role={user.role} compact={rail} />
           {onLogout && !rail ? (
-            <Button variant="ghost" size="sm" className="ns-btn--icon" aria-label="Cerrar sesión" title="Cerrar sesión" onClick={onLogout}><Icon name="logout" size={16} /></Button>
+            <Button variant="ghost" size="sm" className="ns-btn--icon" aria-label={t.shell.logout} title={t.shell.logout} onClick={onLogout}><Icon name="logout" size={16} /></Button>
           ) : null}
+          <PreferencesDrawer open={prefsOpen} onClose={() => setPrefsOpen(false)} />
         </div>
       </div>
     </aside>

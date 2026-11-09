@@ -2,6 +2,11 @@ import { Fragment, type ReactNode } from "react";
 import { Icon } from "../atoms/Icon";
 import policyText from "../../../docs/legal/politica-de-tratamiento-de-datos.md?raw";
 import termsText from "../../../docs/legal/terminos-y-condiciones.md?raw";
+import policyEn from "../../../docs/legal/Privacy policy (English draft).md?raw";
+import termsEn from "../../../docs/legal/Terms of use (English draft).md?raw";
+import policyPt from "../../../docs/legal/Politica de privacidade (rascunho em portugues).md?raw";
+import termsPt from "../../../docs/legal/Termos de uso (rascunho em portugues).md?raw";
+import type { Lang } from "../../i18n/format";
 
 /*
  * Documentos legales dentro de la app (paso 6g). Se leen de docs/legal/ al compilar: el texto que ve la persona es
@@ -9,6 +14,12 @@ import termsText from "../../../docs/legal/terminos-y-condiciones.md?raw";
  */
 
 export const LEGAL = { policy: policyText, terms: termsText };
+
+/**
+ * Política y términos en el idioma de la app (idiomas, paso 6). El español es la fuente y la versión que rige. El
+ * inglés y el portugués son borradores técnicos para abogado y lo dicen al comienzo del documento.
+ */
+export const legalFor = (lang: Lang) => (lang === "en" ? { policy: policyEn, terms: termsEn } : lang === "pt" ? { policy: policyPt, terms: termsPt } : LEGAL);
 
 /** **negrita** dentro de una línea. */
 function inline(text: string): ReactNode {

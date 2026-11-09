@@ -20,23 +20,37 @@ import { useAuth } from "../../app/AuthContext";
 import { DEMO } from "../../lib/supabase";
 import { useToast } from "../../components/organisms/Toast";
 import { useOverview } from "../../services/teacherOverview";
-import { readExamPhoto, readUploadedPhoto, type ExamResult } from "../../services/vision";
+import { VisionError, readExamPhoto, readUploadedPhoto, type ExamResult } from "../../services/vision";
+import { useI18n } from "../../i18n/I18nProvider";
+import type { Messages } from "../../i18n/es";
 import { closePhoneUpload, pickPhonePhotos, startPhoneUpload, type PhoneSession } from "../../services/phoneUpload";
 import { PhoneUploadDialog } from "../../components/organisms/PhoneUpload";
 import { assignmentsState, queryState } from "./states";
 
 /* 02 · Calificar: ¿qué detectó la IA y es correcto? Carga → procesamiento → revisión. */
 
-type FileItem = { name: string; status: "success" | "processing" | "warning"; note: string };
+/** Nota de cada foto de la demostración: el texto se pone al pintar, en el idioma de la app. */
+type DemoNote = { k: "read"; who: string; grade: number | null } | { k: "detecting" } | { k: "waiting" };
+type FileItem = { name: string; status: "success" | "processing" | "warning"; note: DemoNote };
 
 export function UploadPage() {
   return DEMO ? <DemoUploadPage /> : <RealUploadPage />;
 }
 
-type QueueItem = { key: string; file?: File; path?: string; name: string; state: "queued" | "reading" | "done" | "review" | "unassigned" | "error"; note: string; result?: ExamResult };
-const QUEUE_DOT: Record<QueueItem["state"], ["success" | "processing" | "warning" | "error", string]> = {
-  queued: ["warning", "En cola"], reading: ["processing", "Procesando"], done: ["success", "Listo"], review: ["warning", "Revisar"], unassigned: ["warning", "Sin estudiante"], error: ["error", "No se leyó"],
+/**
+ * Cada foto guarda datos (estado, resultado, mensaje del servicio) y no el texto: así la lista cambia de idioma con la
+ * app. Las notas que escribe la función read-exam llegan en español y se muestran tal cual (idiomas, paso 3).
+ */
+type QueueItem = { key: string; file?: File; path?: string; name: string; phoneN?: string; state: "queued" | "reading" | "done" | "review" | "unassigned" | "error"; error?: string; result?: ExamResult };
+const QUEUE_DOT: Record<QueueItem["state"], "success" | "processing" | "warning" | "error"> = {
+  queued: "warning", reading: "processing", done: "success", review: "warning", unassigned: "warning", error: "error",
 };
+
+/** Mensaje de error de la lectura: el código propio se traduce; el del servicio llega escrito y se deja igual. */
+function errorText(m: Messages, e: unknown, fallback: string): string {
+  if (e instanceof VisionError) return m.tch.upload[e.code];
+  return e instanceof Error && e.message ? e.message : fallback;
+}
 
 /** Subir fotografías con la base y el servicio de visión (paso 6d): una foto a la vez, cada una con su resultado. */
 function RealUploadPage() {
@@ -50,6 +64,8 @@ function RealUploadPage() {
   const running = useRef(false);
   const pending = useRef<QueueItem[]>([]);
   const [showToast, toastNode] = useToast();
+  const { t, shownGrade, grade: fmtGrade } = useI18n();
+  const u = t.tch.upload;
   const assignments = aq.data ?? [];
   const subjects = [...new Set(assignments.map((a) => a.subject))];
   const curSubject = subject ?? subjects[0];
@@ -67,21 +83,18 @@ function RealUploadPage() {
     const evaluationId = curEval.id;
     for (let i = 0; pending.current.length; i++) {
       const it = pending.current.shift()!;
-      setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state: "reading", note: "Leyendo código, nombre y nota…" } : x)));
+      setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state: "reading" } : x)));
       try {
         const r = it.path ? await readUploadedPhoto(evaluationId, it.path) : await readExamPhoto(profile.id, evaluationId, it.file!, i);
-        const g = r.detected === null ? "sin nota" : r.detected.toFixed(1);
         const state: QueueItem["state"] = !r.studentId ? "unassigned" : !r.saved || r.status === "needs-review" ? "review" : "done";
-        const note = !r.studentId ? r.note + " No se guardó: anótala a mano en la planilla."
-          : r.studentName + " · " + g + (r.note ? " · " + r.note : "");
-        setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state, note, result: r } : x)));
+        setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state, result: r } : x)));
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "No pudimos leer la foto.";
-        setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state: "error", note: msg } : x)));
-        // Sin servicio configurado no tiene sentido seguir con las demás.
+        const msg = errorText(t, e, u.readFailed);
+        setQueue((q) => q.map((x) => (x.key === it.key ? { ...x, state: "error", error: msg } : x)));
+        // Sin servicio configurado no tiene sentido seguir con las demás (el servicio responde en español).
         if (/no está configurado|clave|no tiene saldo/.test(msg)) {
-          showToast({ tone: "error", title: "El servicio de lectura no está listo", message: msg });
-          pending.current.forEach((x) => setQueue((q) => q.map((y) => (y.key === x.key ? { ...y, state: "error", note: msg } : y))));
+          showToast({ tone: "error", title: u.serviceNotReady, message: msg });
+          pending.current.forEach((x) => setQueue((q) => q.map((y) => (y.key === x.key ? { ...y, state: "error", error: msg } : y))));
           pending.current = [];
           break;
         }
@@ -99,9 +112,9 @@ function RealUploadPage() {
     if (!curEval) return;
     setPhoneOpen(true); setPhoneErr(null);
     if (phone && new Date(phone.expiresAt).getTime() > Date.now()) return;
-    try { setPhone(await startPhoneUpload(curEval.id)); setPhoneCount(0); } catch (e) { setPhoneErr(e instanceof Error ? e.message : "No pudimos generar el código."); }
+    try { setPhone(await startPhoneUpload(curEval.id)); setPhoneCount(0); } catch (e) { setPhoneErr(errorText(t, e, u.codeFailed)); }
   }
-  async function renewPhone() { setPhone(null); if (curEval) { try { setPhone(await startPhoneUpload(curEval.id)); } catch (e) { setPhoneErr(e instanceof Error ? e.message : "No pudimos generar el código."); } } }
+  async function renewPhone() { setPhone(null); if (curEval) { try { setPhone(await startPhoneUpload(curEval.id)); } catch (e) { setPhoneErr(errorText(t, e, u.codeFailed)); } } }
   function finishPhone() { if (phone) void closePhoneUpload(phone.id); setPhone(null); setPhoneOpen(false); }
   useEffect(() => {
     if (!phone) return;
@@ -119,49 +132,58 @@ function RealUploadPage() {
   useEffect(() => { if (phone) { void closePhoneUpload(phone.id); setPhone(null); setPhoneOpen(false); } }, [curEval?.id]);
 
   function addPaths(paths: string[]) {
-    const fresh = paths.map((path, i) => ({ key: Date.now() + "-m" + i, path, name: "Foto del celular " + path.split("-").pop()!.replace(".jpg", ""), state: "queued" as const, note: "Llegó del celular · en espera" }));
+    const fresh = paths.map((path, i) => ({ key: Date.now() + "-m" + i, path, name: path, phoneN: path.split("-").pop()!.replace(".jpg", ""), state: "queued" as const }));
     setQueue((q) => q.concat(fresh));
     void run(fresh);
   }
 
   function add(files: File[]) {
-    const fresh = files.map((f, i) => ({ key: Date.now() + "-" + i + "-" + f.name, file: f, name: f.name, state: "queued" as const, note: "En espera" }));
+    const fresh = files.map((f, i) => ({ key: Date.now() + "-" + i + "-" + f.name, file: f, name: f.name, state: "queued" as const }));
     setQueue((q) => q.concat(fresh));
     void run(fresh);
   }
 
+  const nameOf = (f: QueueItem) => (f.phoneN ? u.fromPhone(f.phoneN) : f.name);
+  function noteOf(f: QueueItem): string {
+    if (f.state === "queued") return f.phoneN ? u.notePhone : u.noteWaiting;
+    if (f.state === "reading") return u.noteReading;
+    if (f.state === "error") return f.error ?? u.readFailed;
+    const r = f.result!;
+    if (!r.studentId) return u.notSaved(r.note);
+    return r.studentName + " · " + (r.detected === null ? u.noGrade : shownGrade(r.detected)) + (r.note ? " · " + r.note : "");
+  }
   const reading = queue.findIndex((x) => x.state === "reading");
   const lastDone = [...queue].reverse().find((x) => x.result);
   const finished = queue.filter((x) => x.state !== "queued" && x.state !== "reading").length;
-  const state = assignmentsState(aq, "Cargando tus cursos") ?? queryState(q, "Cargando tus evaluaciones", "No pudimos cargar tus evaluaciones.");
+  const state = assignmentsState(aq, t.tch.states.loadingCourses) ?? queryState(q, u.loading, u.error);
   return (
     <PageShell active="grade">
       <Header
-        eyebrow="Paso 1 a 4 · la IA trabaja, tú esperas" title="Calificar una evaluación" highlight="evaluación"
-        description="Elige la evaluación y sube las fotografías. NotaScan identifica a cada estudiante por el código y el nombre que escribió en la hoja."
-        actions={<Button size="lg" iconRight="arrow" disabled={!curEval} onClick={() => curEval && go("review", { id: String(curEval.id) })}>Ir a revisión</Button>}
+        eyebrow={u.eyebrow} title={u.title} highlight={u.highlight}
+        description={u.desc}
+        actions={<Button size="lg" iconRight="arrow" disabled={!curEval} onClick={() => curEval && go("review", { id: String(curEval.id) })}>{u.toReview}</Button>}
       />
       <ReviewStepper current={3} />
       {state ?? (
         <div className="ns-upload-grid">
           <div className="ns-col" style={{ gap: 24 }}>
-            <Block label="Evaluación">
-              <BlockTitle>1 · Evaluación</BlockTitle>
+            <Block label={u.evaluation}>
+              <BlockTitle>{u.step1}</BlockTitle>
               <div className="ns-row">
-                <FilterGroup as="select" label="Asignatura" value={curSubject} onChange={setSubject} options={subjects.map((s) => ({ value: s, label: s }))} />
-                <FilterGroup as="select" label="Curso" value={curCourse} onChange={setCourse} options={courses.map((c) => ({ value: c, label: c }))} />
-                {evals.length ? <FilterGroup as="select" label="Evaluación" value={curEval ? String(curEval.id) : undefined} onChange={setEvalId} options={evals.map((e) => ({ value: String(e.id), label: e.name }))} /> : null}
+                <FilterGroup as="select" label={t.tch.f.subject} value={curSubject} onChange={setSubject} options={subjects.map((s) => ({ value: s, label: s }))} />
+                <FilterGroup as="select" label={t.tch.f.course} value={curCourse} onChange={setCourse} options={courses.map((c) => ({ value: c, label: c }))} />
+                {evals.length ? <FilterGroup as="select" label={t.tch.f.evaluation} value={curEval ? String(curEval.id) : undefined} onChange={setEvalId} options={evals.map((e) => ({ value: String(e.id), label: e.name }))} /> : null}
               </div>
-              {evals.length ? null : <EmptyState icon="evaluations" title="No hay evaluaciones abiertas en este curso." message="Crea la evaluación en Evaluaciones y vuelve para subir las fotos." action={<Button variant="secondary" icon="plus" onClick={() => go("evaluations")}>Ir a evaluaciones</Button>} />}
+              {evals.length ? null : <EmptyState icon="evaluations" title={u.noOpenTitle} message={u.noOpenText} action={<Button variant="secondary" icon="plus" onClick={() => go("evaluations")}>{t.tch.states.goEvaluations}</Button>} />}
             </Block>
-            <Block label="Fotografías">
-              <BlockTitle>2 · Fotografías</BlockTitle>
-              {curEval ? <UploadZone hint="Arrastra las fotos del examen o haz clic. Una hoja por foto, con el código y el nombre del estudiante a la vista." onFiles={add} /> : null}
+            <Block label={u.photos}>
+              <BlockTitle>{u.step2}</BlockTitle>
+              {curEval ? <UploadZone hint={u.hint} onFiles={add} /> : null}
               {curEval ? (
                 <div className="ns-phone-live">
-                  <Button variant="secondary" icon="qr" onClick={() => void openPhone()}>{phone ? "Ver el código del celular" : "Subir desde el celular"}</Button>
-                  {phone ? <StatusDot status="processing" label={"Celular conectado · " + (phoneCount === 1 ? "1 foto" : phoneCount + " fotos")} /> : <span className="ns-caption">Toma las fotos con el celular y llegan aquí solas.</span>}
-                  {phone ? <Button variant="ghost" size="sm" onClick={finishPhone}>Terminar</Button> : null}
+                  <Button variant="secondary" icon="qr" onClick={() => void openPhone()}>{phone ? u.phoneShow : u.phoneStart}</Button>
+                  {phone ? <StatusDot status="processing" label={u.phoneLive(phoneCount)} /> : <span className="ns-caption">{u.phoneHint}</span>}
+                  {phone ? <Button variant="ghost" size="sm" onClick={finishPhone}>{u.finish}</Button> : null}
                 </div>
               ) : null}
               {queue.length ? (
@@ -169,8 +191,8 @@ function RealUploadPage() {
                   {queue.map((f) => (
                     <li key={f.key} className="ns-list-item">
                       <span className="ns-file-icon" aria-hidden><Icon name="file" size={18} /></span>
-                      <div className="ns-list-main"><strong>{f.name}</strong><span className="ns-caption">{f.note}</span></div>
-                      <StatusDot status={QUEUE_DOT[f.state][0]} label={QUEUE_DOT[f.state][1]} />
+                      <div className="ns-list-main"><strong>{nameOf(f)}</strong><span className="ns-caption">{noteOf(f)}</span></div>
+                      <StatusDot status={QUEUE_DOT[f.state]} label={u.queue[f.state]} />
                     </li>
                   ))}
                 </ul>
@@ -179,12 +201,12 @@ function RealUploadPage() {
           </div>
           {queue.length ? (
             <ProcessingPanel simulate={false} step={reading >= 0 ? 1 : 3} index={reading >= 0 ? reading + 1 : finished} total={queue.length}
-              file={reading >= 0 ? queue[reading].name : lastDone?.name}
-              studentName={lastDone?.result?.studentName ?? "Sin estudiante"} detected={lastDone?.result?.detected === null || !lastDone?.result ? "—" : lastDone.result.detected.toFixed(1)}
+              file={reading >= 0 ? nameOf(queue[reading]) : lastDone ? nameOf(lastDone) : undefined}
+              studentName={lastDone?.result?.studentName ?? u.noStudent} detected={lastDone?.result?.detected === null || !lastDone?.result ? "—" : shownGrade(lastDone.result.detected)}
               confidence={lastDone?.result?.studentId ? lastDone.result.confidence : null}
-              doneTitle={lastDone?.result?.studentId ? "Estudiante identificado" : "Sin estudiante identificado"} grade={lastDone?.result?.detected === null || !lastDone?.result ? "—" : lastDone.result.detected.toFixed(1).replace(".", ",")} />
+              doneTitle={lastDone?.result?.studentId ? u.identified : u.notIdentified} grade={lastDone?.result?.detected === null || !lastDone?.result ? "—" : fmtGrade(lastDone.result.detected)} />
           ) : (
-            <Block><EmptyState icon="camera" title="Aún no has subido fotografías." message="Cada foto se lee en unos segundos. La IA solo detecta: tú revisas y confirmas cada nota." /></Block>
+            <Block><EmptyState icon="camera" title={u.noPhotosTitle} message={u.noPhotosText} /></Block>
           )}
         </div>
       )}
@@ -198,39 +220,42 @@ function RealUploadPage() {
 /** El flujo del sistema con sus datos de demostración (sin cambios). */
 function DemoUploadPage() {
   const { navigate: go } = useShell();
+  const { t, shownGrade } = useI18n();
+  const u = t.tch.upload;
   const [files, setFiles] = useState<FileItem[]>([
-    { name: "parcial2_programacion_05.jpg", status: "success", note: "Valentina Guerrero · 4.2" },
-    { name: "parcial2_programacion_06.jpg", status: "success", note: "Santiago Muñoz · sin detección" },
-    { name: "parcial2_programacion_07.jpg", status: "processing", note: "Detectando calificación…" },
-    { name: "parcial2_programacion_08.jpg", status: "warning", note: "En espera" },
+    { name: "parcial2_programacion_05.jpg", status: "success", note: { k: "read", who: "Valentina Guerrero", grade: 4.2 } },
+    { name: "parcial2_programacion_06.jpg", status: "success", note: { k: "read", who: "Santiago Muñoz", grade: null } },
+    { name: "parcial2_programacion_07.jpg", status: "processing", note: { k: "detecting" } },
+    { name: "parcial2_programacion_08.jpg", status: "warning", note: { k: "waiting" } },
   ]);
+  const noteOf = (n: DemoNote) => (n.k === "read" ? n.who + " · " + (n.grade === null ? u.noDetection : shownGrade(n.grade)) : n.k === "detecting" ? u.noteDetecting : u.noteWaiting);
   return (
     <PageShell active="grade">
       <Header
-        eyebrow="Paso 1 a 4 · la IA trabaja, tú esperas" title="Calificar una evaluación" highlight="evaluación"
-        description="Elige la evaluación, sube las fotografías y NotaScan identificará a cada estudiante por su código QR."
-        actions={<Button size="lg" iconRight="arrow" onClick={() => go("review")}>Ir a revisión</Button>}
+        eyebrow={u.eyebrow} title={u.title} highlight={u.highlight}
+        description={u.descDemo}
+        actions={<Button size="lg" iconRight="arrow" onClick={() => go("review")}>{u.toReview}</Button>}
       />
       <ReviewStepper current={3} />
       <div className="ns-upload-grid">
         <div className="ns-col" style={{ gap: 24 }}>
-          <Block label="Evaluación">
-            <BlockTitle>1 · Evaluación</BlockTitle>
+          <Block label={u.evaluation}>
+            <BlockTitle>{u.step1}</BlockTitle>
             <div className="ns-row">
-              <FilterGroup as="select" label="Asignatura" options={[{ value: "p", label: "Matemáticas" }, { value: "f", label: "Física" }, { value: "t", label: "Tecnología" }]} />
-              <FilterGroup as="select" label="Curso" options={[{ value: "5a", label: "7A" }, { value: "5b", label: "7B" }]} />
-              <FilterGroup as="select" label="Evaluación" options={EVALUATIONS.map((e) => ({ value: e.id, label: e.name }))} />
+              <FilterGroup as="select" label={t.tch.f.subject} options={[{ value: "p", label: "Matemáticas" }, { value: "f", label: "Física" }, { value: "t", label: "Tecnología" }]} />
+              <FilterGroup as="select" label={t.tch.f.course} options={[{ value: "5a", label: "7A" }, { value: "5b", label: "7B" }]} />
+              <FilterGroup as="select" label={t.tch.f.evaluation} options={EVALUATIONS.map((e) => ({ value: e.id, label: e.name }))} />
             </div>
           </Block>
-          <Block label="Fotografías">
-            <BlockTitle>2 · Fotografías</BlockTitle>
-            <UploadZone onFiles={(list) => setFiles(files.concat(list.map((f) => ({ name: f.name, status: "warning" as const, note: "En espera" }))))} />
+          <Block label={u.photos}>
+            <BlockTitle>{u.step2}</BlockTitle>
+            <UploadZone onFiles={(list) => setFiles(files.concat(list.map((f) => ({ name: f.name, status: "warning" as const, note: { k: "waiting" as const } }))))} />
             <ul className="ns-list" style={{ marginTop: 16 }}>
               {files.map((f, i) => (
                 <li key={f.name + i} className="ns-list-item">
                   <span className="ns-file-icon" aria-hidden><Icon name="file" size={18} /></span>
-                  <div className="ns-list-main"><strong>{f.name}</strong><span className="ns-caption">{f.note}</span></div>
-                  <StatusDot status={f.status} label={f.status === "success" ? "Listo" : f.status === "processing" ? "Procesando" : "En cola"} />
+                  <div className="ns-list-main"><strong>{f.name}</strong><span className="ns-caption">{noteOf(f.note)}</span></div>
+                  <StatusDot status={f.status} label={f.status === "success" ? u.queue.done : f.status === "processing" ? u.queue.reading : u.queue.queued} />
                 </li>
               ))}
             </ul>
@@ -257,7 +282,9 @@ export function GradeReviewDashboard({ loading = false, evaluationId }: { loadin
   const [toast, setToast] = useState<ToastData | null>(null);
   const timers = useRef<number[]>([]);
   const dirty = useRef(false);
-  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
+  const { t } = useI18n();
+  const v = t.tch.rev;
+  useEffect(() => () => timers.current.forEach((x) => window.clearTimeout(x)), []);
   // Al llegar datos nuevos de la base se recargan las tarjetas, salvo que haya cambios sin guardar.
   useEffect(() => { if (query.data && !dirty.current) setRows(query.data.rows.map((r) => ({ ...r }))); }, [query.data]);
 
@@ -270,8 +297,8 @@ export function GradeReviewDashboard({ loading = false, evaluationId }: { loadin
     const okS = !s || r.student.name.toLowerCase().indexOf(s) >= 0 || r.student.id.indexOf(s) >= 0;
     return okF && okS;
   });
-  const showToast = (t: ToastData) => {
-    setToast(t);
+  const showToast = (d: ToastData) => {
+    setToast(d);
     timers.current.push(window.setTimeout(() => setToast(null), 4200));
   };
 
@@ -284,11 +311,11 @@ export function GradeReviewDashboard({ loading = false, evaluationId }: { loadin
       () => {
         dirty.current = false;
         setDlg(false);
-        showToast({ tone: "success", title: verified + " calificaciones guardadas", message: (ev ? ev.name + " · " + ev.subject : "La evaluación") + " quedó actualizado." });
+        showToast({ tone: "success", title: v.saved(verified), message: v.updated(ev ? ev.name + " · " + ev.subject : null) });
       },
       (e) => {
         setDlg(false);
-        showToast({ tone: "error", title: "No pudimos guardar las calificaciones", message: saveMessage(e) + " Tus verificaciones siguen en pantalla." });
+        showToast({ tone: "error", title: v.saveError, message: saveMessage(e, t) + v.keepOnScreen });
       },
     );
   }
@@ -296,24 +323,24 @@ export function GradeReviewDashboard({ loading = false, evaluationId }: { loadin
   const waiting = loading || (query.isPending && !query.data);
   let body: ReactNode;
   if (waiting) body = <div className="ns-grid">{[0, 1, 2].map((i) => <StudentGradeCardSkeleton key={i} />)}</div>;
-  else if (query.isError && !query.data) body = <ErrorState title="No pudimos cargar la revisión." onRetry={() => query.refetch()} />;
-  else if (!ev) body = <EmptyState title="No tienes evaluaciones en revisión." message="Cuando la IA termine de leer las fotografías de una evaluación, sus notas aparecerán aquí para que las verifiques." action={<Button variant="secondary" icon="upload" onClick={() => go("grade")}>Calificar una evaluación</Button>} />;
-  else if (!rows.length) body = <EmptyState title="Esta evaluación aún no tiene notas detectadas." message="Sube las fotografías para que la IA las lea." action={<Button variant="secondary" icon="upload" onClick={() => go("grade")}>Subir fotografías</Button>} />;
+  else if (query.isError && !query.data) body = <ErrorState title={v.loadError} onRetry={() => query.refetch()} />;
+  else if (!ev) body = <EmptyState title={v.noneTitle} message={v.noneText} action={<Button variant="secondary" icon="upload" onClick={() => go("grade")}>{t.tch.dash.gradeOne}</Button>} />;
+  else if (!rows.length) body = <EmptyState title={v.emptyTitle} message={v.emptyText} action={<Button variant="secondary" icon="upload" onClick={() => go("grade")}>{v.uploadPhotos}</Button>} />;
 
   return (
     <PageShell
       active="grade"
       overlay={<>
-        <ConfirmDialog open={dlg} count={verified} loading={saveMut.isPending} note={pending + review > 0 ? pending + review + " sin verificar quedarán pendientes" : null} onCancel={() => setDlg(false)} onConfirm={save} />
+        <ConfirmDialog open={dlg} count={verified} loading={saveMut.isPending} note={pending + review > 0 ? v.unverified(pending + review) : null} onCancel={() => setDlg(false)} onConfirm={save} />
         {toast ? <div className="ns-toast-region"><Toast {...toast} onClose={() => setToast(null)} /></div> : null}
       </>}
     >
       <Header
-        eyebrow={ev ? ev.name + " · " + ev.subject + " · " + ev.course : "Evaluación en revisión"} title="Revisión de calificaciones" highlight="calificaciones" sticker="IA + docente"
-        description="La IA terminó el reconocimiento. Verifica las calificaciones antes de guardarlas."
+        eyebrow={ev ? ev.name + " · " + ev.subject + " · " + ev.course : v.eyebrow} title={v.title} highlight={v.highlight} sticker={v.sticker}
+        description={v.desc}
         actions={<>
-          <Button variant="secondary" icon="upload" onClick={() => go("grade")}>Subir más fotos</Button>
-          <Button size="lg" icon="lock" disabled={verified === 0} onClick={() => setDlg(true)}>Confirmar y guardar</Button>
+          <Button variant="secondary" icon="upload" onClick={() => go("grade")}>{v.uploadMore}</Button>
+          <Button size="lg" icon="lock" disabled={verified === 0} onClick={() => setDlg(true)}>{v.confirmSave}</Button>
         </>}
       />
       <Marquee />
@@ -323,13 +350,13 @@ export function GradeReviewDashboard({ loading = false, evaluationId }: { loadin
           <ReviewSummary total={rows.length} verified={verified} pending={pending} review={review} evaluation={ev?.name} />
           <div>
             <FiltersBar
-              search={search} onSearch={setSearch} count={visible.length + " de " + rows.length + " estudiantes"}
+              search={search} onSearch={setSearch} count={t.tch.studentsCount(visible.length, rows.length)}
               groups={[{
-                label: "Estado", value: filter, onChange: setFilter, options: [
-                  { value: "all", label: "Todas", count: rows.length },
-                  { value: "needs-review", label: "Requiere revisión", count: review },
-                  { value: "pending", label: "Pendientes", count: pending },
-                  { value: "verified", label: "Verificadas", count: verified }],
+                label: t.tch.f.state, value: filter, onChange: setFilter, options: [
+                  { value: "all", label: t.tch.f.all, count: rows.length },
+                  { value: "needs-review", label: v.filter.needsReview, count: review },
+                  { value: "pending", label: v.filter.pending, count: pending },
+                  { value: "verified", label: v.filter.verified, count: verified }],
               }]}
             />
           </div>
@@ -344,7 +371,7 @@ export function GradeReviewDashboard({ loading = false, evaluationId }: { loadin
                   ))}
                 </div>
               )
-              : <EmptyState title="No hay calificaciones con este filtro." message="Prueba con otro estado o limpia la búsqueda." action={<Button variant="secondary" onClick={() => { setFilter("all"); setSearch(""); }}>Ver todas</Button>} />}
+              : <EmptyState title={v.noMatchTitle} message={v.noMatchText} action={<Button variant="secondary" onClick={() => { setFilter("all"); setSearch(""); }}>{t.tch.states.seeAll}</Button>} />}
         </>
       )}
     </PageShell>

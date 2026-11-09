@@ -5,6 +5,7 @@ import { Icon } from "../atoms/Icon";
 import { StatusDot } from "../atoms/StatusDot";
 import { Modal } from "./Overlays";
 import { phoneLink, type PhoneSession } from "../../services/phoneUpload";
+import { useI18n } from "../../i18n/I18nProvider";
 
 /*
  * Subir desde el celular · ventana del QR (2026-10-06). Piezas del sistema: Modal, Button, StatusDot, iconos de la
@@ -33,33 +34,32 @@ export function PhoneUploadDialog({ open, session, received, evaluationName, onC
     void QRCode.toString(phoneLink(session.token), { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#1b2a4a", light: "#fffdf8" } }).then(setSvg);
   }, [session?.token]);
   const expired = !!session && left === 0;
+  const p = useI18n().t.tch.phone;
   return (
-    <Modal open={open} onClose={onClose} size="doc" title="Toma las fotos con el celular"
-      description={"Las fotos llegan solas a «" + evaluationName + "» y la IA las lee como las que arrastras."}
+    <Modal open={open} onClose={onClose} size="doc" title={p.title}
+      description={p.desc(evaluationName)}
       actions={[
-        <Button key="c" variant="secondary" onClick={onClose}>Cerrar ventana</Button>,
-        <Button key="f" icon="check" onClick={onFinish}>Terminar</Button>,
+        <Button key="c" variant="secondary" onClick={onClose}>{p.close}</Button>,
+        <Button key="f" icon="check" onClick={onFinish}>{p.finish}</Button>,
       ]}>
       <div className="ns-phone-pair">
-        <div className="ns-phone-qr" aria-label="Código QR para abrir la página de fotos en el celular" role="img">
+        <div className="ns-phone-qr" aria-label={p.qrAria} role="img">
           {error ? <span className="ns-caption"><Icon name="error" size={16} /> {error}</span>
             : expired ? (
               <div className="ns-phone-qr-expired">
-                <strong>El código venció</strong>
-                <Button variant="secondary" icon="refresh" onClick={onRenew}>Generar otro</Button>
+                <strong>{p.expired}</strong>
+                <Button variant="secondary" icon="refresh" onClick={onRenew}>{p.renew}</Button>
               </div>
-            ) : svg ? <img src={"data:image/svg+xml;utf8," + encodeURIComponent(svg)} alt="" width={232} height={232} /> : <span className="ns-caption">Generando el código…</span>}
+            ) : svg ? <img src={"data:image/svg+xml;utf8," + encodeURIComponent(svg)} alt="" width={232} height={232} /> : <span className="ns-caption">{p.generating}</span>}
         </div>
         <div className="ns-col" style={{ gap: 16 }}>
           <ol className="ns-phone-steps">
-            <li><span>1</span><div><strong>Apunta la cámara del celular al código.</strong><small>Se abre la página de NotaScan; no hay que instalar nada ni iniciar sesión.</small></div></li>
-            <li><span>2</span><div><strong>Toca «Tomar foto» por cada hoja.</strong><small>Hoja completa, con luz y sin sombras; el código y el nombre a la vista.</small></div></li>
-            <li><span>3</span><div><strong>Revisa aquí.</strong><small>Cada foto aparece en la lista y la IA la lee; tú confirmas cada nota.</small></div></li>
+            {p.steps.map((st, i) => <li key={i}><span>{i + 1}</span><div><strong>{st[0]}</strong><small>{st[1]}</small></div></li>)}
           </ol>
           <div className="ns-phone-status" aria-live="polite">
             <StatusDot status={received ? "success" : expired ? "warning" : "processing"}
-              label={received ? (received === 1 ? "1 foto recibida" : received + " fotos recibidas") : expired ? "Sin fotos" : "Esperando fotos"} />
-            {session && !expired ? <span className="ns-caption">{"El código vence en " + label}</span> : null}
+              label={received ? p.received(received) : expired ? p.none : p.waiting} />
+            {session && !expired ? <span className="ns-caption">{p.expiresIn(label)}</span> : null}
           </div>
         </div>
       </div>

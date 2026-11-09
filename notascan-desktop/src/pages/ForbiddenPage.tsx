@@ -1,9 +1,10 @@
-import { ROLE_NAME } from "../app/AuthContext";
 import { useShell } from "../app/ShellContext";
 import { Button } from "../components/atoms/Button";
 import { EmptyState } from "../components/organisms/EmptyState";
 import { PageShell } from "../components/templates/PageShell";
 import type { DesktopRole } from "../data/roles";
+import { useI18n } from "../i18n/I18nProvider";
+
 
 /**
  * «Sin permiso» (aprobada el 2026-10-01): dentro del marco del propio rol, el EmptyState de error con
@@ -12,12 +13,13 @@ import type { DesktopRole } from "../data/roles";
  */
 export function ForbiddenPage({ sectionRole }: { sectionRole: DesktopRole }) {
   const { role, navigate } = useShell();
+  const { t } = useI18n();
   return (
     <PageShell active="">
       <EmptyState
-        tone="error" icon="lock" title="No tienes permiso para ver esta sección."
-        message={"Esta sección es de " + ROLE_NAME[sectionRole] + " y tu cuenta es de " + ROLE_NAME[role] + "."}
-        action={<Button icon="dashboard" onClick={() => navigate("dashboard")}>Ir a mi inicio</Button>}
+        tone="error" icon="lock" title={t.forbidden.title}
+        message={t.forbidden.text(t.roles[sectionRole], t.roles[role])}
+        action={<Button icon="dashboard" onClick={() => navigate("dashboard")}>{t.forbidden.home}</Button>}
       />
     </PageShell>
   );

@@ -5,6 +5,8 @@ import { Icon } from "../atoms/Icon";
 import { ConnectivityStatus } from "../molecules/ConnectivityStatus";
 import { GlobalSearch } from "../molecules/GlobalSearch";
 import { AppShell } from "./AppShell";
+import { useI18n } from "../../i18n/I18nProvider";
+
 import type { Institution } from "../../services/institution";
 
 export interface RoleShellProps {
@@ -26,10 +28,11 @@ export interface RoleShellProps {
 /** AppShell + navegación del rol + herramientas: chip de rol, búsqueda global y, para el docente, conexión. */
 export function RoleShell({ role, active, counts, overlay, user, school, context, onNavigate, onLogout, style, children }: RoleShellProps) {
   const r = ROLES[role];
+  const { t } = useI18n();
   const { sync, setSync, onSync, enqueue, notice } = useSync();
   const tools = (
     <>
-      <span className="ns-role-chip"><Icon name="shield" size={14} />{r.label}</span>
+      <span className="ns-role-chip"><Icon name="shield" size={14} />{t.shell.roleChip[role]}</span>
       {role === "platform" ? null : <GlobalSearch onOpenStudent={(s, tab) => onNavigate?.("profile", { id: s.id, tab })} />}
       {role === "teacher" ? (
         <ConnectivityStatus
@@ -45,7 +48,7 @@ export function RoleShell({ role, active, counts, overlay, user, school, context
   return (
     <AppShell
       active={active} onNavigate={onNavigate} onLogout={onLogout} style={style} overlay={overlay}
-      items={roleNav(role, navCounts)} user={user || r.user} school={school} course={context === undefined ? r.course : context?.value ?? ""} courseLabel={context === undefined ? r.courseLabel : context?.label ?? ""} density={r.density} topbar={tools}
+      items={roleNav(role, t.nav, navCounts)} user={user || { ...r.user, role: t.shell.persona[role] }} school={school} course={context === undefined ? r.course : context?.value ?? ""} courseLabel={context === undefined ? t.shell.contextLabel[role] : context?.label ?? ""} density={r.density} topbar={tools}
     >
       {children}
     </AppShell>
