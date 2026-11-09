@@ -824,8 +824,23 @@ Hay dos pruebas por debajo de la base y no se repitieron, como pidió Diego. `ve
 ### Pendiente
 
 - **Sin permiso.** La vista usa el mismo `EmptyState` de error que se midió aquí, pero la ruta solo aparece con una sesión real (`verify:auth`, compilación sin demostración). No se recorrió en oscuro.
-- **Error de sincronización.** El panel de conexión se midió en modo sin conexión. El estado de error de sincronización no se puede forzar en la demostración.
+- **Error de sincronización.** Resuelto el 2026-11-09 (ver «Error de sincronización en oscuro» abajo).
 - **Mac real.** La prueba en un Mac real de los botones nativos con `setTheme` (paso 3).
 - **`verify:teacher`.** Sus comparaciones de píxeles contra el sistema siguen variando entre corridas (sección 15).
 - **Textos en inglés y portugués.** Falta su revisión nativa.
 - **Política de datos.** Hecho el 2026-11-09: la fila de la preferencia de tema está en la sección 5 de las tres políticas.
+
+### Error de sincronización en oscuro (2026-11-09)
+
+La demostración ahora puede forzar el error con `#/teacher/dashboard?sincronizacion=error`, igual que `?estado=`. Abre la píldora de conexión en «Error de sincronización», con 2 cambios pendientes y uno que la base no aceptó, como lo cuenta la cola real del paso 6f. Solo existe en la compilación de demostración (`forcedSyncError` en `src/services/client.ts`).
+
+`verify:dark-states` suma tres comprobaciones y queda en 20/20.
+
+- La píldora da 7.47:1 (`#eea49a` sobre `#36211e`).
+- El panel explica el error, los pendientes y el cambio rechazado.
+- Sus 8 textos y el resto de la pantalla cumplen AA. La consola sale limpia en 76 cargas.
+
+Fallo propio. La primera corrida no encontró el error porque la expresión regular se escribió con un carácter de retroceso donde iba `\b`. Se cambió por `(?:&|$)` y se comprobó que no quedara ese carácter en los archivos tocados.
+
+Captura en `docs/ux/capturas/2026-11-09 oscuro error de sincronizacion.png`.
+

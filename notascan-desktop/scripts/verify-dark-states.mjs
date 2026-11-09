@@ -7,6 +7,7 @@
 // auditoría de scripts/dark-audit.mjs: texto AA, cifras a 7:1, texto sobre dorado, superficies claras sueltas. Además:
 //   - esqueletos de carga visibles pero oscuros (no se vuelven bloques claros)
 //   - el sello del estado vacío y del error con su icono a 3:1
+//   - error de sincronización: ?sincronizacion=error (píldora, panel y cambio rechazado)
 //   - dato viejo: el modo sin conexión de la píldora de conexión y su panel con la última sincronización
 //   - la hoja del examen del login en claro (O5) con la nota a mano legible, y el teléfono en oscuro
 //   - consola limpia
@@ -97,6 +98,32 @@ try {
     report.check(`Dato viejo · panel de conexión (${pop.length} textos, con «Última sincronización») y toda la pantalla con AA`, pop.length > 0 && popBad.length === 0,
       popBad.map((t) => `${t.el} «${t.txt}» ${t.r.toFixed(2)}:1`).join("; "));
     consoleLog.push({ where: "dato viejo", cons: [...cons] });
+    await ctx.close();
+  }
+
+  // Error de sincronización (forzado con ?sincronizacion=error): píldora, panel abierto y aviso del cambio rechazado.
+  {
+    const { ctx, page, cons } = await open(browser, "#/teacher/dashboard?sincronizacion=error");
+    await page.locator(".ns-conn-pill").click();
+    await page.waitForTimeout(300);
+    const pill = await page.locator(".ns-conn-pill").evaluate((el) => {
+      const parse = (x) => (x.match(/[\d.]+/g) || []).map(Number);
+      let n = el, bg = null;
+      while (n && !bg) { const c = parse(getComputedStyle(n).backgroundColor); if (c.length === 3 || c[3] > 0.9) bg = c.slice(0, 3); n = n.parentElement; }
+      return { txt: el.textContent.trim(), fg: parse(getComputedStyle(el).color).slice(0, 3), bg };
+    });
+    const pr = contrast(pill.fg, pill.bg);
+    report.check(`Error de sincronización · píldora «${pill.txt}» ≥ 4.5:1`, pr >= 4.5 && /sincronizaci/i.test(pill.txt), `${pr.toFixed(2)}:1 ${hex(pill.fg)} sobre ${hex(pill.bg)}`);
+    const popTxt = await page.locator(".ns-conn-pop").innerText();
+    report.check("Error de sincronización · el panel explica el error, los pendientes y el cambio rechazado",
+      /No pudimos sincronizar/.test(popTxt) && /2 cambios pendientes/.test(popTxt) && /no aceptó 1 cambio/.test(popTxt), popTxt.replace(/\s+/g, " ").slice(0, 160));
+    const a = await page.evaluate(audit, DECISION);
+    const pop = a.texts.filter((t) => /ns-conn|pendiente|sincroniz|aceptó/i.test(t.el + t.txt));
+    const popBad = a.texts.filter((t) => t.r < t.min);
+    report.check(`Error de sincronización · panel (${pop.length} textos) y toda la pantalla con AA`, pop.length >= 4 && popBad.length === 0,
+      popBad.map((t) => `${t.el} «${t.txt}» ${t.r.toFixed(2)}:1`).join("; "));
+    await page.screenshot({ path: join(OUT, "oscuro-estado-error-sincronizacion.png"), animations: "disabled" });
+    consoleLog.push({ where: "error de sincronización", cons: [...cons] });
     await ctx.close();
   }
 

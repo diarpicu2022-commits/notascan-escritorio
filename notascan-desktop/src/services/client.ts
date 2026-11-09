@@ -22,6 +22,12 @@ export function forcedState(): ForcedState {
   return (m?.[1] as ForcedState) ?? null;
 }
 
+/** Demostración: #/teacher/dashboard?sincronizacion=error abre la píldora de conexión en error de sincronización,
+ *  con cambios pendientes y uno rechazado por la base. Solo en --mode demo. */
+export function forcedSyncError(): boolean {
+  return DEMO && /[?&]sincronizacion=error(?:&|$)/.test(window.location.hash);
+}
+
 /** Datos de demostración respetando el estado forzado. */
 export function demoData<T>(data: T, empty: T): Promise<T> {
   const st = forcedState();
