@@ -2,6 +2,31 @@
 
 Lo primero que se lee al retomar.
 
+## Pendiente urgente de Diego · Supabase pausado (2026-11-11)
+
+La app no carga porque el proyecto de Supabase `notascan` (`urasrpjslggoknjcxdfp`) no responde. El 2026-11-11 su dirección no existía ni en el DNS de Google ni en el de Cloudflare, que es lo que pasa cuando Supabase pausa un proyecto del plan gratis que lleva unos días sin uso. Sin la base no hay ingreso ni datos. El modo demostración de la pantalla de ingreso sí funciona.
+
+**Para volver a abrirlo**
+
+1. Entra a https://supabase.com/dashboard con tu cuenta y abre el proyecto **notascan** de la organización NotaScan.
+2. Si dice «Paused», toca **Restore project** y espera a que quede activo (unos minutos).
+3. Comprueba que responde con `curl https://urasrpjslggoknjcxdfp.supabase.co/auth/v1/health`, que debe dar 200 o 401 y no «Could not resolve host».
+4. Abre NotaScan 0.2.0 (ya instalada en este computador, Release `v0.2.0`) y entra.
+
+**Cuentas de prueba para el profesor.** En **Authentication → Users → Add user → Create new user**, con **Auto Confirm User** marcado, crea estos tres con una contraseña de prueba que no uses en otro lado:
+
+| Rol | Correo |
+|---|---|
+| Docente | `ana.lucia@losandes.edu.co` |
+| Secretaría | `patricia@losandes.edu.co` |
+| Rectoría | `hernando@losandes.edu.co` |
+
+El rol no se asigna a mano. Esos correos ya están en `staff_directory` de la semilla y la app les da su rol al entrar. Las contraseñas se mandan al profesor por mensaje privado y nunca van al repo. Cuando termine la calificación, se borran los tres usuarios desde la misma pantalla.
+
+**Para que no se vuelva a pausar.** Mientras el profesor califica, abre la app o el panel de Supabase al menos una vez cada pocos días. En el plan gratis, el proyecto se pausa tras unos 7 días sin actividad.
+
+**Para cerrarlo cuando ya no se use.** En el panel del proyecto, **Project Settings → General → Pause project**. Los datos se conservan y se reactiva igual que arriba con **Restore project**. Borrar el proyecto (**Delete project**) es definitivo y se pierde la base, así que solo si ya no se va a usar nunca.
+
 ## Estado
 
 - **Multiplataforma**: pasos A, B y C hechos (CI en verde en Windows 5/5, Linux 4/4 y macOS 11/11), PR #1 mergeado en
